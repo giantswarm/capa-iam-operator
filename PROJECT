@@ -3,4 +3,15 @@ layout:
 - go.kubebuilder.io/v3
 projectName: capa-iam-controller
 repo: github.com/giantswarm/capa-iam-controller
+resources:
+- controller: true
+  domain: giantswarm.io
+  group: infrastructure.cluster.x-k8s.io
+  kind: AWSMachineTemplate
+  version: v1alpha3
+- controller: true
+  domain: giantswarm.io
+  group: infrastructure.cluster.x-k8s.io
+  kind: AWSMachinePool
+  version: v1alpha3
 version: "3"
