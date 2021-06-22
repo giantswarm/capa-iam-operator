@@ -1,0 +1,6 @@
+domain: giantswarm.io
+layout:
+- go.kubebuilder.io/v3
+projectName: capa-iam-controller
+repo: github.com/giantswarm/capa-iam-controller
+version: "3"
