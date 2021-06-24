@@ -30,7 +30,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	infrastructureclusterxk8siov1alpha3 "github.com/giantswarm/capa-iam-controller/api/v1alpha3"
+	infrastructureclusterxk8siov1alpha3 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	//+kubebuilder:scaffold:imports
 )
 
