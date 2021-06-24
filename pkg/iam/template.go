@@ -2,7 +2,6 @@ package iam
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"strings"
 	"text/template"
@@ -28,7 +27,7 @@ func (s *IAMService) generatePolicyDocument() (string, error) {
 	} else if s.roleType == NodesRole {
 		t = nodesTemplate
 	} else {
-		return "", errors.New(fmt.Sprintf("unknown role type '%s'", s.roleType))
+		return "", fmt.Errorf("unknown role type '%s'", s.roleType)
 	}
 
 	params := TemplateParams{

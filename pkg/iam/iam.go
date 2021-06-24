@@ -48,7 +48,7 @@ func New(config IAMServiceConfig) (*IAMService, error) {
 		return nil, errors.New("cannot create IAMService with Log equal to nil")
 	}
 	if !(config.RoleType == ControlPlaneRole || config.RoleType == NodesRole) {
-		return nil, errors.New(fmt.Sprintf("cannot create IAMService with invalid RoleType '%s'", config.RoleType))
+		return nil, fmt.Errorf("cannot create IAMService with invalid RoleType '%s'", config.RoleType)
 	}
 	client := awsiam.New(config.AWSSession)
 
