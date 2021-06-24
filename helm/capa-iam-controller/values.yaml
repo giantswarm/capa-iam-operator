@@ -1,0 +1,15 @@
+project:
+  branch: "[[ .Branch ]]"
+  commit: "[[ .SHA ]]"
+image:
+  name: "giantswarm/capa-iam-controller"
+  tag: "[[ .Version ]]"
+Installation:
+  V1:
+    Registry:
+      Domain: docker.io
+pod:
+  user:
+    id: 1000
+  group:
+    id: 1000
