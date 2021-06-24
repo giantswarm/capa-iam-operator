@@ -24,15 +24,16 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/giantswarm/capa-iam-controller/pkg/awsclient"
 	"github.com/giantswarm/capa-iam-controller/pkg/iam"
+	"github.com/go-logr/logr"
 )
 
 // AWSMachineTemplateReconciler reconciles a AWSMachineTemplate object
 type AWSMachineTemplateReconciler struct {
 	client.Client
+	Log    logr.Logger
 	Scheme *runtime.Scheme
 }
 
@@ -44,9 +45,10 @@ type AWSMachineTemplateReconciler struct {
 // move the current state of the cluster closer to the desired state.
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
-func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	var err error
-	logger := log.FromContext(ctx)
+	ctx := context.TODO()
+	logger := r.Log.WithValues("namespace", req.Namespace, "awsMachineTemplate", req.Name)
 
 	awsMachineTemplate := &infrav1.AWSMachineTemplate{}
 	if err := r.Get(ctx, req.NamespacedName, awsMachineTemplate); err != nil {
@@ -59,6 +61,8 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 		logger.Info("AWSMachineTemplate is missing cluster label or cluster does not exist")
 		return ctrl.Result{}, err
 	}
+
+	logger = logger.WithValues("cluster", cluster.Name)
 
 	var awsClientGetter *awsclient.AwsClient
 	{
