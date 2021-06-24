@@ -3,6 +3,7 @@ module github.com/giantswarm/capa-iam-controller
 go 1.16
 
 require (
+<<<<<<< HEAD
 	github.com/aws/aws-sdk-go v1.36.26
 	github.com/go-logr/logr v0.1.0
 	github.com/onsi/ginkgo v1.14.1
@@ -20,4 +21,10 @@ replace (
 	github.com/coreos/etcd v3.3.10+incompatible => github.com/coreos/etcd v3.3.25+incompatible
 	github.com/gogo/protobuf v1.3.1 => github.com/gogo/protobuf v1.3.2
 	github.com/gorilla/websocket v1.4.0 => github.com/gorilla/websocket v1.4.2
+=======
+	k8s.io/api v0.20.2
+	k8s.io/apimachinery v0.20.2
+	k8s.io/client-go v0.20.2
+	sigs.k8s.io/controller-runtime v0.8.3
+>>>>>>> master
 )
