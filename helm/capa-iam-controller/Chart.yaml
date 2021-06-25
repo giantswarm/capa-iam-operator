@@ -7,3 +7,4 @@ apiVersion: v1
 annotations:
   application.giantswarm.io/team: "firecracker"
   config.giantswarm.io/version: 1.x.x
+
