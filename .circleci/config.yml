@@ -38,7 +38,7 @@ workflows:
             tags:
               only: /^v.*/
 
-       - architect/push-to-app-catalog:
+      - architect/push-to-app-catalog:
           context: "architect"
           name: push-capa-iam-controller-to-app-catalog
           app_catalog: "control-plane-catalog"
