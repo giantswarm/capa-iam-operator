@@ -26,11 +26,13 @@ import (
 	"k8s.io/klog/klogr"
 
 	"k8s.io/apimachinery/pkg/runtime"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+
+	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	expcapa "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
 
 	"github.com/giantswarm/capa-iam-controller/controllers"
 	//+kubebuilder:scaffold:imports
@@ -42,8 +44,10 @@ var (
 )
 
 func init() {
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	_ = clientgoscheme.AddToScheme(scheme)
 
+	_ = capa.AddToScheme(scheme)
+	_ = expcapa.AddToScheme(scheme)
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -79,6 +83,7 @@ func main() {
 
 	if err = (&controllers.AWSMachineTemplateReconciler{
 		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("AWSMachineTemplate"),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AWSMachineTemplate")
@@ -86,6 +91,7 @@ func main() {
 	}
 	if err = (&controllers.AWSMachinePoolReconciler{
 		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("AWSMachinePool"),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AWSMachinePool")

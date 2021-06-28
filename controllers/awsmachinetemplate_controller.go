@@ -28,6 +28,8 @@ import (
 
 	"github.com/giantswarm/capa-iam-controller/pkg/awsclient"
 	"github.com/giantswarm/capa-iam-controller/pkg/iam"
+
+	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 )
 
 // AWSMachineTemplateReconciler reconciles a AWSMachineTemplate object
@@ -37,9 +39,9 @@ type AWSMachineTemplateReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io.giantswarm.io,resources=awsmachinetemplates,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io.giantswarm.io,resources=awsmachinetemplates/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io.giantswarm.io,resources=awsmachinetemplates/finalizers,verbs=update
+//+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinetemplates,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinetemplates/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinetemplates/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -121,7 +123,6 @@ func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 // SetupWithManager sets up the controller with the Manager.
 func (r *AWSMachineTemplateReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		// Uncomment the following line adding a pointer to an instance of the controlled resource as an argument
-		// For().
+		For(&capa.AWSMachineTemplate{}).
 		Complete(r)
 }
