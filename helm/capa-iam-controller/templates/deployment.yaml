@@ -31,7 +31,7 @@ spec:
         command:
         - /manager
         args:
-        - --enable-leader-election
+        - --leader-elect
         resources:
           requests:
             cpu: 100m
