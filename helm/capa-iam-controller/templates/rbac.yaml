@@ -38,7 +38,7 @@ rules:
   verbs:
     - get
     - list
-    - patchgac
+    - patch
     - update
     - watch
 - apiGroups:
