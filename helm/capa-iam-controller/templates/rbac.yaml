@@ -13,10 +13,12 @@ rules:
   - awsclusters/status
   - awsmachinetemplate
   - awsmachinetemplate/status
-  - awsmachinetemplate
-  - awsmachinetemplate/status
+  - awsmachinetemplates
+  - awsmachinetemplates/status
   - awsmachinepool
   - awsmachinepool/status
+  - awsmachinepools
+  - awsmachinepools/status
   - clusters
   - clusters/status
   verbs:
