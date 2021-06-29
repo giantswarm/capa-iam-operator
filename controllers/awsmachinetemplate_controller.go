@@ -21,15 +21,13 @@ import (
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/giantswarm/capa-iam-controller/pkg/awsclient"
 	"github.com/giantswarm/capa-iam-controller/pkg/iam"
-
-	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 )
 
 // AWSMachineTemplateReconciler reconciles a AWSMachineTemplate object
@@ -52,7 +50,7 @@ func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 	ctx := context.TODO()
 	logger := r.Log.WithValues("namespace", req.Namespace, "awsMachineTemplate", req.Name)
 
-	awsMachineTemplate := &infrav1.AWSMachineTemplate{}
+	awsMachineTemplate := &capa.AWSMachineTemplate{}
 	if err := r.Get(ctx, req.NamespacedName, awsMachineTemplate); err != nil {
 		logger.Error(err, "AWSMachineTemplate does not exist")
 		return ctrl.Result{}, nil

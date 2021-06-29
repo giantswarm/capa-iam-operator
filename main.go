@@ -27,12 +27,12 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	expcapa "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-
-	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
-	expcapa "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
 
 	"github.com/giantswarm/capa-iam-controller/controllers"
 	//+kubebuilder:scaffold:imports
@@ -46,6 +46,7 @@ var (
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 
+	_ = capi.AddToScheme(scheme)
 	_ = capa.AddToScheme(scheme)
 	_ = expcapa.AddToScheme(scheme)
 	//+kubebuilder:scaffold:scheme
