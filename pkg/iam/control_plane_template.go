@@ -3,26 +3,10 @@ package iam
 const controlPlaneTemplate = `
 {
     "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Condition": {
-                "StringEquals": {
-                    "autoscaling:ResourceTag/sigs.k8s.io/cluster-api-provider-aws/cluster/{{.ClusterID}}": "owned"
-                }
-            },
-            "Action": [
-                "autoscaling:SetDesiredCapacity",
-                "autoscaling:TerminateInstanceInAutoScalingGroup"
-            ],
-            "Resource": "*",
-            "Effect": "Allow"
-        },  
+    "Statement": [ 
         {
             "Action": [
-                "autoscaling:DescribeAutoScalingGroups",
-                "autoscaling:DescribeLaunchConfigurations",
-                "autoscaling:DescribeTags",
-                "autoscaling:DescribeAutoScalingInstances",
+                "autoscaling:*",
                 "ec2:DescribeLaunchTemplateVersions",
                 "ec2:DescribeInstances",
                 "ec2:DescribeImages",
@@ -62,35 +46,7 @@ const controlPlaneTemplate = `
                 "ecr:DescribeRepositories",
                 "ecr:ListImages",
                 "ecr:BatchGetImage",
-                "elasticloadbalancing:AddTags",
-                "elasticloadbalancing:AttachLoadBalancerToSubnets",
-                "elasticloadbalancing:ApplySecurityGroupsToLoadBalancer",
-                "elasticloadbalancing:CreateLoadBalancer",
-                "elasticloadbalancing:CreateLoadBalancerPolicy",
-                "elasticloadbalancing:CreateLoadBalancerListeners",
-                "elasticloadbalancing:ConfigureHealthCheck",
-                "elasticloadbalancing:DeleteLoadBalancer",
-                "elasticloadbalancing:DeleteLoadBalancerListeners",
-                "elasticloadbalancing:DescribeLoadBalancers",
-                "elasticloadbalancing:DescribeLoadBalancerAttributes",
-                "elasticloadbalancing:DetachLoadBalancerFromSubnets",
-                "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
-                "elasticloadbalancing:ModifyLoadBalancerAttributes",
-                "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
-                "elasticloadbalancing:SetLoadBalancerPoliciesForBackendServer",
-                "elasticloadbalancing:AddTags",
-                "elasticloadbalancing:CreateListener",
-                "elasticloadbalancing:CreateTargetGroup",
-                "elasticloadbalancing:DeleteListener",
-                "elasticloadbalancing:DeleteTargetGroup",
-                "elasticloadbalancing:DescribeListeners",
-                "elasticloadbalancing:DescribeLoadBalancerPolicies",
-                "elasticloadbalancing:DescribeTargetGroups",
-                "elasticloadbalancing:DescribeTargetHealth",
-                "elasticloadbalancing:ModifyListener",
-                "elasticloadbalancing:ModifyTargetGroup",
-                "elasticloadbalancing:RegisterTargets",
-                "elasticloadbalancing:SetLoadBalancerPoliciesOfListener",
+                "elasticloadbalancing:*",
                 "iam:CreateServiceLinkedRole",
                 "kms:DescribeKey"
             ],
