@@ -11,6 +11,8 @@ rules:
   resources:
   - awsclusters
   - awsclusters/status
+  - awsclusterroleidentities
+  - awsclusterroleidentities/status
   - awsmachinetemplate
   - awsmachinetemplate/status
   - awsmachinetemplates
