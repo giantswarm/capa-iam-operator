@@ -15,6 +15,7 @@ const (
 	NodesRole        = "nodes"
 
 	IAMControllerOwnedTag = "capi-iam-controller/owned"
+	ClusterIDTag          = "sigs.k8s.io/cluster-api-provider-aws/cluster/%s"
 )
 
 type IAMServiceConfig struct {
@@ -52,11 +53,13 @@ func New(config IAMServiceConfig) (*IAMService, error) {
 	}
 	client := awsiam.New(config.AWSSession)
 
+	l := config.Log.WithValues("clusterID", config.ClusterID, "iam-role", config.RoleType)
+
 	s := &IAMService{
 		clusterID:   config.ClusterID,
 		iamClient:   client,
 		iamRoleName: config.IAMRoleName,
-		log:         config.Log,
+		log:         l,
 		roleType:    config.RoleType,
 		region:      client.SigningRegion,
 	}
@@ -91,9 +94,10 @@ func (s *IAMService) Reconcile() error {
 }
 
 func (s *IAMService) create() error {
-	policyDocument, err := s.generatePolicyDocument()
+	assumeRolePolicyDocument, err := s.generateAssumeRolePolicyDocument()
 	if err != nil {
-		s.log.Error(err, fmt.Sprintf("failed to generate policy document from template %s", s.roleType))
+		s.log.Error(err, "failed to generate assume policy document from template ")
+		return err
 	}
 
 	tags := []*awsiam.Tag{
@@ -101,18 +105,54 @@ func (s *IAMService) create() error {
 			Key:   aws.String(IAMControllerOwnedTag),
 			Value: aws.String(""),
 		},
+		{
+			Key:   aws.String(fmt.Sprintf(ClusterIDTag, s.clusterID)),
+			Value: aws.String("owned"),
+		},
 	}
 
 	i := &awsiam.CreateRoleInput{
 		RoleName:                 aws.String(s.iamRoleName),
-		AssumeRolePolicyDocument: aws.String(policyDocument),
+		AssumeRolePolicyDocument: aws.String(assumeRolePolicyDocument),
 		Tags:                     tags,
 	}
 
 	_, err = s.iamClient.CreateRole(i)
 	if err != nil {
 		s.log.Error(err, "failed to create IAMRole")
+		return err
 	}
+
+	policyDocument, err := s.generatePolicyDocument()
+	if err != nil {
+		s.log.Error(err, "failed to generate policy document from template")
+		return err
+	}
+
+	i2 := &awsiam.CreatePolicyInput{
+		PolicyName:     aws.String(policyName(s.roleType, s.clusterID)),
+		PolicyDocument: aws.String(policyDocument),
+		Description:    aws.String(IAMControllerOwnedTag),
+	}
+
+	o, err := s.iamClient.CreatePolicy(i2)
+	if err != nil {
+		s.log.Error(err, "failed to create IAMRole policy document")
+		return err
+	}
+
+	i3 := &awsiam.AttachRolePolicyInput{
+		RoleName:  aws.String(s.iamRoleName),
+		PolicyArn: o.Policy.Arn,
+	}
+
+	_, err = s.iamClient.AttachRolePolicy(i3)
+	if err != nil {
+		s.log.Error(err, "failed to attach policy document to IAMRole")
+		return err
+	}
+
+	s.log.Info(fmt.Sprintf("successfully created a new IAM role '%s'", s.iamRoleName))
 	return nil
 }
 
@@ -156,41 +196,58 @@ func (s *IAMService) Delete() error {
 }
 
 func (s *IAMService) cleanAttachedPolicies() error {
-	var policies []string
-	{
-		s.log.Info("finding all policies")
+	s.log.Info("finding all policies")
 
-		i := &awsiam.ListAttachedRolePoliciesInput{
-			RoleName: aws.String(s.iamRoleName),
-		}
+	i := &awsiam.ListAttachedRolePoliciesInput{
+		RoleName: aws.String(s.iamRoleName),
+	}
 
-		o, err := s.iamClient.ListAttachedRolePolicies(i)
-		if IsNotFound(err) {
-			s.log.Info("No attached policies")
-		} else if err != nil {
-			s.log.Error(err, "failed to list attached policies")
-			return err
-		} else {
-			for _, p := range o.AttachedPolicies {
-				policies = append(policies, *p.PolicyArn)
+	o, err := s.iamClient.ListAttachedRolePolicies(i)
+	if IsNotFound(err) {
+		s.log.Info("No attached policies")
+	} else if err != nil {
+		s.log.Error(err, "failed to list attached policies")
+		return err
+	} else {
+		s.log.Info(fmt.Sprintf("Found %d attached policies", len(o.AttachedPolicies)))
+
+		for _, p := range o.AttachedPolicies {
+			s.log.Info(fmt.Sprintf("detaching policy %s", p))
+
+			i := &awsiam.DetachRolePolicyInput{
+				PolicyArn: p.PolicyArn,
+				RoleName:  aws.String(s.iamRoleName),
 			}
-			s.log.Info(fmt.Sprintf("Found %d attached policies", len(policies)))
 
-			for _, p := range policies {
-				s.log.Info(fmt.Sprintf("detaching policy %s", p))
+			_, err := s.iamClient.DetachRolePolicy(i)
+			if err != nil {
+				s.log.Error(err, fmt.Sprintf("failed to detach policy %s", p))
+				return err
+			}
 
-				i := &awsiam.DetachRolePolicyInput{
-					PolicyArn: aws.String(p),
-					RoleName:  aws.String(s.iamRoleName),
+			s.log.Info(fmt.Sprintf("detached policy %s", p))
+
+			i2 := &awsiam.GetPolicyInput{
+				PolicyArn: p.PolicyArn,
+			}
+
+			o2, err := s.iamClient.GetPolicy(i2)
+			if err != nil {
+				s.log.Error(err, fmt.Sprintf("failed to get policy %s", p))
+				return err
+			}
+
+			// delete IAMController owned Policies
+			if *o2.Policy.Description == IAMControllerOwnedTag {
+				i3 := &awsiam.DeletePolicyInput{
+					PolicyArn: o2.Policy.Arn,
 				}
 
-				_, err := s.iamClient.DetachRolePolicy(i)
+				_, err = s.iamClient.DeletePolicy(i3)
 				if err != nil {
-					s.log.Error(err, fmt.Sprintf("failed to detach policy %s", p))
+					s.log.Error(err, fmt.Sprintf("failed to delete policy %s", p))
 					return err
 				}
-
-				s.log.Info(fmt.Sprintf("detached policy %s", p))
 			}
 		}
 	}
@@ -205,4 +262,8 @@ func isOwnedByIAMController(tags []*awsiam.Tag) bool {
 	}
 
 	return false
+}
+
+func policyName(role string, clusterID string) string {
+	return fmt.Sprintf("%s-%s-policy", role, clusterID)
 }
