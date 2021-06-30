@@ -58,7 +58,7 @@ func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, awsMachineTemplate.ObjectMeta)
 	if err != nil {
-		logger.Info("AWSMachineTemplate is missing cluster label or cluster does not exist")
+		logger.Error(err, "AWSMachineTemplate is missing cluster label or cluster does not exist")
 		return ctrl.Result{}, err
 	}
 
@@ -81,7 +81,7 @@ func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 
 	awsClientSession, err := awsClientGetter.GetAWSClientSession()
 	if err != nil {
-		logger.Info("Failed to get aws client session")
+		logger.Error(err, "Failed to get aws client session")
 		return ctrl.Result{}, nil
 	}
 
@@ -96,7 +96,7 @@ func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 		}
 		iamService, err = iam.New(c)
 		if err != nil {
-			logger.Info("Failed to generate IAM service")
+			logger.Error(err, "Failed to generate IAM service")
 			return ctrl.Result{}, err
 		}
 	}
