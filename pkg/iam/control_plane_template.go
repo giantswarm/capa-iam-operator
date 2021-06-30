@@ -5,27 +5,6 @@ const controlPlaneTemplate = `
     "Version": "2012-10-17",
     "Statement": [
         {
-            "Action": "ec2:*",
-            "Resource": "*",
-            "Effect": "Allow"
-        },
-        {
-            "Action": "elasticloadbalancing:*",
-            "Resource": "*",
-            "Effect": "Allow"
-        },
-        {
-            "Action": [
-                "autoscaling:DescribeAutoScalingGroups",
-                "autoscaling:DescribeAutoScalingInstances",
-                "autoscaling:DescribeTags",
-                "autoscaling:DescribeLaunchConfigurations",
-                "ec2:DescribeLaunchTemplateVersions"
-            ],
-            "Resource": "*",
-            "Effect": "Allow"
-        },
-        {
             "Condition": {
                 "StringEquals": {
                     "autoscaling:ResourceTag/sigs.k8s.io/cluster-api-provider-aws/cluster/{{.ClusterID}}": "owned"
@@ -37,51 +16,14 @@ const controlPlaneTemplate = `
             ],
             "Resource": "*",
             "Effect": "Allow"
-        },
-        {
-            "Action": [
-                "ecr:GetAuthorizationToken",
-                "ecr:BatchCheckLayerAvailability",
-                "ecr:GetDownloadUrlForLayer",
-                "ecr:GetRepositoryPolicy",
-                "ecr:DescribeRepositories",
-                "ecr:ListImages",
-                "ecr:BatchGetImage"
-            ],
-            "Resource": "*",
-            "Effect": "Allow"
-        },
-        {
-            "Action": [
-                "ec2:AssignPrivateIpAddresses",
-                "ec2:AttachNetworkInterface",
-                "ec2:CreateNetworkInterface",
-                "ec2:DeleteNetworkInterface",
-                "ec2:DescribeInstances",
-                "ec2:DescribeInstanceTypes",
-                "ec2:DescribeTags",
-                "ec2:DescribeNetworkInterfaces",
-                "ec2:DetachNetworkInterface",
-                "ec2:ModifyNetworkInterfaceAttribute",
-                "ec2:UnassignPrivateIpAddresses"
-            ],
-            "Resource": "*",
-            "Effect": "Allow"
-        },
-        {
-            "Action": [
-                "ec2:CreateTags"
-            ],
-            "Resource": [
-                "arn:{{.RegionARN}}:ec2:*:*:network-interface/*"
-            ],
-            "Effect": "Allow"
-        },
+        },  
         {
             "Action": [
                 "autoscaling:DescribeAutoScalingGroups",
                 "autoscaling:DescribeLaunchConfigurations",
                 "autoscaling:DescribeTags",
+                "autoscaling:DescribeAutoScalingInstances",
+                "ec2:DescribeLaunchTemplateVersions",
                 "ec2:DescribeInstances",
                 "ec2:DescribeImages",
                 "ec2:DescribeRegions",
@@ -103,6 +45,23 @@ const controlPlaneTemplate = `
                 "ec2:DetachVolume",
                 "ec2:RevokeSecurityGroupIngress",
                 "ec2:DescribeVpcs",
+                "ec2:AssignPrivateIpAddresses",
+                "ec2:AttachNetworkInterface",
+                "ec2:CreateNetworkInterface",
+                "ec2:DeleteNetworkInterface",
+                "ec2:DescribeInstanceTypes",
+                "ec2:DescribeTags",
+                "ec2:DescribeNetworkInterfaces",
+                "ec2:DetachNetworkInterface",
+                "ec2:ModifyNetworkInterfaceAttribute",
+                "ec2:UnassignPrivateIpAddresses",
+                "ecr:GetAuthorizationToken",
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:GetRepositoryPolicy",
+                "ecr:DescribeRepositories",
+                "ecr:ListImages",
+                "ecr:BatchGetImage",
                 "elasticloadbalancing:AddTags",
                 "elasticloadbalancing:AttachLoadBalancerToSubnets",
                 "elasticloadbalancing:ApplySecurityGroupsToLoadBalancer",
