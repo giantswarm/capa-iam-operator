@@ -89,7 +89,7 @@ func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 	{
 		c := iam.IAMServiceConfig{
 			AWSSession:  awsClientSession,
-			ClusterID:   cluster.ClusterName,
+			ClusterID:   cluster.Name,
 			IAMRoleName: awsMachineTemplate.Spec.Template.Spec.IAMInstanceProfile,
 			Log:         logger,
 			RoleType:    iam.ControlPlaneRole,
