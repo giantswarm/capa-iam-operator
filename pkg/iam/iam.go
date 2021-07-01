@@ -135,15 +135,29 @@ func (s *IAMService) createMainRole() error {
 }
 
 func (s *IAMService) attachInlinePolicy() error {
-	i := &awsiam.ListAttachedRolePoliciesInput{
+	// we only attach the inline policy to a role that is owned (and was created) by iam controller
+	{
+		owned, err := isOwnedByIAMController(s.roleType, s.iamClient)
+		if err != nil {
+			s.log.Error(err, "Failed to fetch IAM Role")
+			return err
+		}
+		// check if the policy is created by this controller, if its not than we skip deletion
+		if !owned {
+			s.log.Info("IAM role is not owned by IAM controller, skipping deletion")
+			return nil
+		}
+	}
+
+	i2 := &awsiam.ListAttachedRolePoliciesInput{
 		RoleName: aws.String(s.iamRoleName),
 	}
 
 	alreadyExists := false
 
-	o, err := s.iamClient.ListAttachedRolePolicies(i)
+	o2, err := s.iamClient.ListAttachedRolePolicies(i2)
 	if err == nil {
-		for _, p := range o.AttachedPolicies {
+		for _, p := range o2.AttachedPolicies {
 			if *p.PolicyName == policyName(s.roleType, s.clusterID) {
 				alreadyExists = true
 				break
@@ -151,7 +165,7 @@ func (s *IAMService) attachInlinePolicy() error {
 		}
 	}
 
-	// add inline policy to the main IAM role
+	// add inline policy to the main IAM role if it do not exist anymore
 	if !alreadyExists {
 		policyDocument, err := generatePolicyDocument(s.clusterID, s.roleType, s.region)
 		if err != nil {
@@ -159,20 +173,18 @@ func (s *IAMService) attachInlinePolicy() error {
 			return err
 		}
 
-		fmt.Printf("generated policy \n%s\n", policyDocument)
-
-		i2 := &awsiam.PutRolePolicyInput{
+		i3 := &awsiam.PutRolePolicyInput{
 			PolicyName:     aws.String(policyName(s.roleType, s.clusterID)),
 			PolicyDocument: aws.String(policyDocument),
 			RoleName:       aws.String(s.iamRoleName),
 		}
 
-		_, err = s.iamClient.PutRolePolicy(i2)
+		_, err = s.iamClient.PutRolePolicy(i3)
 		if err != nil {
 			s.log.Error(err, "failed to add inline policy to IAMRole")
 			return err
 		}
-		s.log.Info("successfully add inline policy")
+		s.log.Info("successfully added inline policy")
 	} else {
 		s.log.Info("inline policy already added, skipping")
 	}
@@ -181,12 +193,7 @@ func (s *IAMService) attachInlinePolicy() error {
 }
 
 func (s *IAMService) Delete() error {
-	i := &awsiam.GetRoleInput{
-		RoleName: aws.String(s.iamRoleName),
-	}
-
-	o, err := s.iamClient.GetRole(i)
-
+	owned, err := isOwnedByIAMController(s.roleType, s.iamClient)
 	if IsNotFound(err) {
 		// role do not exists, nothing to delete, lets just finish
 		return nil
@@ -195,7 +202,7 @@ func (s *IAMService) Delete() error {
 		return err
 	}
 	// check if the policy is created by this controller, if its not than we skip deletion
-	if !isOwnedByIAMController(o.Role.Tags) {
+	if !owned {
 		s.log.Info("IAM role is not owned by IAM controller, skipping deletion")
 		return nil
 	}
@@ -255,7 +262,24 @@ func (s *IAMService) cleanAttachedPolicies() error {
 	return nil
 }
 
-func isOwnedByIAMController(tags []*awsiam.Tag) bool {
+func isOwnedByIAMController(iamRoleName string, iamClient *awsiam.IAM) (bool, error) {
+	i := &awsiam.GetRoleInput{
+		RoleName: aws.String(iamRoleName),
+	}
+
+	o, err := iamClient.GetRole(i)
+	if err != nil {
+		return false, err
+	}
+
+	if hasIAMControllerTag(o.Role.Tags) {
+		return true, nil
+	} else {
+		return false, nil
+	}
+}
+
+func hasIAMControllerTag(tags []*awsiam.Tag) bool {
 	for _, tag := range tags {
 		if *tag.Key == IAMControllerOwnedTag {
 			return true
