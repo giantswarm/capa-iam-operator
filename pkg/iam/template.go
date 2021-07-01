@@ -28,31 +28,8 @@ type TemplateParams struct {
 	RegionARN        string
 }
 
-func regionARN(region string) string {
-	if isChinaRegion(region) {
-		return "aws-cn"
-	}
-	return "aws"
-}
-
-func ec2ServiceDomain(region string) string {
-	domain := "ec2.amazonaws.com"
-
-	if isChinaRegion(region) {
-		domain += ".cn"
-	}
-
-	return domain
-}
-
-func isChinaRegion(region string) bool {
-	return strings.Contains(region, "cn-")
-}
-
 func (s *IAMService) generateAssumeRolePolicyDocument() (string, error) {
-	params := struct {
-		EC2ServiceDomain string
-	}{
+	params := TemplateParams{
 		EC2ServiceDomain: ec2ServiceDomain(s.region),
 	}
 
@@ -66,6 +43,7 @@ func (s *IAMService) generateAssumeRolePolicyDocument() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	fmt.Printf("generated template \n%s\n", buf.String())
 
 	return buf.String(), nil
 }
@@ -97,4 +75,25 @@ func (s *IAMService) generatePolicyDocument() (string, error) {
 	}
 
 	return buf.String(), nil
+}
+
+func regionARN(region string) string {
+	if isChinaRegion(region) {
+		return "aws-cn"
+	}
+	return "aws"
+}
+
+func ec2ServiceDomain(region string) string {
+	domain := "ec2.amazonaws.com"
+
+	if isChinaRegion(region) {
+		domain += ".cn"
+	}
+
+	return domain
+}
+
+func isChinaRegion(region string) bool {
+	return strings.Contains(region, "cn-")
 }
