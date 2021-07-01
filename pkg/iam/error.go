@@ -13,3 +13,12 @@ func IsNotFound(err error) bool {
 	}
 	return false
 }
+
+func IsAlreadyExists(err error) bool {
+	if aerr, ok := err.(awserr.Error); ok {
+		if aerr.Code() == awsiam.ErrCodeEntityAlreadyExistsException {
+			return true
+		}
+	}
+	return false
+}

@@ -1,14 +1,8 @@
 package iam
 
-const controlPlaneTemplate = `
-{
+const controlPlaneTemplate = `{
     "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Action": "ec2:*",
-            "Resource": "*",
-            "Effect": "Allow"
-        },
+    "Statement": [       
         {
             "Action": "elasticloadbalancing:*",
             "Resource": "*",
@@ -66,15 +60,6 @@ const controlPlaneTemplate = `
                 "ec2:UnassignPrivateIpAddresses"
             ],
             "Resource": "*",
-            "Effect": "Allow"
-        },
-        {
-            "Action": [
-                "ec2:CreateTags"
-            ],
-            "Resource": [
-                "arn:{{.RegionARN}}:ec2:*:*:network-interface/*"
-            ],
             "Effect": "Allow"
         },
         {

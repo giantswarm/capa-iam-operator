@@ -1,7 +1,6 @@
 package iam
 
-const nodesTemplate = `
-{
+const nodesTemplate = `{
     "Version": "2012-10-17",
     "Statement": [
         {

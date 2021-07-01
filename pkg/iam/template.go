@@ -42,7 +42,6 @@ func generateAssumeRolePolicyDocument(region string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	fmt.Printf("generated template \n%s\n", buf.String())
 
 	return buf.String(), nil
 }

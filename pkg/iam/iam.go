@@ -68,6 +68,23 @@ func New(config IAMServiceConfig) (*IAMService, error) {
 }
 
 func (s *IAMService) Reconcile() error {
+
+	err := s.createMainRole()
+	if err != nil {
+		return err
+	}
+
+	err = s.attachInlinePolicy()
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+// createMainRole will create the main IAM role that will be attached to EC2 instances
+func (s *IAMService) createMainRole() error {
 	i := &awsiam.GetRoleInput{
 		RoleName: aws.String(s.iamRoleName),
 	}
@@ -76,26 +93,6 @@ func (s *IAMService) Reconcile() error {
 
 	// create new IAMRole if it does not exists yet
 	if IsNotFound(err) {
-		err := s.create()
-		if err != nil {
-			s.log.Error(err, "Failed to create IAMRole")
-			return err
-		}
-
-	} else if err != nil {
-		s.log.Error(err, "Failed to fetch IAMRole")
-		return err
-	} else {
-		s.log.Info("IAM Role already exists, skipping creation")
-	}
-
-	return nil
-
-}
-
-func (s *IAMService) create() error {
-	// create IAM role
-	{
 		assumeRolePolicyDocument, err := generateAssumeRolePolicyDocument(s.region)
 		if err != nil {
 			s.log.Error(err, "failed to generate assume policy document from template ")
@@ -121,18 +118,48 @@ func (s *IAMService) create() error {
 
 		_, err = s.iamClient.CreateRole(i)
 		if err != nil {
-			s.log.Error(err, "failed to create IAMRole")
+			s.log.Error(err, "failed to create main IAM Role")
 			return err
+		}
+
+		s.log.Info(fmt.Sprintf("successfully created a new main IAM role '%s'", s.iamRoleName))
+
+	} else if err != nil {
+		s.log.Error(err, "Failed to fetch IAM Role")
+		return err
+	} else {
+		s.log.Info("IAM Role already exists, skipping creation")
+	}
+
+	return nil
+}
+
+func (s *IAMService) attachInlinePolicy() error {
+	i := &awsiam.ListAttachedRolePoliciesInput{
+		RoleName: aws.String(s.iamRoleName),
+	}
+
+	alreadyExists := false
+
+	o, err := s.iamClient.ListAttachedRolePolicies(i)
+	if err == nil {
+		for _, p := range o.AttachedPolicies {
+			if *p.PolicyName == policyName(s.roleType, s.clusterID) {
+				alreadyExists = true
+				break
+			}
 		}
 	}
 
-	// add inline policy to the role
-	{
+	// add inline policy to the main IAM role
+	if !alreadyExists {
 		policyDocument, err := generatePolicyDocument(s.clusterID, s.roleType, s.region)
 		if err != nil {
-			s.log.Error(err, "failed to generate policy document from template")
+			s.log.Error(err, "failed to generate inline policy document from template")
 			return err
 		}
+
+		fmt.Printf("generated policy \n%s\n", policyDocument)
 
 		i2 := &awsiam.PutRolePolicyInput{
 			PolicyName:     aws.String(policyName(s.roleType, s.clusterID)),
@@ -142,12 +169,14 @@ func (s *IAMService) create() error {
 
 		_, err = s.iamClient.PutRolePolicy(i2)
 		if err != nil {
-			s.log.Error(err, "failed to put inline policy to IAMRole")
+			s.log.Error(err, "failed to add inline policy to IAMRole")
 			return err
 		}
+		s.log.Info("successfully add inline policy")
+	} else {
+		s.log.Info("inline policy already added, skipping")
 	}
 
-	s.log.Info(fmt.Sprintf("successfully configured a new IAM role '%s'", s.iamRoleName))
 	return nil
 }
 
