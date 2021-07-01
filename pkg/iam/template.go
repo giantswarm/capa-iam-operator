@@ -7,8 +7,7 @@ import (
 	"text/template"
 )
 
-const assumeRolePolicyDocumentTemplate = `
-{
+const assumeRolePolicyDocumentTemplate = `{
   "Version": "2012-10-17",
   "Statement": [
     {
@@ -28,9 +27,9 @@ type TemplateParams struct {
 	RegionARN        string
 }
 
-func (s *IAMService) generateAssumeRolePolicyDocument() (string, error) {
+func generateAssumeRolePolicyDocument(region string) (string, error) {
 	params := TemplateParams{
-		EC2ServiceDomain: ec2ServiceDomain(s.region),
+		EC2ServiceDomain: ec2ServiceDomain(region),
 	}
 
 	tmpl, err := template.New("policy").Parse(assumeRolePolicyDocumentTemplate)
@@ -48,20 +47,20 @@ func (s *IAMService) generateAssumeRolePolicyDocument() (string, error) {
 	return buf.String(), nil
 }
 
-func (s *IAMService) generatePolicyDocument() (string, error) {
+func generatePolicyDocument(clusterID string, roleType string, region string) (string, error) {
 	var t string
-	if s.roleType == ControlPlaneRole {
+	if roleType == ControlPlaneRole {
 		t = controlPlaneTemplate
-	} else if s.roleType == NodesRole {
+	} else if roleType == NodesRole {
 		t = nodesTemplate
 	} else {
-		return "", fmt.Errorf("unknown role type '%s'", s.roleType)
+		return "", fmt.Errorf("unknown role type '%s'", roleType)
 	}
 
 	params := TemplateParams{
-		ClusterID: s.clusterID,
-		Region:    s.region,
-		RegionARN: regionARN(s.region),
+		ClusterID: clusterID,
+		Region:    region,
+		RegionARN: regionARN(region),
 	}
 
 	tmpl, err := template.New("policy").Parse(t)

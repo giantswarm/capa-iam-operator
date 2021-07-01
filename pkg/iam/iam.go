@@ -96,7 +96,7 @@ func (s *IAMService) Reconcile() error {
 func (s *IAMService) create() error {
 	// create IAM role
 	{
-		assumeRolePolicyDocument, err := s.generateAssumeRolePolicyDocument()
+		assumeRolePolicyDocument, err := generateAssumeRolePolicyDocument(s.region)
 		if err != nil {
 			s.log.Error(err, "failed to generate assume policy document from template ")
 			return err
@@ -128,7 +128,7 @@ func (s *IAMService) create() error {
 
 	// add inline policy to the role
 	{
-		policyDocument, err := s.generatePolicyDocument()
+		policyDocument, err := generatePolicyDocument(s.clusterID, s.roleType, s.region)
 		if err != nil {
 			s.log.Error(err, "failed to generate policy document from template")
 			return err
