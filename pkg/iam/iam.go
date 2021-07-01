@@ -3,6 +3,7 @@ package iam
 import (
 	"errors"
 	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	awsiam "github.com/aws/aws-sdk-go/service/iam"

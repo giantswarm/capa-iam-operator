@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/giantswarm/capa-iam-controller/pkg/key"
 
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/go-logr/logr"
@@ -12,6 +11,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	capiutil "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/giantswarm/capa-iam-controller/pkg/key"
 )
 
 type AWSClientConfig struct {
