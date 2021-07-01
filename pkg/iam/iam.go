@@ -94,65 +94,60 @@ func (s *IAMService) Reconcile() error {
 }
 
 func (s *IAMService) create() error {
-	assumeRolePolicyDocument, err := s.generateAssumeRolePolicyDocument()
-	if err != nil {
-		s.log.Error(err, "failed to generate assume policy document from template ")
-		return err
+	// create IAM role
+	{
+		assumeRolePolicyDocument, err := s.generateAssumeRolePolicyDocument()
+		if err != nil {
+			s.log.Error(err, "failed to generate assume policy document from template ")
+			return err
+		}
+
+		tags := []*awsiam.Tag{
+			{
+				Key:   aws.String(IAMControllerOwnedTag),
+				Value: aws.String(""),
+			},
+			{
+				Key:   aws.String(fmt.Sprintf(ClusterIDTag, s.clusterID)),
+				Value: aws.String("owned"),
+			},
+		}
+
+		i := &awsiam.CreateRoleInput{
+			RoleName:                 aws.String(s.iamRoleName),
+			AssumeRolePolicyDocument: aws.String(assumeRolePolicyDocument),
+			Tags:                     tags,
+		}
+
+		_, err = s.iamClient.CreateRole(i)
+		if err != nil {
+			s.log.Error(err, "failed to create IAMRole")
+			return err
+		}
 	}
 
-	tags := []*awsiam.Tag{
-		{
-			Key:   aws.String(IAMControllerOwnedTag),
-			Value: aws.String(""),
-		},
-		{
-			Key:   aws.String(fmt.Sprintf(ClusterIDTag, s.clusterID)),
-			Value: aws.String("owned"),
-		},
+	// add inline policy to the role
+	{
+		policyDocument, err := s.generatePolicyDocument()
+		if err != nil {
+			s.log.Error(err, "failed to generate policy document from template")
+			return err
+		}
+
+		i2 := &awsiam.PutRolePolicyInput{
+			PolicyName:     aws.String(policyName(s.roleType, s.clusterID)),
+			PolicyDocument: aws.String(policyDocument),
+			RoleName:       aws.String(s.iamRoleName),
+		}
+
+		_, err = s.iamClient.PutRolePolicy(i2)
+		if err != nil {
+			s.log.Error(err, "failed to put inline policy to IAMRole")
+			return err
+		}
 	}
 
-	i := &awsiam.CreateRoleInput{
-		RoleName:                 aws.String(s.iamRoleName),
-		AssumeRolePolicyDocument: aws.String(assumeRolePolicyDocument),
-		Tags:                     tags,
-	}
-
-	_, err = s.iamClient.CreateRole(i)
-	if err != nil {
-		s.log.Error(err, "failed to create IAMRole")
-		return err
-	}
-
-	policyDocument, err := s.generatePolicyDocument()
-	if err != nil {
-		s.log.Error(err, "failed to generate policy document from template")
-		return err
-	}
-
-	i2 := &awsiam.CreatePolicyInput{
-		PolicyName:     aws.String(policyName(s.roleType, s.clusterID)),
-		PolicyDocument: aws.String(policyDocument),
-		Description:    aws.String(IAMControllerOwnedTag),
-	}
-
-	o, err := s.iamClient.CreatePolicy(i2)
-	if err != nil {
-		s.log.Error(err, "failed to create IAMRole policy document")
-		return err
-	}
-
-	i3 := &awsiam.AttachRolePolicyInput{
-		RoleName:  aws.String(s.iamRoleName),
-		PolicyArn: o.Policy.Arn,
-	}
-
-	_, err = s.iamClient.AttachRolePolicy(i3)
-	if err != nil {
-		s.log.Error(err, "failed to attach policy document to IAMRole")
-		return err
-	}
-
-	s.log.Info(fmt.Sprintf("successfully created a new IAM role '%s'", s.iamRoleName))
+	s.log.Info(fmt.Sprintf("successfully configured a new IAM role '%s'", s.iamRoleName))
 	return nil
 }
 
@@ -204,12 +199,12 @@ func (s *IAMService) cleanAttachedPolicies() error {
 
 	o, err := s.iamClient.ListAttachedRolePolicies(i)
 	if IsNotFound(err) {
-		s.log.Info("No attached policies")
+		s.log.Info("no attached policies")
 	} else if err != nil {
 		s.log.Error(err, "failed to list attached policies")
 		return err
 	} else {
-		s.log.Info(fmt.Sprintf("Found %d attached policies", len(o.AttachedPolicies)))
+		s.log.Info(fmt.Sprintf("found %d attached policies", len(o.AttachedPolicies)))
 
 		for _, p := range o.AttachedPolicies {
 			s.log.Info(fmt.Sprintf("detaching policy %s", p))
@@ -226,29 +221,6 @@ func (s *IAMService) cleanAttachedPolicies() error {
 			}
 
 			s.log.Info(fmt.Sprintf("detached policy %s", p))
-
-			i2 := &awsiam.GetPolicyInput{
-				PolicyArn: p.PolicyArn,
-			}
-
-			o2, err := s.iamClient.GetPolicy(i2)
-			if err != nil {
-				s.log.Error(err, fmt.Sprintf("failed to get policy %s", p))
-				return err
-			}
-
-			// delete IAMController owned Policies
-			if *o2.Policy.Description == IAMControllerOwnedTag {
-				i3 := &awsiam.DeletePolicyInput{
-					PolicyArn: o2.Policy.Arn,
-				}
-
-				_, err = s.iamClient.DeletePolicy(i3)
-				if err != nil {
-					s.log.Error(err, fmt.Sprintf("failed to delete policy %s", p))
-					return err
-				}
-			}
 		}
 	}
 	return nil
