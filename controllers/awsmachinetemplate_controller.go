@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"github.com/giantswarm/capa-iam-controller/pkg/key"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -29,6 +28,7 @@ import (
 
 	"github.com/giantswarm/capa-iam-controller/pkg/awsclient"
 	"github.com/giantswarm/capa-iam-controller/pkg/iam"
+	"github.com/giantswarm/capa-iam-controller/pkg/key"
 )
 
 // AWSMachineTemplateReconciler reconciles a AWSMachineTemplate object
