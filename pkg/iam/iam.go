@@ -3,7 +3,6 @@ package iam
 import (
 	"errors"
 	"fmt"
-
 	"github.com/aws/aws-sdk-go/aws"
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	awsiam "github.com/aws/aws-sdk-go/service/iam"
@@ -20,14 +19,14 @@ const (
 
 type IAMServiceConfig struct {
 	AWSSession  awsclient.ConfigProvider
-	ClusterID   string
+	ClusterName string
 	IAMRoleName string
 	Log         logr.Logger
 	RoleType    string
 }
 
 type IAMService struct {
-	clusterID   string
+	clusterName string
 	iamClient   *awsiam.IAM
 	iamRoleName string
 	log         logr.Logger
@@ -39,8 +38,8 @@ func New(config IAMServiceConfig) (*IAMService, error) {
 	if config.AWSSession == nil {
 		return nil, errors.New("cannot create IAMService with AWSSession equal to nil")
 	}
-	if config.ClusterID == "" {
-		return nil, errors.New("cannot create IAMService with empty ClusterID")
+	if config.ClusterName == "" {
+		return nil, errors.New("cannot create IAMService with empty ClusterName")
 	}
 	if config.IAMRoleName == "" {
 		return nil, errors.New("cannot create IAMService with empty IAMRoleName")
@@ -53,10 +52,10 @@ func New(config IAMServiceConfig) (*IAMService, error) {
 	}
 	client := awsiam.New(config.AWSSession)
 
-	l := config.Log.WithValues("clusterID", config.ClusterID, "iam-role", config.RoleType)
+	l := config.Log.WithValues("clusterName", config.ClusterName, "iam-role", config.RoleType)
 
 	s := &IAMService{
-		clusterID:   config.ClusterID,
+		clusterName: config.ClusterName,
 		iamClient:   client,
 		iamRoleName: config.IAMRoleName,
 		log:         l,
@@ -68,6 +67,8 @@ func New(config IAMServiceConfig) (*IAMService, error) {
 }
 
 func (s *IAMService) Reconcile() error {
+	s.log.Info("reconciling AWSMachineTemplate")
+
 	err := s.createMainRole()
 	if err != nil {
 		return err
@@ -90,6 +91,7 @@ func (s *IAMService) Reconcile() error {
 		}
 	}
 
+	s.log.Info("finished reconciling AWSMachineTemplate")
 	return nil
 }
 
@@ -105,7 +107,7 @@ func (s *IAMService) createMainRole() error {
 	if IsNotFound(err) {
 		assumeRolePolicyDocument, err := generateAssumeRolePolicyDocument(s.region)
 		if err != nil {
-			s.log.Error(err, "failed to generate assume policy document from template ")
+			s.log.Error(err, "failed to generate assume policy document from template for IAM role")
 			return err
 		}
 
@@ -115,7 +117,7 @@ func (s *IAMService) createMainRole() error {
 				Value: aws.String(""),
 			},
 			{
-				Key:   aws.String(fmt.Sprintf(ClusterIDTag, s.clusterID)),
+				Key:   aws.String(fmt.Sprintf(ClusterIDTag, s.clusterName)),
 				Value: aws.String("owned"),
 			},
 		}
@@ -155,7 +157,7 @@ func (s *IAMService) attachInlinePolicy() error {
 	o2, err := s.iamClient.ListAttachedRolePolicies(i2)
 	if err == nil {
 		for _, p := range o2.AttachedPolicies {
-			if *p.PolicyName == policyName(s.roleType, s.clusterID) {
+			if *p.PolicyName == policyName(s.roleType, s.clusterName) {
 				alreadyExists = true
 				break
 			}
@@ -164,38 +166,40 @@ func (s *IAMService) attachInlinePolicy() error {
 
 	// add inline policy to the main IAM role if it do not exist yet
 	if !alreadyExists {
-		policyDocument, err := generatePolicyDocument(s.clusterID, s.roleType, s.region)
+		policyDocument, err := generatePolicyDocument(s.clusterName, s.roleType, s.region)
 		if err != nil {
-			s.log.Error(err, "failed to generate inline policy document from template")
+			s.log.Error(err, "failed to generate inline policy document from template for IAM role")
 			return err
 		}
 
 		i3 := &awsiam.PutRolePolicyInput{
-			PolicyName:     aws.String(policyName(s.roleType, s.clusterID)),
+			PolicyName:     aws.String(policyName(s.roleType, s.clusterName)),
 			PolicyDocument: aws.String(policyDocument),
 			RoleName:       aws.String(s.iamRoleName),
 		}
 
 		_, err = s.iamClient.PutRolePolicy(i3)
 		if err != nil {
-			s.log.Error(err, "failed to add inline policy to IAMRole")
+			s.log.Error(err, "failed to add inline policy to IAM Role")
 			return err
 		}
-		s.log.Info("successfully added inline policy")
+		s.log.Info("successfully added inline policy to IAM role")
 	} else {
-		s.log.Info("inline policy already added, skipping")
+		s.log.Info("inline policy for IAM role already added, skipping")
 	}
 
 	return nil
 }
 
 func (s *IAMService) Delete() error {
+	s.log.Info("deleting IAM resources")
+
 	owned, err := isOwnedByIAMController(s.iamRoleName, s.iamClient)
 	if IsNotFound(err) {
 		// role do not exists, nothing to delete, lets just finish
 		return nil
 	} else if err != nil {
-		s.log.Error(err, "Failed to fetch IAMRole")
+		s.log.Error(err, "Failed to fetch IAM Role")
 		return err
 	}
 	// check if the policy is created by this controller, if its not than we skip deletion
@@ -217,9 +221,12 @@ func (s *IAMService) Delete() error {
 
 	_, err = s.iamClient.DeleteRole(i2)
 	if err != nil {
-		s.log.Error(err, fmt.Sprintf("Failed to delete role %s", s.iamRoleName))
+		s.log.Error(err, "failed to delete role")
 		return err
 	}
+
+	s.log.Info("finished deleting IAM resources")
+
 	return nil
 }
 

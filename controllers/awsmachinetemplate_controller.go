@@ -18,13 +18,14 @@ package controllers
 
 import (
 	"context"
+	"github.com/giantswarm/capa-iam-controller/pkg/key"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
-	"sigs.k8s.io/cluster-api/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/giantswarm/capa-iam-controller/pkg/awsclient"
 	"github.com/giantswarm/capa-iam-controller/pkg/iam"
@@ -56,21 +57,16 @@ func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 		return ctrl.Result{}, nil
 	}
 
-	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, awsMachineTemplate.ObjectMeta)
-	if err != nil {
-		logger.Error(err, "AWSMachineTemplate is missing cluster label or cluster does not exist")
-		return ctrl.Result{}, err
-	}
+	clusterName := key.GetClusterIDFromLabels(awsMachineTemplate)
 
-	logger = logger.WithValues("cluster", cluster.Name)
+	logger = logger.WithValues("cluster", clusterName)
 
 	var awsClientGetter *awsclient.AwsClient
 	{
 		c := awsclient.AWSClientConfig{
-			Cluster:    cluster,
-			CtrlClient: r.Client,
-			Ctx:        ctx,
-			Log:        logger,
+			ClusterName: clusterName,
+			CtrlClient:  r.Client,
+			Log:         logger,
 		}
 		awsClientGetter, err = awsclient.New(c)
 		if err != nil {
@@ -79,7 +75,7 @@ func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 		}
 	}
 
-	awsClientSession, err := awsClientGetter.GetAWSClientSession()
+	awsClientSession, err := awsClientGetter.GetAWSClientSession(ctx)
 	if err != nil {
 		logger.Error(err, "Failed to get aws client session")
 		return ctrl.Result{}, nil
@@ -89,7 +85,7 @@ func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 	{
 		c := iam.IAMServiceConfig{
 			AWSSession:  awsClientSession,
-			ClusterID:   cluster.Name,
+			ClusterName: clusterName,
 			IAMRoleName: awsMachineTemplate.Spec.Template.Spec.IAMInstanceProfile,
 			Log:         logger,
 			RoleType:    iam.ControlPlaneRole,
@@ -107,12 +103,27 @@ func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 			logger.Error(err, "failed to delete IAM Role")
 			return ctrl.Result{}, err
 		}
+		controllerutil.RemoveFinalizer(awsMachineTemplate, key.CAPAIAMControllerFinalizer)
+		err = r.Update(ctx, awsMachineTemplate)
+		if err != nil {
+			logger.Error(err, "failed to remove finalizer from AWSMachineTemplate")
+			return ctrl.Result{}, err
+		}
+
 	} else {
 		err = iamService.Reconcile()
 		if err != nil {
 			logger.Error(err, "failed to reconcile IAM Role")
 			return ctrl.Result{}, err
 		}
+
+		controllerutil.AddFinalizer(awsMachineTemplate, key.CAPAIAMControllerFinalizer)
+		err = r.Update(ctx, awsMachineTemplate)
+		if err != nil {
+			logger.Error(err, "failed to add finalizer on AWSMachineTemplate")
+			return ctrl.Result{}, err
+		}
+
 	}
 
 	return ctrl.Result{}, nil

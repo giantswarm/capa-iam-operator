@@ -3,32 +3,32 @@ package awsclient
 import (
 	"context"
 	"errors"
+	"fmt"
+	"github.com/giantswarm/capa-iam-controller/pkg/key"
 
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/go-logr/logr"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	corev1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	capiutil "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type AWSClientConfig struct {
-	Cluster    *corev1.Cluster
-	CtrlClient client.Client
-	Ctx        context.Context
-	Log        logr.Logger
+	ClusterName string
+	CtrlClient  client.Client
+	Log         logr.Logger
 }
 
 type AwsClient struct {
-	cluster    *corev1.Cluster
-	ctrlClient client.Client
-	ctx        context.Context
-	log        logr.Logger
+	clusterName string
+	ctrlClient  client.Client
+	log         logr.Logger
 }
 
 func New(config AWSClientConfig) (*AwsClient, error) {
-	if config.Cluster == nil {
-		return nil, errors.New("failed to generate new awsClient from nil Cluster")
+	if config.ClusterName == "nil" {
+		return nil, errors.New("failed to generate new awsClient from empty ClusterName")
 	}
 	if config.CtrlClient == nil {
 		return nil, errors.New("failed to generate new awsClient from nil CtrlClient")
@@ -38,36 +38,43 @@ func New(config AWSClientConfig) (*AwsClient, error) {
 	}
 
 	a := &AwsClient{
-		cluster:    config.Cluster,
-		ctrlClient: config.CtrlClient,
-		ctx:        config.Ctx,
-		log:        config.Log,
+		clusterName: config.ClusterName,
+		ctrlClient:  config.CtrlClient,
+		log:         config.Log,
 	}
 
 	return a, nil
 }
 
-func (a *AwsClient) GetAWSClientSession() (awsclient.ConfigProvider, error) {
-	awsCluster := &infrav1.AWSCluster{}
+func (a *AwsClient) GetAWSClientSession(ctx context.Context) (awsclient.ConfigProvider, error) {
+	awsClusterList := &capa.AWSClusterList{}
 
-	awsClusterName := client.ObjectKey{
-		Namespace: a.cluster.Namespace,
-		Name:      a.cluster.Spec.InfrastructureRef.Name,
+	if err := a.ctrlClient.List(ctx,
+		awsClusterList,
+		client.MatchingLabels{key.ClusterNameLabel: a.clusterName},
+	); err != nil {
+		a.log.Error(err, "cannot fetch AWSClusters")
+		return nil, err // nolint:nilerr
 	}
 
-	if err := a.ctrlClient.Get(a.ctx, awsClusterName, awsCluster); err != nil {
+	if len(awsClusterList.Items) != 1 {
 		// AWSCluster is not ready
-		a.log.V(5).Info("AWSCluster not found yet")
-		return nil, err // nolint:nilerr
+		a.log.Info(fmt.Sprintf("expected 1 AWSCluster but found '%d'", len(awsClusterList.Items)))
+		return nil, nil // nolint:nilerr
+	}
+
+	cluster, err := capiutil.GetClusterFromMetadata(ctx, a.ctrlClient, awsClusterList.Items[0].ObjectMeta)
+	if err != nil {
+		return nil, err
 	}
 
 	// Create the cluster scope just to reuse logic of getting proper AWS session from cluster-api-provider-aws controller code
 	clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
 		Client:         a.ctrlClient,
 		Logger:         a.log,
-		Cluster:        a.cluster,
-		AWSCluster:     awsCluster,
-		ControllerName: "iam",
+		Cluster:        cluster,
+		AWSCluster:     &awsClusterList.Items[0],
+		ControllerName: "capa-iam",
 	})
 	if err != nil {
 		return nil, err

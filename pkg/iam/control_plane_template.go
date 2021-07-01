@@ -22,7 +22,7 @@ const controlPlaneTemplate = `{
         {
             "Condition": {
                 "StringEquals": {
-                    "autoscaling:ResourceTag/sigs.k8s.io/cluster-api-provider-aws/cluster/{{.ClusterID}}": "owned"
+                    "autoscaling:ResourceTag/sigs.k8s.io/cluster-api-provider-aws/cluster/{{.ClusterName}}": "owned"
                 }
             },
             "Action": [
