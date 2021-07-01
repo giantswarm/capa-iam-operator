@@ -21,7 +21,7 @@ const assumeRolePolicyDocumentTemplate = `{
 }`
 
 type TemplateParams struct {
-	ClusterID        string
+	ClusterName      string
 	EC2ServiceDomain string
 	Region           string
 	RegionARN        string
@@ -46,7 +46,7 @@ func generateAssumeRolePolicyDocument(region string) (string, error) {
 	return buf.String(), nil
 }
 
-func generatePolicyDocument(clusterID string, roleType string, region string) (string, error) {
+func generatePolicyDocument(clusterName string, roleType string, region string) (string, error) {
 	var t string
 	if roleType == ControlPlaneRole {
 		t = controlPlaneTemplate
@@ -57,9 +57,9 @@ func generatePolicyDocument(clusterID string, roleType string, region string) (s
 	}
 
 	params := TemplateParams{
-		ClusterID: clusterID,
-		Region:    region,
-		RegionARN: regionARN(region),
+		ClusterName: clusterName,
+		Region:      region,
+		RegionARN:   regionARN(region),
 	}
 
 	tmpl, err := template.New("policy").Parse(t)

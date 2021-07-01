@@ -81,36 +81,36 @@ func Test_Role_Policy_Template_Render(t *testing.T) {
 			name:     "case-0",
 			roleType: ControlPlaneRole,
 			params: TemplateParams{
-				ClusterID: "test1",
-				Region:    "eu-west-1",
-				RegionARN: "aws",
+				ClusterName: "test1",
+				Region:      "eu-west-1",
+				RegionARN:   "aws",
 			},
 		},
 		{
 			name:     "case-1",
 			roleType: NodesRole,
 			params: TemplateParams{
-				ClusterID: "test2",
-				Region:    "eu-west-1",
-				RegionARN: "aws",
+				ClusterName: "test2",
+				Region:      "eu-west-1",
+				RegionARN:   "aws",
 			},
 		},
 		{
 			name:     "case-2-china",
 			roleType: ControlPlaneRole,
 			params: TemplateParams{
-				ClusterID: "test3",
-				Region:    "cn-north-1",
-				RegionARN: regionARN("cn-north-1"),
+				ClusterName: "test3",
+				Region:      "cn-north-1",
+				RegionARN:   regionARN("cn-north-1"),
 			},
 		},
 		{
 			name:     "case-3-china",
 			roleType: NodesRole,
 			params: TemplateParams{
-				ClusterID: "test4",
-				Region:    "cn-northeast-1",
-				RegionARN: regionARN("cn-north-1"),
+				ClusterName: "test4",
+				Region:      "cn-northeast-1",
+				RegionARN:   regionARN("cn-north-1"),
 			},
 		},
 	}
@@ -119,7 +119,7 @@ func Test_Role_Policy_Template_Render(t *testing.T) {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			var err error
 
-			templateBody, err := generatePolicyDocument(tc.params.ClusterID, tc.roleType, tc.params.Region)
+			templateBody, err := generatePolicyDocument(tc.params.ClusterName, tc.roleType, tc.params.Region)
 			if err != nil {
 				t.Fatal(err)
 			}
