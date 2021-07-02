@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws/client"
+	clientaws "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/go-logr/logr"
 	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
@@ -47,7 +47,7 @@ func New(config AWSClientConfig) (*AwsClient, error) {
 	return a, nil
 }
 
-func (a *AwsClient) GetAWSClientSession(ctx context.Context) (client.ConfigProvider, error) {
+func (a *AwsClient) GetAWSClientSession(ctx context.Context) (clientaws.ConfigProvider, error) {
 	awsClusterList := &capa.AWSClusterList{}
 
 	if err := a.ctrlClient.List(ctx,
