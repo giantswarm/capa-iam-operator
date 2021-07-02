@@ -23,10 +23,13 @@ import (
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	"k8s.io/klog/klogr"
 
 	"k8s.io/apimachinery/pkg/runtime"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	expcapa "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -41,8 +44,11 @@ var (
 )
 
 func init() {
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	_ = clientgoscheme.AddToScheme(scheme)
 
+	_ = capi.AddToScheme(scheme)
+	_ = capa.AddToScheme(scheme)
+	_ = expcapa.AddToScheme(scheme)
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -61,7 +67,7 @@ func main() {
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
-	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+	ctrl.SetLogger(klogr.New())
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
@@ -78,6 +84,7 @@ func main() {
 
 	if err = (&controllers.AWSMachineTemplateReconciler{
 		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("AWSMachineTemplate"),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AWSMachineTemplate")
@@ -85,6 +92,7 @@ func main() {
 	}
 	if err = (&controllers.AWSMachinePoolReconciler{
 		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("AWSMachinePool"),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AWSMachinePool")
