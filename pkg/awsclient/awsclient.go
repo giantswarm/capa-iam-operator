@@ -28,7 +28,7 @@ type AwsClient struct {
 }
 
 func New(config AWSClientConfig) (*AwsClient, error) {
-	if config.ClusterName == "nil" {
+	if config.ClusterName == "" {
 		return nil, errors.New("failed to generate new awsClient from empty ClusterName")
 	}
 	if config.CtrlClient == nil {
