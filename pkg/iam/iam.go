@@ -148,21 +148,20 @@ func (s *IAMService) createMainRole() error {
 
 // attachInlinePolicy  will attach inline policy to the main IAM role
 func (s *IAMService) attachInlinePolicy() error {
-	i2 := &awsiam.ListAttachedRolePoliciesInput{
+	i := &awsiam.ListRolePoliciesInput{
 		RoleName: aws.String(s.iamRoleName),
 	}
 
 	alreadyExists := false
 
 	// check if the inline policy already exists
-	o2, err := s.iamClient.ListAttachedRolePolicies(i2)
+	o, err := s.iamClient.ListRolePolicies(i)
 	if err == nil {
-		for _, p := range o2.AttachedPolicies {
-			if *p.PolicyName == policyName(s.roleType, s.clusterName) {
+		for _, p := range o.PolicyNames {
+			if *p == policyName(s.roleType, s.clusterName) {
 				alreadyExists = true
 				break
 			}
-			fmt.Printf("listing policy %s", *p.PolicyName)
 		}
 	}
 
