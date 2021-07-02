@@ -78,7 +78,7 @@ func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 	awsClientSession, err := awsClientGetter.GetAWSClientSession(ctx)
 	if err != nil {
 		logger.Error(err, "Failed to get aws client session")
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, err
 	}
 
 	var iamService *iam.IAMService
