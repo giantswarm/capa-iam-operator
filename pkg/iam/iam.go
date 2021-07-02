@@ -162,6 +162,7 @@ func (s *IAMService) attachInlinePolicy() error {
 				alreadyExists = true
 				break
 			}
+			fmt.Printf("listing policy %s", *p.PolicyName)
 		}
 	}
 
