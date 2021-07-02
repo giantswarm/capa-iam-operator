@@ -81,10 +81,9 @@ func (s *IAMService) Reconcile() error {
 		s.log.Error(err, "Failed to fetch IAM Role")
 		return err
 	}
-	// check if the policy is created by this controller, if its not than we skip deletion
+	// check if the policy is created by this controller, if its not than we skip adding inline policy
 	if !owned {
-		s.log.Info("IAM role is not owned by IAM controller, skipping attaching inline policy")
-		return nil
+		s.log.Info("IAM role is not owned by IAM controller, skipping adding inline policy")
 	} else {
 		err = s.attachInlinePolicy()
 		if err != nil {
@@ -227,7 +226,6 @@ func (s *IAMService) Delete() error {
 	}
 
 	s.log.Info("finished deleting IAM resources")
-
 	return nil
 }
 
@@ -245,8 +243,6 @@ func (s *IAMService) cleanAttachedPolicies() error {
 			s.log.Error(err, "failed to list attached policies")
 			return err
 		} else {
-			s.log.Info(fmt.Sprintf("found %d attached policies", len(o.AttachedPolicies)))
-
 			for _, p := range o.AttachedPolicies {
 				s.log.Info(fmt.Sprintf("detaching policy %s", *p.PolicyName))
 
@@ -279,6 +275,8 @@ func (s *IAMService) cleanAttachedPolicies() error {
 		}
 
 		for _, p := range o.PolicyNames {
+			s.log.Info(fmt.Sprintf("deleting inline policy %s", *p))
+
 			i := &awsiam.DeleteRolePolicyInput{
 				RoleName:   aws.String(s.iamRoleName),
 				PolicyName: p,
@@ -293,7 +291,7 @@ func (s *IAMService) cleanAttachedPolicies() error {
 		}
 	}
 
-	s.log.Info("cleaned attached and inline policies")
+	s.log.Info("cleaned attached and inline policies from IAM Role")
 	return nil
 }
 
