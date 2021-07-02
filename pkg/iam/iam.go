@@ -68,7 +68,7 @@ func New(config IAMServiceConfig) (*IAMService, error) {
 }
 
 func (s *IAMService) Reconcile() error {
-	s.log.Info("reconciling AWSMachineTemplate")
+	s.log.Info("reconciling IAM role")
 
 	err := s.createMainRole()
 	if err != nil {
@@ -91,7 +91,7 @@ func (s *IAMService) Reconcile() error {
 		}
 	}
 
-	s.log.Info("finished reconciling AWSMachineTemplate")
+	s.log.Info("finished reconciling IAM role")
 	return nil
 }
 
