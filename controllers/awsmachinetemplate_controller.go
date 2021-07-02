@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"time"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -54,7 +55,7 @@ func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 	awsMachineTemplate := &capa.AWSMachineTemplate{}
 	if err := r.Get(ctx, req.NamespacedName, awsMachineTemplate); err != nil {
 		logger.Error(err, "AWSMachineTemplate does not exist")
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, err
 	}
 
 	clusterName := key.GetClusterIDFromLabels(awsMachineTemplate)
@@ -126,7 +127,10 @@ func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 
 	}
 
-	return ctrl.Result{}, nil
+	return ctrl.Result{
+		Requeue:      true,
+		RequeueAfter: time.Minute * 5,
+	}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
