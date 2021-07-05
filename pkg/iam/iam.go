@@ -215,11 +215,11 @@ func (s *IAMService) Delete() error {
 	}
 
 	// delete the role
-	i2 := &awsiam.DeleteRoleInput{
+	i := &awsiam.DeleteRoleInput{
 		RoleName: aws.String(s.iamRoleName),
 	}
 
-	_, err = s.iamClient.DeleteRole(i2)
+	_, err = s.iamClient.DeleteRole(i)
 	if err != nil {
 		s.log.Error(err, "failed to delete role")
 		return err
