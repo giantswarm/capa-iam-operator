@@ -35,8 +35,10 @@ import (
 // AWSMachineTemplateReconciler reconciles a AWSMachineTemplate object
 type AWSMachineTemplateReconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	EnableKiamRole    bool
+	EnableRoute53Role bool
+	Log               logr.Logger
+	Scheme            *runtime.Scheme
 }
 
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinetemplates,verbs=get;list;watch;create;update;patch;delete
@@ -85,11 +87,11 @@ func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 	var iamService *iam.IAMService
 	{
 		c := iam.IAMServiceConfig{
-			AWSSession:  awsClientSession,
-			ClusterName: clusterName,
-			IAMRoleName: awsMachineTemplate.Spec.Template.Spec.IAMInstanceProfile,
-			Log:         logger,
-			RoleType:    iam.ControlPlaneRole,
+			AWSSession:   awsClientSession,
+			ClusterName:  clusterName,
+			MainRoleName: awsMachineTemplate.Spec.Template.Spec.IAMInstanceProfile,
+			Log:          logger,
+			RoleType:     iam.ControlPlaneRole,
 		}
 		iamService, err = iam.New(c)
 		if err != nil {
@@ -99,23 +101,45 @@ func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 	}
 
 	if awsMachineTemplate.DeletionTimestamp != nil {
-		err = iamService.Delete()
+		err = iamService.DeleteRole()
 		if err != nil {
-			logger.Error(err, "failed to delete IAM Role")
 			return ctrl.Result{}, err
 		}
+		if r.EnableKiamRole {
+			err = iamService.DeleteKiamRole()
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+		if r.EnableRoute53Role {
+			err = iamService.DeleteRoute53Role()
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+
 		controllerutil.RemoveFinalizer(awsMachineTemplate, key.CAPAIAMControllerFinalizer)
 		err = r.Update(ctx, awsMachineTemplate)
 		if err != nil {
 			logger.Error(err, "failed to remove finalizer from AWSMachineTemplate")
 			return ctrl.Result{}, err
 		}
-
 	} else {
-		err = iamService.Reconcile()
+		err = iamService.ReconcileRole()
 		if err != nil {
-			logger.Error(err, "failed to reconcile IAM Role")
 			return ctrl.Result{}, err
+		}
+		if r.EnableKiamRole {
+			err = iamService.ReconcileKiamRole()
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+		if r.EnableRoute53Role {
+			err = iamService.ReconcileRoute53Role()
+			if err != nil {
+				return ctrl.Result{}, err
+			}
 		}
 
 		controllerutil.AddFinalizer(awsMachineTemplate, key.CAPAIAMControllerFinalizer)

@@ -69,15 +69,6 @@ const nodesTemplate = `{
         },
         {
             "Action": [
-                "ec2:CreateTags"
-            ],
-            "Resource": [
-                "arn:{{.RegionARN}}:ec2:*:*:network-interface/*"
-            ],
-            "Effect": "Allow"
-        },
-        {
-            "Action": [
                 "autoscaling:DescribeAutoScalingGroups",
                 "autoscaling:DescribeLaunchConfigurations",
                 "autoscaling:DescribeTags",

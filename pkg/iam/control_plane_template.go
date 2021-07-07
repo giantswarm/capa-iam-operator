@@ -1,6 +1,19 @@
 package iam
 
-const controlPlaneTemplate = `{
+const ec2TrustIdentityPolicyTemplate = `{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "{{.EC2ServiceDomain}}"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}`
+
+const controlPlanePolicyTemplate = `{
     "Version": "2012-10-17",
     "Statement": [       
         {
