@@ -100,7 +100,7 @@ func (s *IAMService) ReconcileKiamRole() error {
 
 		o, err := s.iamClient.GetRole(i)
 		if err != nil {
-			s.log.Error(err, "failed to fetch get ControlPlane role")
+			s.log.Error(err, "failed to fetch ControlPlane role")
 			return err
 		}
 
@@ -120,12 +120,12 @@ func (s *IAMService) ReconcileKiamRole() error {
 		return err
 	}
 
-	s.log.Info("finished reconciling IAM role")
+	s.log.Info("finished reconciling KIAM IAM role")
 	return nil
 }
 
 func (s *IAMService) ReconcileRoute53Role() error {
-	s.log.Info("reconciling KIAM IAM role")
+	s.log.Info("reconciling Route53 IAM role")
 
 	var kiamRoleARN string
 	{
@@ -135,7 +135,7 @@ func (s *IAMService) ReconcileRoute53Role() error {
 
 		o, err := s.iamClient.GetRole(i)
 		if err != nil {
-			s.log.Error(err, "failed to fetch get KIAM role")
+			s.log.Error(err, "failed to fetch KIAM role")
 			return err
 		}
 
@@ -155,7 +155,7 @@ func (s *IAMService) ReconcileRoute53Role() error {
 		return err
 	}
 
-	s.log.Info("finished reconciling IAM role")
+	s.log.Info("finished reconciling Route53 role")
 	return nil
 }
 
