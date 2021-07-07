@@ -58,11 +58,12 @@ func New(config IAMServiceConfig) (*IAMService, error) {
 	l := config.Log.WithValues("clusterName", config.ClusterName, "iam-role", config.RoleType)
 
 	s := &IAMService{
-		clusterName: config.ClusterName,
-		iamClient:   client,
-		log:         l,
-		roleType:    config.RoleType,
-		region:      client.SigningRegion,
+		clusterName:  config.ClusterName,
+		iamClient:    client,
+		mainRoleName: config.MainRoleName,
+		log:          l,
+		roleType:     config.RoleType,
+		region:       client.SigningRegion,
 	}
 
 	return s, nil
