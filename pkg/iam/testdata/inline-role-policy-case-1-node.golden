@@ -1,6 +1,11 @@
 {
     "Version": "2012-10-17",
-    "Statement": [       
+    "Statement": [
+        {
+            "Action": "ec2:*",
+            "Resource": "*",
+            "Effect": "Allow"
+        },
         {
             "Action": "elasticloadbalancing:*",
             "Resource": "*",
@@ -20,7 +25,7 @@
         {
             "Condition": {
                 "StringEquals": {
-                    "autoscaling:ResourceTag/sigs.k8s.io/cluster-api-provider-aws/cluster/test3": "owned"
+                    "autoscaling:ResourceTag/sigs.k8s.io/cluster-api-provider-aws/cluster/test": "owned"
                 }
             },
             "Action": [

@@ -2,17 +2,9 @@ package iam
 
 import (
 	"bytes"
-	"fmt"
 	"strings"
 	"text/template"
 )
-
-type TemplateParams struct {
-	ClusterName      string
-	EC2ServiceDomain string
-	Region           string
-	RegionARN        string
-}
 
 func generatePolicyDocument(t string, params interface{}) (string, error) {
 	tmpl, err := template.New("policy").Parse(t)
@@ -20,35 +12,6 @@ func generatePolicyDocument(t string, params interface{}) (string, error) {
 		return "", err
 	}
 
-	buf := new(bytes.Buffer)
-	err = tmpl.Execute(buf, params)
-	if err != nil {
-		return "", err
-	}
-
-	return buf.String(), nil
-}
-
-func xgeneratePolicyDocument(clusterName string, roleType string, region string) (string, error) {
-	var t string
-	if roleType == ControlPlaneRole {
-		t = controlPlanePolicyTemplate
-	} else if roleType == NodesRole {
-		t = nodesTemplate
-	} else {
-		return "", fmt.Errorf("unknown role type '%s'", roleType)
-	}
-
-	params := TemplateParams{
-		ClusterName: clusterName,
-		Region:      region,
-		RegionARN:   regionARN(region),
-	}
-
-	tmpl, err := template.New("policy").Parse(t)
-	if err != nil {
-		return "", err
-	}
 	buf := new(bytes.Buffer)
 	err = tmpl.Execute(buf, params)
 	if err != nil {
