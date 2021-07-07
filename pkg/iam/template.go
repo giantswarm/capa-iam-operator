@@ -21,13 +21,6 @@ func generatePolicyDocument(t string, params interface{}) (string, error) {
 	return buf.String(), nil
 }
 
-func regionARN(region string) string {
-	if isChinaRegion(region) {
-		return "aws-cn"
-	}
-	return "aws"
-}
-
 func ec2ServiceDomain(region string) string {
 	domain := "ec2.amazonaws.com"
 
