@@ -80,7 +80,7 @@ func (s *IAMService) ReconcileRole() error {
 		EC2ServiceDomain: ec2ServiceDomain(s.region),
 	}
 
-	err := s.reconcileRole(s.mainRoleName, params)
+	err := s.reconcileRole(s.mainRoleName, s.roleType, params)
 	if err != nil {
 		return err
 	}
@@ -116,7 +116,7 @@ func (s *IAMService) ReconcileKiamRole() error {
 		EC2ServiceDomain:    ec2ServiceDomain(s.region),
 	}
 
-	err := s.reconcileRole(roleName(KIAMRole, s.clusterName), params)
+	err := s.reconcileRole(roleName(KIAMRole, s.clusterName), KIAMRole, params)
 	if err != nil {
 		return err
 	}
@@ -151,7 +151,7 @@ func (s *IAMService) ReconcileRoute53Role() error {
 		KIAMRoleARN:      kiamRoleARN,
 	}
 
-	err := s.reconcileRole(roleName(Route53Role, s.clusterName), params)
+	err := s.reconcileRole(roleName(Route53Role, s.clusterName), Route53Role, params)
 	if err != nil {
 		return err
 	}
@@ -160,9 +160,9 @@ func (s *IAMService) ReconcileRoute53Role() error {
 	return nil
 }
 
-func (s *IAMService) reconcileRole(roleName string, params interface{}) error {
+func (s *IAMService) reconcileRole(roleName string, roleType string, params interface{}) error {
 	l := s.log.WithValues("role_name", roleName)
-	err := s.createRole(roleName, params)
+	err := s.createRole(roleName, roleType, params)
 	if err != nil {
 		return err
 	}
@@ -177,7 +177,7 @@ func (s *IAMService) reconcileRole(roleName string, params interface{}) error {
 	if !owned {
 		l.Info("IAM role is not owned by IAM controller, skipping adding inline policy")
 	} else {
-		err = s.attachInlinePolicy(roleName, params)
+		err = s.attachInlinePolicy(roleName, roleType, params)
 		if err != nil {
 			return err
 		}
@@ -186,7 +186,7 @@ func (s *IAMService) reconcileRole(roleName string, params interface{}) error {
 }
 
 // createRole will create requested IAM role
-func (s *IAMService) createRole(roleName string, params interface{}) error {
+func (s *IAMService) createRole(roleName string, roleType string, params interface{}) error {
 	l := s.log.WithValues("role_name", roleName)
 	i := &awsiam.GetRoleInput{
 		RoleName: aws.String(roleName),
@@ -196,7 +196,7 @@ func (s *IAMService) createRole(roleName string, params interface{}) error {
 
 	// create new IAMRole if it does not exists yet
 	if IsNotFound(err) {
-		tmpl := gentTrustPolicyTemplate(roleName)
+		tmpl := gentTrustPolicyTemplate(roleType)
 
 		assumeRolePolicyDocument, err := generatePolicyDocument(tmpl, params)
 		if err != nil {
@@ -239,7 +239,7 @@ func (s *IAMService) createRole(roleName string, params interface{}) error {
 }
 
 // attachInlinePolicy  will attach inline policy to the main IAM role
-func (s *IAMService) attachInlinePolicy(roleName string, params interface{}) error {
+func (s *IAMService) attachInlinePolicy(roleName string, roleType string, params interface{}) error {
 	l := s.log.WithValues("role_name", roleName)
 	i := &awsiam.ListRolePoliciesInput{
 		RoleName: aws.String(roleName),
@@ -260,7 +260,7 @@ func (s *IAMService) attachInlinePolicy(roleName string, params interface{}) err
 
 	// add inline policy to the main IAM role if it do not exist yet
 	if !alreadyExists {
-		tmpl := getInlinePolicyTemplate(roleName)
+		tmpl := getInlinePolicyTemplate(roleType)
 
 		policyDocument, err := generatePolicyDocument(tmpl, params)
 		if err != nil {
