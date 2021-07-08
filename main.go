@@ -54,13 +54,19 @@ func init() {
 
 func main() {
 	var metricsAddr string
+	var enableKiamRole bool
 	var enableLeaderElection bool
+	var enableRoute53Role bool
 	var probeAddr string
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
+	flag.BoolVar(&enableKiamRole, "enable-kiam-role", true,
+		"Enable creation and management of KIAM role for kiam app.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
+	flag.BoolVar(&enableRoute53Role, "enable-route53-role", true,
+		"Enable creation and management of Route53 role for external-dns app.")
 	opts := zap.Options{
 		Development: true,
 	}
@@ -83,9 +89,11 @@ func main() {
 	}
 
 	if err = (&controllers.AWSMachineTemplateReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("AWSMachineTemplate"),
-		Scheme: mgr.GetScheme(),
+		Client:            mgr.GetClient(),
+		EnableKiamRole:    enableKiamRole,
+		EnableRoute53Role: enableRoute53Role,
+		Log:               ctrl.Log.WithName("controllers").WithName("AWSMachineTemplate"),
+		Scheme:            mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AWSMachineTemplate")
 		os.Exit(1)

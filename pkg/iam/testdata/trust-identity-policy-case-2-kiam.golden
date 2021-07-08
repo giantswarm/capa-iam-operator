@@ -4,7 +4,7 @@
     {
       "Effect": "Allow",
       "Principal": {
-        "Service": "ec2.amazonaws.com.cn"
+        "AWS": "arn:aws:iam::751852626996:role/apie1-control-plane-role"
       },
       "Action": "sts:AssumeRole"
     }

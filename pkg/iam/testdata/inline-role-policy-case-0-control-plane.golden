@@ -20,7 +20,7 @@
         {
             "Condition": {
                 "StringEquals": {
-                    "autoscaling:ResourceTag/sigs.k8s.io/cluster-api-provider-aws/cluster/test1": "owned"
+                    "autoscaling:ResourceTag/sigs.k8s.io/cluster-api-provider-aws/cluster/test": "owned"
                 }
             },
             "Action": [

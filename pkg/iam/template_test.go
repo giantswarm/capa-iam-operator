@@ -14,27 +14,51 @@ import (
 
 var update = flag.Bool("update", false, "update .golden CF template file")
 
+type testParams struct {
+	ClusterName         string
+	ControlPlaneRoleARN string
+	EC2ServiceDomain    string
+	KIAMRoleARN         string
+}
+
 // It uses golden file as reference template and when changes to template are
 // intentional, they can be updated by providing -update flag for go test.
 //
-//  go test ./pkg/iam -run Test_Assume_Role_Template_Render -update
+//  go test ./pkg/iam -run Test_Role_Policy_Template_Render -update
 //
-func Test_Assume_Role_Template_Render(t *testing.T) {
+func Test_Role_Policy_Template_Render(t *testing.T) {
 	testCases := []struct {
 		name   string
-		params TemplateParams
+		params testParams
+		role   string
 	}{
 		{
-			name: "case-0",
-			params: TemplateParams{
-				Region: "eu-west-1",
+			name: "case-0-control-plane",
+			params: testParams{
+				ClusterName: "test",
 			},
+			role: ControlPlaneRole,
 		},
 		{
-			name: "case-1-china",
-			params: TemplateParams{
-				Region: "cn-north-1",
+			name: "case-1-node",
+			params: testParams{
+				ClusterName: "test",
 			},
+			role: NodesRole,
+		},
+		{
+			name: "case-2-kiam",
+			params: testParams{
+				ClusterName: "test",
+			},
+			role: KIAMRole,
+		},
+		{
+			name: "case-3-route53",
+			params: testParams{
+				ClusterName: "test",
+			},
+			role: Route53Role,
 		},
 	}
 
@@ -42,11 +66,13 @@ func Test_Assume_Role_Template_Render(t *testing.T) {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			var err error
 
-			templateBody, err := generateAssumeRolePolicyDocument(tc.params.Region)
+			template := getInlinePolicyTemplate(tc.role)
+
+			templateBody, err := generatePolicyDocument(template, tc.params)
 			if err != nil {
 				t.Fatal(err)
 			}
-			p := filepath.Join("testdata", fmt.Sprintf("assume-role-policy-%s.golden", tc.name))
+			p := filepath.Join("testdata", fmt.Sprintf("inline-role-policy-%s.golden", tc.name))
 
 			if *update {
 				err := ioutil.WriteFile(p, []byte(templateBody), 0644) // nolint: gosec
@@ -69,49 +95,48 @@ func Test_Assume_Role_Template_Render(t *testing.T) {
 // It uses golden file as reference template and when changes to template are
 // intentional, they can be updated by providing -update flag for go test.
 //
-//  go test ./pkg/iam -run Test_Role_Policy_Template_Render -update
+//  go test ./pkg/iam -run Test_Trust_Identity_Policy_Template_Render -update
 //
-func Test_Role_Policy_Template_Render(t *testing.T) {
+func Test_Trust_Identity_Policy_Template_Render(t *testing.T) {
 	testCases := []struct {
-		name     string
-		params   TemplateParams
-		roleType string
+		name   string
+		params testParams
+		role   string
 	}{
 		{
-			name:     "case-0",
-			roleType: ControlPlaneRole,
-			params: TemplateParams{
-				ClusterName: "test1",
-				Region:      "eu-west-1",
-				RegionARN:   "aws",
+			name: "case-0-control-plane",
+			params: testParams{
+				EC2ServiceDomain: ec2ServiceDomain("eu-central-1"),
 			},
+			role: ControlPlaneRole,
 		},
 		{
-			name:     "case-1",
-			roleType: NodesRole,
-			params: TemplateParams{
-				ClusterName: "test2",
-				Region:      "eu-west-1",
-				RegionARN:   "aws",
+			name: "case-1-node",
+			params: testParams{
+				EC2ServiceDomain: ec2ServiceDomain("eu-central-1"),
 			},
+			role: NodesRole,
 		},
 		{
-			name:     "case-2-china",
-			roleType: ControlPlaneRole,
-			params: TemplateParams{
-				ClusterName: "test3",
-				Region:      "cn-north-1",
-				RegionARN:   regionARN("cn-north-1"),
+			name: "case-2-kiam",
+			params: testParams{
+				ControlPlaneRoleARN: "arn:aws:iam::751852626996:role/apie1-control-plane-role",
 			},
+			role: KIAMRole,
 		},
 		{
-			name:     "case-3-china",
-			roleType: NodesRole,
-			params: TemplateParams{
-				ClusterName: "test4",
-				Region:      "cn-northeast-1",
-				RegionARN:   regionARN("cn-north-1"),
+			name: "case-3-route53",
+			params: testParams{
+				KIAMRoleARN: "arn:aws:iam::751852626996:role/apie1-kiam-role",
 			},
+			role: Route53Role,
+		},
+		{
+			name: "case-3-control-plane-china",
+			params: testParams{
+				EC2ServiceDomain: ec2ServiceDomain("eu-central-1"),
+			},
+			role: ControlPlaneRole,
 		},
 	}
 
@@ -119,11 +144,13 @@ func Test_Role_Policy_Template_Render(t *testing.T) {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			var err error
 
-			templateBody, err := generatePolicyDocument(tc.params.ClusterName, tc.roleType, tc.params.Region)
+			template := gentTrustPolicyTemplate(tc.role)
+
+			templateBody, err := generatePolicyDocument(template, tc.params)
 			if err != nil {
 				t.Fatal(err)
 			}
-			p := filepath.Join("testdata", fmt.Sprintf("inline-policy-%s.golden", tc.name))
+			p := filepath.Join("testdata", fmt.Sprintf("trust-identity-policy-%s.golden", tc.name))
 
 			if *update {
 				err := ioutil.WriteFile(p, []byte(templateBody), 0644) // nolint: gosec
