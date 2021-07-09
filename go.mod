@@ -7,7 +7,7 @@ require (
 	github.com/Azure/go-autorest/autorest v0.11.18 // indirect
 	github.com/aws/aws-sdk-go v1.39.3
 	github.com/go-logr/logr v0.1.0
-	github.com/google/go-cmp v0.4.1
+	github.com/google/go-cmp v0.5.6
 	k8s.io/api v0.17.9
 	k8s.io/apimachinery v0.17.9
 	k8s.io/client-go v0.17.9
