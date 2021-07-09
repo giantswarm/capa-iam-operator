@@ -107,7 +107,7 @@ func (r *AWSMachinePoolReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 				logger.Error(err, "failed get awsCluster")
 				return ctrl.Result{}, err
 			}
-			controllerutil.RemoveFinalizer(awsCluster, key.FinalizerName(iam.ControlPlaneRole))
+			controllerutil.RemoveFinalizer(awsCluster, key.FinalizerName(iam.NodesRole))
 			err = r.Update(ctx, awsCluster)
 			if err != nil {
 				logger.Error(err, "failed to add finalizer on AWSCluster")
@@ -143,7 +143,7 @@ func (r *AWSMachinePoolReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 				logger.Error(err, "failed get awsCluster")
 				return ctrl.Result{}, err
 			}
-			controllerutil.AddFinalizer(awsCluster, key.FinalizerName(iam.ControlPlaneRole))
+			controllerutil.AddFinalizer(awsCluster, key.FinalizerName(iam.NodesRole))
 			err = r.Update(ctx, awsCluster)
 			if err != nil {
 				logger.Error(err, "failed to add finalizer on AWSCluster")
