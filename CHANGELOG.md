@@ -7,4 +7,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- Implement `AWSMachinetemplate` reconciler.
+- Implement `AWSMachineTemplate` reconciler.
+- Implement `AWSMachinePool` reconciler.
