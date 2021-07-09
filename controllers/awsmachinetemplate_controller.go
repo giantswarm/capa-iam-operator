@@ -60,7 +60,7 @@ func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 		return ctrl.Result{}, err
 	}
 
-	clusterName := key.GetClusterIDFromLabels(awsMachineTemplate)
+	clusterName := key.GetClusterIDFromLabels(awsMachineTemplate.ObjectMeta)
 
 	logger = logger.WithValues("cluster", clusterName)
 
@@ -150,7 +150,6 @@ func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 			logger.Error(err, "failed to add finalizer on AWSMachineTemplate")
 			return ctrl.Result{}, err
 		}
-
 	}
 
 	return ctrl.Result{
