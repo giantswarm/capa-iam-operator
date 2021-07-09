@@ -100,6 +100,22 @@ func (r *AWSMachinePoolReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 			return ctrl.Result{}, err
 		}
 
+		// remove finalizer from AWSCluster
+		{
+			awsCluster, err := key.GetAWSClusterByName(ctx, r.Client, clusterName)
+			if err != nil {
+				logger.Error(err, "failed get awsCluster")
+				return ctrl.Result{}, err
+			}
+			controllerutil.RemoveFinalizer(awsCluster, key.FinalizerName(iam.ControlPlaneRole))
+			err = r.Update(ctx, awsCluster)
+			if err != nil {
+				logger.Error(err, "failed to add finalizer on AWSCluster")
+				return ctrl.Result{}, err
+			}
+		}
+
+		// remove finalizer from AWSMachinePool
 		controllerutil.RemoveFinalizer(awsMachinePool, key.FinalizerName(iam.NodesRole))
 		err = r.Update(ctx, awsMachinePool)
 		if err != nil {
@@ -112,11 +128,27 @@ func (r *AWSMachinePoolReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 			return ctrl.Result{}, err
 		}
 
+		// add finalizer to AWSMachinePool
 		controllerutil.AddFinalizer(awsMachinePool, key.FinalizerName(iam.NodesRole))
 		err = r.Update(ctx, awsMachinePool)
 		if err != nil {
 			logger.Error(err, "failed to add finalizer on AWSMachinePool")
 			return ctrl.Result{}, err
+		}
+
+		// add finalizer to AWSCluster
+		{
+			awsCluster, err := key.GetAWSClusterByName(ctx, r.Client, clusterName)
+			if err != nil {
+				logger.Error(err, "failed get awsCluster")
+				return ctrl.Result{}, err
+			}
+			controllerutil.AddFinalizer(awsCluster, key.FinalizerName(iam.ControlPlaneRole))
+			err = r.Update(ctx, awsCluster)
+			if err != nil {
+				logger.Error(err, "failed to add finalizer on AWSCluster")
+				return ctrl.Result{}, err
+			}
 		}
 	}
 
