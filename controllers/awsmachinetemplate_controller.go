@@ -119,10 +119,21 @@ func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 			}
 		}
 
-		controllerutil.RemoveFinalizer(awsMachineTemplate, key.CAPAIAMControllerFinalizer)
+		controllerutil.RemoveFinalizer(awsMachineTemplate, key.FinalizerName(iam.ControlPlaneRole))
 		err = r.Update(ctx, awsMachineTemplate)
 		if err != nil {
 			logger.Error(err, "failed to remove finalizer from AWSMachineTemplate")
+			return ctrl.Result{}, err
+		}
+		awsCluster, err := key.GetAWSClusterByName(ctx, r.Client, clusterName)
+		if err != nil {
+			logger.Error(err, "failed get awsCluster")
+			return ctrl.Result{}, err
+		}
+		controllerutil.RemoveFinalizer(awsCluster, key.FinalizerName(iam.ControlPlaneRole))
+		err = r.Update(ctx, awsCluster)
+		if err != nil {
+			logger.Error(err, "failed to add finalizer on AWSCluster")
 			return ctrl.Result{}, err
 		}
 	} else {
@@ -143,11 +154,22 @@ func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 				return ctrl.Result{}, err
 			}
 		}
-
-		controllerutil.AddFinalizer(awsMachineTemplate, key.CAPAIAMControllerFinalizer)
+		controllerutil.AddFinalizer(awsMachineTemplate, key.FinalizerName(iam.ControlPlaneRole))
 		err = r.Update(ctx, awsMachineTemplate)
 		if err != nil {
 			logger.Error(err, "failed to add finalizer on AWSMachineTemplate")
+			return ctrl.Result{}, err
+		}
+
+		awsCluster, err := key.GetAWSClusterByName(ctx, r.Client, clusterName)
+		if err != nil {
+			logger.Error(err, "failed get awsCluster")
+			return ctrl.Result{}, err
+		}
+		controllerutil.AddFinalizer(awsCluster, key.FinalizerName(iam.ControlPlaneRole))
+		err = r.Update(ctx, awsCluster)
+		if err != nil {
+			logger.Error(err, "failed to add finalizer on AWSCluster")
 			return ctrl.Result{}, err
 		}
 

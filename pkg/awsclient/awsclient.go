@@ -3,11 +3,9 @@ package awsclient
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	clientaws "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/go-logr/logr"
-	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	capiutil "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -48,23 +46,13 @@ func New(config AWSClientConfig) (*AwsClient, error) {
 }
 
 func (a *AwsClient) GetAWSClientSession(ctx context.Context) (clientaws.ConfigProvider, error) {
-	awsClusterList := &capa.AWSClusterList{}
-
-	if err := a.ctrlClient.List(ctx,
-		awsClusterList,
-		client.MatchingLabels{key.ClusterNameLabel: a.clusterName},
-	); err != nil {
-		a.log.Error(err, "cannot fetch AWSClusters")
-		return nil, err // nolint:nilerr
+	awsCluster, err := key.GetAWSClusterByName(ctx, a.ctrlClient, a.clusterName)
+	if err != nil {
+		a.log.Error(err, "failed to get AWSCLuster")
+		return nil, err
 	}
 
-	if len(awsClusterList.Items) != 1 {
-		// AWSCluster is not ready
-		a.log.Info(fmt.Sprintf("expected 1 AWSCluster but found '%d'", len(awsClusterList.Items)))
-		return nil, nil // nolint:nilerr
-	}
-
-	cluster, err := capiutil.GetClusterFromMetadata(ctx, a.ctrlClient, awsClusterList.Items[0].ObjectMeta)
+	cluster, err := capiutil.GetClusterFromMetadata(ctx, a.ctrlClient, awsCluster.ObjectMeta)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +62,7 @@ func (a *AwsClient) GetAWSClientSession(ctx context.Context) (clientaws.ConfigPr
 		Client:         a.ctrlClient,
 		Logger:         a.log,
 		Cluster:        cluster,
-		AWSCluster:     &awsClusterList.Items[0],
+		AWSCluster:     awsCluster,
 		ControllerName: "capa-iam",
 	})
 	if err != nil {
