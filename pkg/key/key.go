@@ -2,7 +2,6 @@ package key
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
@@ -32,7 +31,7 @@ func GetAWSClusterByName(ctx context.Context, ctrlClient client.Client, clusterN
 	}
 
 	if len(awsClusterList.Items) != 1 {
-		return nil, errors.New(fmt.Sprintf("expected 1 AWSCLuster but found %d", len(awsClusterList.Items)))
+		return nil, fmt.Errorf("expected 1 AWSCLuster but found %d", len(awsClusterList.Items))
 	}
 
 	return &awsClusterList.Items[0], nil
