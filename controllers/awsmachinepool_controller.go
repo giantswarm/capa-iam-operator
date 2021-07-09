@@ -17,12 +17,19 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
+	"time"
+
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
+	expcapa "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	expcapa "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
+	"github.com/giantswarm/capa-iam-controller/pkg/awsclient"
+	"github.com/giantswarm/capa-iam-controller/pkg/iam"
+	"github.com/giantswarm/capa-iam-controller/pkg/key"
 )
 
 // AWSMachinePoolReconciler reconciles a AWSMachinePool object
@@ -36,14 +43,87 @@ type AWSMachinePoolReconciler struct {
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinepools/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinepools/finalizers,verbs=update
 
-// Reconcile is part of the main kubernetes reconciliation loop which aims to
-// move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the AWSMachinePool object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
 func (r *AWSMachinePoolReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	return ctrl.Result{}, nil
+	var err error
+	ctx := context.TODO()
+	logger := r.Log.WithValues("namespace", req.Namespace, "awsMachinePool", req.Name)
+
+	awsMachinePool := &expcapa.AWSMachinePool{}
+	if err := r.Get(ctx, req.NamespacedName, awsMachinePool); err != nil {
+		logger.Error(err, "AWSMachinePool does not exist")
+		return ctrl.Result{}, err
+	}
+
+	clusterName := key.GetClusterIDFromLabels(awsMachinePool.ObjectMeta)
+
+	logger = logger.WithValues("cluster", clusterName)
+
+	var awsClientGetter *awsclient.AwsClient
+	{
+		c := awsclient.AWSClientConfig{
+			ClusterName: clusterName,
+			CtrlClient:  r.Client,
+			Log:         logger,
+		}
+		awsClientGetter, err = awsclient.New(c)
+		if err != nil {
+			logger.Error(err, "failed to generate awsClientGetter")
+			return ctrl.Result{}, err
+		}
+	}
+
+	awsClientSession, err := awsClientGetter.GetAWSClientSession(ctx)
+	if err != nil {
+		logger.Error(err, "Failed to get aws client session")
+		return ctrl.Result{}, err
+	}
+
+	var iamService *iam.IAMService
+	{
+		c := iam.IAMServiceConfig{
+			AWSSession:   awsClientSession,
+			ClusterName:  clusterName,
+			MainRoleName: awsMachinePool.Spec.AWSLaunchTemplate.IamInstanceProfile,
+			Log:          logger,
+			RoleType:     iam.NodesRole,
+		}
+		iamService, err = iam.New(c)
+		if err != nil {
+			logger.Error(err, "Failed to generate IAM service")
+			return ctrl.Result{}, err
+		}
+	}
+
+	if awsMachinePool.DeletionTimestamp != nil {
+		err = iamService.DeleteRole()
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		controllerutil.RemoveFinalizer(awsMachinePool, key.FinalizerName(iam.NodesRole))
+		err = r.Update(ctx, awsMachinePool)
+		if err != nil {
+			logger.Error(err, "failed to remove finalizer from AWSMachinePool")
+			return ctrl.Result{}, err
+		}
+	} else {
+		err = iamService.ReconcileRole()
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		controllerutil.AddFinalizer(awsMachinePool, key.FinalizerName(iam.NodesRole))
+		err = r.Update(ctx, awsMachinePool)
+		if err != nil {
+			logger.Error(err, "failed to add finalizer on AWSMachinePool")
+			return ctrl.Result{}, err
+		}
+	}
+
+	return ctrl.Result{
+		Requeue:      true,
+		RequeueAfter: time.Minute * 5,
+	}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

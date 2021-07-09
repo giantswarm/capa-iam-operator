@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -16,7 +17,7 @@ func FinalizerName(roleName string) string {
 	return fmt.Sprintf("capa-iam-controller.finalizers.giantswarm.io/%s", roleName)
 }
 
-func GetClusterIDFromLabels(t *capa.AWSMachineTemplate) string {
+func GetClusterIDFromLabels(t v1.ObjectMeta) string {
 	return t.GetLabels()[ClusterNameLabel]
 }
 

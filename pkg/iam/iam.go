@@ -223,11 +223,11 @@ func (s *IAMService) createRole(roleName string, roleType string, params interfa
 
 		_, err = s.iamClient.CreateRole(i)
 		if err != nil {
-			l.Error(err, "failed to create main IAM Role")
+			l.Error(err, "failed to create IAM Role")
 			return err
 		}
 
-		l.Info("successfully created a new main IAM role")
+		l.Info("successfully created a new IAM role")
 	} else if err != nil {
 		l.Error(err, "Failed to fetch IAM Role")
 		return err
