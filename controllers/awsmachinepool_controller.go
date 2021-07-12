@@ -110,7 +110,7 @@ func (r *AWSMachinePoolReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 			controllerutil.RemoveFinalizer(awsCluster, key.FinalizerName(iam.NodesRole))
 			err = r.Update(ctx, awsCluster)
 			if err != nil {
-				logger.Error(err, "failed to add finalizer on AWSCluster")
+				logger.Error(err, "failed to remove finalizer on AWSCluster")
 				return ctrl.Result{}, err
 			}
 		}
