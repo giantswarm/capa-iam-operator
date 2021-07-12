@@ -32,7 +32,7 @@ func GetAWSClusterByName(ctx context.Context, ctrlClient client.Client, clusterN
 	}
 
 	if len(awsClusterList.Items) != 1 {
-		return nil, fmt.Errorf("expected 1 AWSCLuster but found %d", len(awsClusterList.Items))
+		return nil, fmt.Errorf("expected 1 AWSCluster but found %d", len(awsClusterList.Items))
 	}
 
 	return &awsClusterList.Items[0], nil

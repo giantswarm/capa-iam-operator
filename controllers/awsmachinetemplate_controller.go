@@ -122,13 +122,13 @@ func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 		{
 			awsCluster, err := key.GetAWSClusterByName(ctx, r.Client, clusterName)
 			if err != nil {
-				logger.Error(err, "failed get awsCluster")
+				logger.Error(err, "failed to get awsCluster")
 				return ctrl.Result{}, err
 			}
 			controllerutil.RemoveFinalizer(awsCluster, key.FinalizerName(iam.ControlPlaneRole))
 			err = r.Update(ctx, awsCluster)
 			if err != nil {
-				logger.Error(err, "failed to add finalizer on AWSCluster")
+				logger.Error(err, "failed to remove finalizer on AWSCluster")
 				return ctrl.Result{}, err
 			}
 		}
@@ -170,7 +170,7 @@ func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 		{
 			awsCluster, err := key.GetAWSClusterByName(ctx, r.Client, clusterName)
 			if err != nil {
-				logger.Error(err, "failed get awsCluster")
+				logger.Error(err, "failed to get awsCluster")
 				return ctrl.Result{}, err
 			}
 			controllerutil.AddFinalizer(awsCluster, key.FinalizerName(iam.ControlPlaneRole))

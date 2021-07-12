@@ -140,7 +140,7 @@ func (r *AWSMachinePoolReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 		{
 			awsCluster, err := key.GetAWSClusterByName(ctx, r.Client, clusterName)
 			if err != nil {
-				logger.Error(err, "failed get awsCluster")
+				logger.Error(err, "failed to get awsCluster")
 				return ctrl.Result{}, err
 			}
 			controllerutil.AddFinalizer(awsCluster, key.FinalizerName(iam.NodesRole))
