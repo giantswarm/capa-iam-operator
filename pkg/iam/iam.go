@@ -386,6 +386,16 @@ func (s *IAMService) deleteRole(roleName string) error {
 		return err
 	}
 
+	i2 := &awsiam.DeleteInstanceProfileInput{
+		InstanceProfileName: aws.String(roleName),
+	}
+
+	_, err = s.iamClient.DeleteInstanceProfile(i2)
+	if err != nil {
+		l.Error(err, "failed to delete role")
+		return err
+	}
+
 	return nil
 }
 
