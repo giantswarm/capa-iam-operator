@@ -13,6 +13,8 @@ rules:
   - awsclusters/status
   - awsclusterroleidentities
   - awsclusterroleidentities/status
+  - awsclustercontrolleridentities
+  - awsclusterstaticidentities
   - awsmachinetemplate
   - awsmachinetemplate/status
   - awsmachinetemplates
