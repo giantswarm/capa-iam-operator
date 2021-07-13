@@ -227,6 +227,32 @@ func (s *IAMService) createRole(roleName string, roleType string, params interfa
 			return err
 		}
 
+		i2 := &awsiam.CreateInstanceProfileInput{
+			InstanceProfileName: aws.String(roleName),
+			Tags:                tags,
+		}
+
+		_, err = s.iamClient.CreateInstanceProfile(i2)
+		if IsAlreadyExists(err) {
+			// fall thru
+		} else if err != nil {
+			l.Error(err, "failed to create instance profile")
+			return err
+		}
+
+		i3 := &awsiam.AddRoleToInstanceProfileInput{
+			InstanceProfileName: aws.String(roleName),
+			RoleName:            aws.String(roleName),
+		}
+
+		_, err = s.iamClient.AddRoleToInstanceProfile(i3)
+		if IsAlreadyExists(err) {
+			// fall thru
+		} else if err != nil {
+			l.Error(err, "failed to add role to instance profile")
+			return err
+		}
+
 		l.Info("successfully created a new IAM role")
 	} else if err != nil {
 		l.Error(err, "Failed to fetch IAM Role")
