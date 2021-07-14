@@ -137,6 +137,14 @@ const controlPlanePolicyTemplate = `{
                 "*"
             ],
             "Effect": "Allow"
+        },
+        {
+            "Action": [
+                "secretsmanager:GetSecretValue",
+                "secretsmanager:DeleteSecret"
+            ],
+            "Resource": "*",
+            "Effect": "Allow"
         }
     ]
 }`

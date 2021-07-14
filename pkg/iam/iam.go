@@ -227,6 +227,32 @@ func (s *IAMService) createRole(roleName string, roleType string, params interfa
 			return err
 		}
 
+		i2 := &awsiam.CreateInstanceProfileInput{
+			InstanceProfileName: aws.String(roleName),
+			Tags:                tags,
+		}
+
+		_, err = s.iamClient.CreateInstanceProfile(i2)
+		if IsAlreadyExists(err) {
+			// fall thru
+		} else if err != nil {
+			l.Error(err, "failed to create instance profile")
+			return err
+		}
+
+		i3 := &awsiam.AddRoleToInstanceProfileInput{
+			InstanceProfileName: aws.String(roleName),
+			RoleName:            aws.String(roleName),
+		}
+
+		_, err = s.iamClient.AddRoleToInstanceProfile(i3)
+		if IsAlreadyExists(err) {
+			// fall thru
+		} else if err != nil {
+			l.Error(err, "failed to add role to instance profile")
+			return err
+		}
+
 		l.Info("successfully created a new IAM role")
 	} else if err != nil {
 		l.Error(err, "Failed to fetch IAM Role")
@@ -349,12 +375,37 @@ func (s *IAMService) deleteRole(roleName string) error {
 		return err
 	}
 
+	i := &awsiam.RemoveRoleFromInstanceProfileInput{
+		InstanceProfileName: aws.String(roleName),
+		RoleName:            aws.String(roleName),
+	}
+
+	_, err = s.iamClient.RemoveRoleFromInstanceProfile(i)
+	if IsNotFound(err) {
+		//fall thru
+	} else if err != nil {
+		l.Error(err, "failed to remove role from instance profile")
+		return err
+	}
+
+	i2 := &awsiam.DeleteInstanceProfileInput{
+		InstanceProfileName: aws.String(roleName),
+	}
+
+	_, err = s.iamClient.DeleteInstanceProfile(i2)
+	if IsNotFound(err) {
+		//fall thru
+	} else if err != nil {
+		l.Error(err, "failed to delete instance profile")
+		return err
+	}
+
 	// delete the role
-	i := &awsiam.DeleteRoleInput{
+	i3 := &awsiam.DeleteRoleInput{
 		RoleName: aws.String(roleName),
 	}
 
-	_, err = s.iamClient.DeleteRole(i)
+	_, err = s.iamClient.DeleteRole(i3)
 	if err != nil {
 		l.Error(err, "failed to delete role")
 		return err
