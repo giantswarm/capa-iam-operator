@@ -9,3 +9,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Implement `AWSMachineTemplate` reconciler.
 - Implement `AWSMachinePool` reconciler.
+
+[Unreleased]: https://github.com/giantswarm/kubectl-gs/compare/v1.0.0...HEAD
