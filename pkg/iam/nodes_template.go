@@ -129,6 +129,14 @@ const nodesTemplate = `{
                 "*"
             ],
             "Effect": "Allow"
+        },
+        {
+            "Action": [
+                "secretsmanager:GetSecretValue",
+                "secretsmanager:DeleteSecret"
+            ],
+            "Resource": "arn:*:secretsmanager:*:*:secret:aws.cluster.x-k8s.io/*",
+            "Effect": "Allow"
         }
     ]
 }`
