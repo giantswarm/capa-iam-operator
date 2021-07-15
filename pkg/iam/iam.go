@@ -507,7 +507,13 @@ func hasIAMControllerTag(tags []*awsiam.Tag) bool {
 }
 
 func roleName(role string, clusterID string) string {
-	return fmt.Sprintf("%s-%s", clusterID, role)
+	if role == Route53Role {
+		return fmt.Sprintf("%s-Route53Manager-Role", clusterID)
+	} else if role == KIAMRole {
+		return fmt.Sprintf("%s-IAMManager-Role", clusterID)
+	} else {
+		return fmt.Sprintf("%s-%s", clusterID, role)
+	}
 }
 
 func policyName(role string, clusterID string) string {
