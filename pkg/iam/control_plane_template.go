@@ -143,7 +143,7 @@ const controlPlanePolicyTemplate = `{
                 "secretsmanager:GetSecretValue",
                 "secretsmanager:DeleteSecret"
             ],
-            "Resource": "*",
+            "Resource": "arn:*:secretsmanager:*:*:secret:aws.cluster.x-k8s.io/*",
             "Effect": "Allow"
         }
     ]
