@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -59,10 +60,26 @@ func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 		logger.Error(err, "AWSMachineTemplate does not exist")
 		return ctrl.Result{}, err
 	}
-
+	// check if CR got CAPI watch-filter label
+	if !key.HasCapiWatchLabel(awsMachineTemplate.Labels) {
+		logger.Info(fmt.Sprintf("AWSMachineTemplate do not have %s=%s label, ignoring CR", key.ClusterWatchFilterLabel, "capi"))
+		// ignoring this CR
+		return ctrl.Result{}, nil
+	}
+	// check if there is control-plane role label on CR
+	if !key.IsControlPlaneAWSMachineTemplate(awsMachineTemplate.Labels) {
+		logger.Info(fmt.Sprintf("AWSMachineTemplate do not have %s=%s label, ignoring CR", key.ClusterRole, "control-plane"))
+		// ignoring this CR
+		return ctrl.Result{}, nil
+	}
 	clusterName := key.GetClusterIDFromLabels(awsMachineTemplate.ObjectMeta)
 
 	logger = logger.WithValues("cluster", clusterName)
+
+	if awsMachineTemplate.Spec.Template.Spec.IAMInstanceProfile == "" {
+		logger.Info("AWSMachineTemplate has empty .Spec.Template.Spec.IAMInstanceProfile, not creating IAM role")
+		return ctrl.Result{}, nil
+	}
 
 	var awsClientGetter *awsclient.AwsClient
 	{

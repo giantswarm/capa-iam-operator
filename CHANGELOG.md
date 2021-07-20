@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 - Restrict `secretmanager` service permissions to access secrets with CAPI prefix.
+- Only watch for CRs with capi watch filter.
+- AWSMachinteTemplate controller - only watch for CRs with control plane role.
 
 ## [0.1.1] - 2021-07-15
 
