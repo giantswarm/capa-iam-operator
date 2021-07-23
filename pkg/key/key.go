@@ -10,7 +10,9 @@ import (
 )
 
 const (
-	ClusterNameLabel = "cluster.x-k8s.io/cluster-name"
+	ClusterNameLabel        = "cluster.x-k8s.io/cluster-name"
+	ClusterWatchFilterLabel = "cluster.x-k8s.io/watch-filter"
+	ClusterRole             = "cluster.x-k8s.io/role"
 )
 
 func FinalizerName(roleName string) string {
@@ -36,4 +38,24 @@ func GetAWSClusterByName(ctx context.Context, ctrlClient client.Client, clusterN
 	}
 
 	return &awsClusterList.Items[0], nil
+}
+
+func HasCapiWatchLabel(labels map[string]string) bool {
+	value, ok := labels[ClusterWatchFilterLabel]
+	if ok {
+		if value == "capi" {
+			return true
+		}
+	}
+	return false
+}
+
+func IsControlPlaneAWSMachineTemplate(labels map[string]string) bool {
+	value, ok := labels[ClusterRole]
+	if ok {
+		if value == "control-plane" {
+			return true
+		}
+	}
+	return false
 }
