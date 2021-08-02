@@ -3,18 +3,17 @@ module github.com/giantswarm/capa-iam-controller
 go 1.16
 
 require (
-	cloud.google.com/go v0.46.3 // indirect
 	github.com/Azure/go-autorest/autorest v0.11.18 // indirect
 	github.com/aws/aws-sdk-go v1.39.4
-	github.com/go-logr/logr v0.1.0
+	github.com/go-logr/logr v0.4.0
 	github.com/google/go-cmp v0.5.6
-	k8s.io/api v0.17.9
-	k8s.io/apimachinery v0.17.9
-	k8s.io/client-go v0.17.9
+	k8s.io/api v0.21.3
+	k8s.io/apimachinery v0.21.3
+	k8s.io/client-go v0.21.3
 	k8s.io/klog v1.0.0
 	sigs.k8s.io/cluster-api v0.3.19
 	sigs.k8s.io/cluster-api-provider-aws v0.6.6
-	sigs.k8s.io/controller-runtime v0.5.14
+	sigs.k8s.io/controller-runtime v0.9.5
 )
 
 replace (
