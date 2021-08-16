@@ -1,0 +1,8 @@
+{
+  "extends": [
+    "config:base",
+    ":reviewer(team:giantswarm/team-firecracker-engineers)"
+  ],
+  "ignoreDeps": ["zricethezav/gitleaks-action"],
+  "schedule": [ "after 9am on thursday" ]
+}
