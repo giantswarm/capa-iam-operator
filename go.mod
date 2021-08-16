@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/Azure/go-autorest/autorest v0.11.18 // indirect
-	github.com/aws/aws-sdk-go v1.40.20
+	github.com/aws/aws-sdk-go v1.40.22
 	github.com/go-logr/logr v0.1.0
 	github.com/google/go-cmp v0.5.6
 	k8s.io/api v0.17.17
