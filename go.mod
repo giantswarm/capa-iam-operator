@@ -7,7 +7,7 @@ require (
 	github.com/aws/aws-sdk-go v1.40.22
 	github.com/go-logr/logr v0.1.0
 	github.com/google/go-cmp v0.5.6
-	k8s.io/api v0.17.17
+	k8s.io/api v0.22.1
 	k8s.io/apimachinery v0.17.17
 	k8s.io/client-go v0.17.17
 	k8s.io/klog v1.0.0
