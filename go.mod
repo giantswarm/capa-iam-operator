@@ -1,4 +1,4 @@
-module github.com/giantswarm/capa-iam-controller
+module github.com/giantswarm/capa-iam-operator
 
 go 1.16
 

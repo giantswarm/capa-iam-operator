@@ -1,8 +1,8 @@
 domain: giantswarm.io
 layout:
 - go.kubebuilder.io/v3
-projectName: capa-iam-controller
-repo: github.com/giantswarm/capa-iam-controller
+projectName: capa-iam-operator
+repo: github.com/giantswarm/capa-iam-operator
 resources:
 - controller: true
   domain: giantswarm.io

@@ -1,8 +1,8 @@
-name: capa-iam-controller
+name: capa-iam-operator
 version: [[ .Version ]]
 description: "Operator for managing IAM roles for CAPA clusters"
 appVersion: "[[ .AppVersion ]]"
-home: "https://github.com/giantswarm/capa-iam-controller"
+home: "https://github.com/giantswarm/capa-iam-operator"
 apiVersion: v1
 annotations:
   application.giantswarm.io/team: "firecracker"

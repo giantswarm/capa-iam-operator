@@ -10,7 +10,7 @@ import (
 	capiutil "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/giantswarm/capa-iam-controller/pkg/key"
+	"github.com/giantswarm/capa-iam-operator/pkg/key"
 )
 
 type AWSClientConfig struct {

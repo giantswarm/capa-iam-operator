@@ -17,7 +17,7 @@ spec:
     matchLabels:
       control-plane: controller-manager
   replicas: 1
-  capa-iam-controller:
+  capa-iam-operator:
     metadata:
       labels:
         control-plane: controller-manager

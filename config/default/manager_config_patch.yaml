@@ -4,7 +4,7 @@ metadata:
   name: controller-manager
   namespace: system
 spec:
-  capa-iam-controller:
+  capa-iam-operator:
     spec:
       containers:
       - name: manager

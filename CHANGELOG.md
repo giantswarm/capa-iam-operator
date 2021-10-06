@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Renamed from `capa-iam-controller` to `capa-iam-operator`
+
 ## [0.2.0] - 2021-07-23
 
 - Restrict `secretmanager` service permissions to access secrets with CAPI prefix.
@@ -22,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implement `AWSMachineTemplate` reconciler.
 - Implement `AWSMachinePool` reconciler.
 
-[Unreleased]: https://github.com/giantswarm/capa-iam-controller/compare/v0.2.0...HEAD
-[0.2.0]: https://github.com/giantswarm/capa-iam-controller/compare/v0.1.1...v0.2.0
-[0.1.1]: https://github.com/giantswarm/capa-iam-controller/compare/v0.1.0...v0.1.1
-[0.1.0]: https://github.com/giantswarm/capa-iam-controller/compare/v1.0.0...v0.1.0
+[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/giantswarm/capa-iam-operator/compare/v0.1.1...v0.2.0
+[0.1.1]: https://github.com/giantswarm/capa-iam-operator/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/giantswarm/capa-iam-operator/compare/v1.0.0...v0.1.0
