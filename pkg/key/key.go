@@ -16,7 +16,7 @@ const (
 )
 
 func FinalizerName(roleName string) string {
-	return fmt.Sprintf("capa-iam-controller.finalizers.giantswarm.io/%s", roleName)
+	return fmt.Sprintf("capa-iam-operator.finalizers.giantswarm.io/%s", roleName)
 }
 
 func GetClusterIDFromLabels(t v1.ObjectMeta) string {

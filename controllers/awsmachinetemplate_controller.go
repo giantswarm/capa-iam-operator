@@ -28,9 +28,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	"github.com/giantswarm/capa-iam-controller/pkg/awsclient"
-	"github.com/giantswarm/capa-iam-controller/pkg/iam"
-	"github.com/giantswarm/capa-iam-controller/pkg/key"
+	"github.com/giantswarm/capa-iam-operator/pkg/awsclient"
+	"github.com/giantswarm/capa-iam-operator/pkg/iam"
+	"github.com/giantswarm/capa-iam-operator/pkg/key"
 )
 
 // AWSMachineTemplateReconciler reconciles a AWSMachineTemplate object

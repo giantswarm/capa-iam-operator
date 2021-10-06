@@ -34,7 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	"github.com/giantswarm/capa-iam-controller/controllers"
+	"github.com/giantswarm/capa-iam-operator/controllers"
 	//+kubebuilder:scaffold:imports
 )
 

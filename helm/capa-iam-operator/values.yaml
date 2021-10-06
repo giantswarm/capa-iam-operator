@@ -7,7 +7,7 @@ project:
   branch: "[[ .Branch ]]"
   commit: "[[ .SHA ]]"
 image:
-  name: "giantswarm/capa-iam-controller"
+  name: "giantswarm/capa-iam-operator"
   tag: "[[ .Version ]]"
 registry:
   domain: docker.io
