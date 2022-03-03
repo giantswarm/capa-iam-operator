@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.3.2] - 2022-03-03
 
+- Added to `aws-app-collection`.
+
 ## [0.3.0] - 2021-10-06
 
 - Renamed from `capa-iam-controller` to `capa-iam-operator`
