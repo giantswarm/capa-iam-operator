@@ -27,6 +27,19 @@ workflows:
               only: /^v.*/
       - architect/push-to-docker:
           context: "architect"
+          name: push-capa-iam-operator-to-docker
+          image: "docker.io/giantswarm/capa-iam-operator"
+          username_envar: "DOCKER_USERNAME"
+          password_envar: "DOCKER_PASSWORD"
+          requires:
+            - go-build
+          # Needed to trigger job also on git tag.
+          filters:
+            tags:
+              only: /^v.*/
+
+      - architect/push-to-docker:
+          context: "architect"
           name: push-capa-iam-operator-to-aliyun
           image: "registry-intl.cn-shanghai.aliyuncs.com/giantswarm/capa-iam-operator"
           username_envar: "ALIYUN_USERNAME"
@@ -48,5 +61,21 @@ workflows:
             - push-capa-iam-operator-to-quay
           # Needed to trigger job also on git tag.
           filters:
+            tags:
+              only: /^v.*/
+      - architect/push-to-app-collection:
+          name: aws-app-collection
+          context: "architect"
+          app_name: "capa-iam-operator"
+          app_namespace: "giantswarm"
+          app_collection_repo: "aws-app-collection"
+          requires:
+            - push-capa-iam-operator-to-app-catalog
+            - push-capa-iam-operator-to-aliyun
+            - push-capa-iam-operator-to-quay
+            - push-capa-iam-operator-to-docker
+          filters:
+            branches:
+              ignore: /.*/
             tags:
               only: /^v.*/
