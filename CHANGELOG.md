@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Add VerticalPodAutoscaler CR.
+
 ## [0.3.2] - 2022-03-03
 
 - Added to `aws-app-collection`.
