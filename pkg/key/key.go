@@ -7,6 +7,8 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/giantswarm/capa-iam-operator/pkg/iam"
 )
 
 const (
@@ -53,7 +55,17 @@ func HasCapiWatchLabel(labels map[string]string) bool {
 func IsControlPlaneAWSMachineTemplate(labels map[string]string) bool {
 	value, ok := labels[ClusterRole]
 	if ok {
-		if value == "control-plane" {
+		if value == iam.ControlPlaneRole {
+			return true
+		}
+	}
+	return false
+}
+
+func IsBastionAWSMachineTemplate(labels map[string]string) bool {
+	value, ok := labels[ClusterRole]
+	if ok {
+		if value == iam.BastionRole {
 			return true
 		}
 	}

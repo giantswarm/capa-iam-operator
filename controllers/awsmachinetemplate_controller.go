@@ -66,15 +66,21 @@ func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 		// ignoring this CR
 		return ctrl.Result{}, nil
 	}
-	// check if there is control-plane role label on CR
-	if !key.IsControlPlaneAWSMachineTemplate(awsMachineTemplate.Labels) {
-		logger.Info(fmt.Sprintf("AWSMachineTemplate do not have %s=%s label, ignoring CR", key.ClusterRole, "control-plane"))
+
+	var role string
+	// check if there is control-plane or bastion role label on CR
+	if key.IsControlPlaneAWSMachineTemplate(awsMachineTemplate.Labels) {
+		role = iam.ControlPlaneRole
+	} else if key.IsBastionAWSMachineTemplate(awsMachineTemplate.Labels) {
+		role = iam.BastionRole
+	} else {
+		logger.Info(fmt.Sprintf("AWSMachineTemplate do not have %s=%s or %s=%s label, ignoring CR", key.ClusterRole, iam.ControlPlaneRole, key.ClusterRole, iam.BastionRole))
 		// ignoring this CR
 		return ctrl.Result{}, nil
 	}
 	clusterName := key.GetClusterIDFromLabels(awsMachineTemplate.ObjectMeta)
 
-	logger = logger.WithValues("cluster", clusterName)
+	logger = logger.WithValues("cluster", clusterName, "role", role)
 
 	if awsMachineTemplate.Spec.Template.Spec.IAMInstanceProfile == "" {
 		logger.Info("AWSMachineTemplate has empty .Spec.Template.Spec.IAMInstanceProfile, not creating IAM role")
@@ -108,7 +114,7 @@ func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 			ClusterName:  clusterName,
 			MainRoleName: awsMachineTemplate.Spec.Template.Spec.IAMInstanceProfile,
 			Log:          logger,
-			RoleType:     iam.ControlPlaneRole,
+			RoleType:     role,
 		}
 		iamService, err = iam.New(c)
 		if err != nil {
@@ -122,17 +128,19 @@ func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 		if err != nil {
 			return ctrl.Result{}, err
 		}
-		if r.EnableKiamRole {
-			err = iamService.DeleteKiamRole()
-			if err != nil {
-				return ctrl.Result{}, err
+		if role == iam.ControlPlaneRole {
+			if r.EnableKiamRole {
+				err = iamService.DeleteKiamRole()
+				if err != nil {
+					return ctrl.Result{}, err
+				}
 			}
-		}
-		// route53 role depends on KIAM role, so it will be crated only if both roles are enabled
-		if r.EnableKiamRole && r.EnableRoute53Role {
-			err = iamService.DeleteRoute53Role()
-			if err != nil {
-				return ctrl.Result{}, err
+			// route53 role depends on KIAM role, so it will be crated only if both roles are enabled
+			if r.EnableKiamRole && r.EnableRoute53Role {
+				err = iamService.DeleteRoute53Role()
+				if err != nil {
+					return ctrl.Result{}, err
+				}
 			}
 		}
 		// remove finalizer from AWSCluster
@@ -162,17 +170,19 @@ func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 		if err != nil {
 			return ctrl.Result{}, err
 		}
-		if r.EnableKiamRole {
-			err = iamService.ReconcileKiamRole()
-			if err != nil {
-				return ctrl.Result{}, err
+		if role == iam.ControlPlaneRole {
+			if r.EnableKiamRole {
+				err = iamService.ReconcileKiamRole()
+				if err != nil {
+					return ctrl.Result{}, err
+				}
 			}
-		}
-		// route53 role depends on KIAM role
-		if r.EnableKiamRole && r.EnableRoute53Role {
-			err = iamService.ReconcileRoute53Role()
-			if err != nil {
-				return ctrl.Result{}, err
+			// route53 role depends on KIAM role
+			if r.EnableKiamRole && r.EnableRoute53Role {
+				err = iamService.ReconcileRoute53Role()
+				if err != nil {
+					return ctrl.Result{}, err
+				}
 			}
 		}
 		// add finalizer to AWSMachineTemplate

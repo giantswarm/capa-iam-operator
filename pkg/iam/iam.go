@@ -11,6 +11,7 @@ import (
 )
 
 const (
+	BastionRole      = "bastion"
 	ControlPlaneRole = "control-plane"
 	NodesRole        = "nodes"
 	Route53Role      = "route53-role"
