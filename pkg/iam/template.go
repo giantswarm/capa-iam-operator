@@ -37,6 +37,8 @@ func isChinaRegion(region string) bool {
 
 func getInlinePolicyTemplate(roleName string) string {
 	switch roleName {
+	case BastionRole:
+		return bastionPolicyTemplate
 	case ControlPlaneRole:
 		return controlPlanePolicyTemplate
 	case NodesRole:
@@ -52,6 +54,8 @@ func getInlinePolicyTemplate(roleName string) string {
 
 func gentTrustPolicyTemplate(roleName string) string {
 	switch roleName {
+	case BastionRole:
+		return ec2TrustIdentityPolicyTemplate
 	case ControlPlaneRole:
 		return ec2TrustIdentityPolicyTemplate
 	case NodesRole:
