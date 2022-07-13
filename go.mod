@@ -17,8 +17,15 @@ require (
 )
 
 replace (
+	github.com/containernetworking/cni v0.8.0 => github.com/containernetworking/cni v1.1.1
 	github.com/coreos/etcd v3.3.10+incompatible => github.com/coreos/etcd v3.3.25+incompatible
 	github.com/dgrijalva/jwt-go => github.com/dgrijalva/jwt-go/v4 v4.0.0-preview1
 	github.com/gogo/protobuf v1.3.1 => github.com/gogo/protobuf v1.3.2
 	github.com/gorilla/websocket v1.4.0 => github.com/gorilla/websocket v1.4.2
+	github.com/miekg/dns v1.0.14 => github.com/miekg/dns v1.1.50
+
+	github.com/pkg/sftp v1.10.1 => github.com/pkg/sftp v1.13.5
+	github.com/prometheus/client_golang v1.11.0 => github.com/prometheus/client_golang v1.12.2
+	go.mongodb.org/mongo-driver v1.1.2 => go.mongodb.org/mongo-driver v1.5.1
+	golang.org/x/text v0.3.6 => golang.org/x/text v0.3.7
 )
