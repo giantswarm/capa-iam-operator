@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `PodSecurityPolicy` are removed on newer k8s versions, so only apply it if object is registered in the k8s API.
+
 ## [0.4.1] - 2022-07-13
 
 ## [0.4.0] - 2022-04-19
