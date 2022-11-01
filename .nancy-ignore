@@ -4,3 +4,7 @@ CVE-2019-10743 until=2022-12-12
 CVE-2022-29153 until=2022-12-12
 CVE-2019-19355 until=2022-12-12
 sonatype-2019-0702 until=2022-12-12
+
+# https://ossindex.sonatype.org/vulnerability/CVE-2022-2385
+# Fixed in currently unreleased v0.6.0
+CVE-2022-2385 until=2022-12-12
