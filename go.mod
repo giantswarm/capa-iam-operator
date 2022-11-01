@@ -27,5 +27,6 @@ replace (
 	github.com/pkg/sftp v1.10.1 => github.com/pkg/sftp v1.13.5
 	github.com/prometheus/client_golang v1.11.0 => github.com/prometheus/client_golang v1.12.2
 	go.mongodb.org/mongo-driver v1.1.2 => go.mongodb.org/mongo-driver v1.5.1
-	golang.org/x/text v0.3.6 => golang.org/x/text v0.3.7
+	golang.org/x/text v0.3.6 => golang.org/x/text v0.3.8
+	golang.org/x/text v0.3.7 => golang.org/x/text v0.3.8
 )
