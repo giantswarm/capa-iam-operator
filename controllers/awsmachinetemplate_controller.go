@@ -152,7 +152,13 @@ func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 				return ctrl.Result{}, err
 			}
 			controllerutil.RemoveFinalizer(awsCluster, key.FinalizerName(iam.ControlPlaneRole))
-			err = r.Update(ctx, awsCluster)
+			patchHelper, err := patch.NewHelper(awsMachineTemplate, r.Client)
+			if err != nil {
+				logger.Error(err, "failed to create patch helper for AWSCluster")
+				return ctrl.Result{}, err
+			}
+
+			err = patchHelper.Patch(ctx, awsCluster)
 			if err != nil {
 				logger.Error(err, "failed to remove finalizer on AWSCluster")
 				return ctrl.Result{}, err
@@ -161,7 +167,7 @@ func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 
 		patchHelper, err := patch.NewHelper(awsMachineTemplate, r.Client)
 		if err != nil {
-			logger.Error(err, "failed to create patch helper")
+			logger.Error(err, "failed to create patch helper AWSMachineTemplate")
 			return ctrl.Result{}, err
 		}
 		// remove finalizer from AWSMachineTemplate
