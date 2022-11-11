@@ -24,6 +24,7 @@ import (
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -158,9 +159,15 @@ func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 			}
 		}
 
+		patchHelper, err := patch.NewHelper(awsMachineTemplate, r.Client)
+		if err != nil {
+			logger.Error(err, "failed to create patch helper")
+			return ctrl.Result{}, err
+		}
 		// remove finalizer from AWSMachineTemplate
 		controllerutil.RemoveFinalizer(awsMachineTemplate, key.FinalizerName(iam.ControlPlaneRole))
-		err = r.Update(ctx, awsMachineTemplate)
+
+		err = patchHelper.Patch(ctx, awsMachineTemplate)
 		if err != nil {
 			logger.Error(err, "failed to remove finalizer from AWSMachineTemplate")
 			return ctrl.Result{}, err
