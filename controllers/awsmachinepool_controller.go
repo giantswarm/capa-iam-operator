@@ -90,12 +90,14 @@ func (r *AWSMachinePoolReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 		return ctrl.Result{}, err
 	}
 
+	mainRoleName := awsMachinePool.Spec.AWSLaunchTemplate.IamInstanceProfile
+
 	var iamService *iam.IAMService
 	{
 		c := iam.IAMServiceConfig{
 			AWSSession:   awsClientSession,
 			ClusterName:  clusterName,
-			MainRoleName: awsMachinePool.Spec.AWSLaunchTemplate.IamInstanceProfile,
+			MainRoleName: mainRoleName,
 			Log:          logger,
 			RoleType:     iam.NodesRole,
 		}
@@ -107,9 +109,16 @@ func (r *AWSMachinePoolReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 	}
 
 	if awsMachinePool.DeletionTimestamp != nil {
-		err = iamService.DeleteRole()
+		roleUsed, err := isRoleUsedElsewhere(ctx, r.Client, mainRoleName)
 		if err != nil {
 			return ctrl.Result{}, err
+		}
+
+		if !roleUsed {
+			err = iamService.DeleteRole()
+			if err != nil {
+				return ctrl.Result{}, err
+			}
 		}
 
 		// remove finalizer from AWSCluster

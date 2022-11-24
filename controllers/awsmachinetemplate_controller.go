@@ -107,12 +107,14 @@ func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 		return ctrl.Result{}, err
 	}
 
+	mainRoleName := awsMachineTemplate.Spec.Template.Spec.IAMInstanceProfile
+
 	var iamService *iam.IAMService
 	{
 		c := iam.IAMServiceConfig{
 			AWSSession:   awsClientSession,
 			ClusterName:  clusterName,
-			MainRoleName: awsMachineTemplate.Spec.Template.Spec.IAMInstanceProfile,
+			MainRoleName: mainRoleName,
 			Log:          logger,
 			RoleType:     role,
 		}
@@ -124,22 +126,29 @@ func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 	}
 
 	if awsMachineTemplate.DeletionTimestamp != nil {
-		err = iamService.DeleteRole()
+		roleUsed, err := isRoleUsedElsewhere(ctx, r.Client, mainRoleName)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
-		if role == iam.ControlPlaneRole {
-			if r.EnableKiamRole {
-				err = iamService.DeleteKiamRole()
-				if err != nil {
-					return ctrl.Result{}, err
-				}
+
+		if !roleUsed {
+			err = iamService.DeleteRole()
+			if err != nil {
+				return ctrl.Result{}, err
 			}
-			// route53 role depends on KIAM role, so it will be crated only if both roles are enabled
-			if r.EnableKiamRole && r.EnableRoute53Role {
-				err = iamService.DeleteRoute53Role()
-				if err != nil {
-					return ctrl.Result{}, err
+			if role == iam.ControlPlaneRole {
+				if r.EnableKiamRole {
+					err = iamService.DeleteKiamRole()
+					if err != nil {
+						return ctrl.Result{}, err
+					}
+				}
+				// route53 role depends on KIAM role, so it will be crated only if both roles are enabled
+				if r.EnableKiamRole && r.EnableRoute53Role {
+					err = iamService.DeleteRoute53Role()
+					if err != nil {
+						return ctrl.Result{}, err
+					}
 				}
 			}
 		}
