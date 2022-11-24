@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.3] - 2022-11-24
+
 ### Fixed
 
 - Check for other resources using the same IAM instance profile as the resource being deleted and skip deleting the IAM role if others found.
@@ -52,7 +54,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implement `AWSMachineTemplate` reconciler.
 - Implement `AWSMachinePool` reconciler.
 
-[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v0.4.2...HEAD
+[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v0.4.3...HEAD
+[0.4.3]: https://github.com/giantswarm/capa-iam-operator/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/giantswarm/capa-iam-operator/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/giantswarm/capa-iam-operator/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/giantswarm/capa-iam-operator/compare/v0.3.2...v0.4.0
