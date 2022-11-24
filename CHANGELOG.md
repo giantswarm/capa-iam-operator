@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Check for other resources using the same IAM instance profile as the resource being deleted and skip deleting the IAM role if others found.
+
 ## [0.4.2] - 2022-11-01
 
 ### Changed
