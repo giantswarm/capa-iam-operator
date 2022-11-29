@@ -93,6 +93,7 @@ const controlPlanePolicyTemplate = `{
                 "ec2:ModifyInstanceAttribute",
                 "ec2:ModifyVolume",
                 "ec2:AttachVolume",
+                "ec2:DescribeVolumesModifications",
                 "ec2:AuthorizeSecurityGroupIngress",
                 "ec2:CreateRoute",
                 "ec2:DeleteRoute",
@@ -147,4 +148,5 @@ const controlPlanePolicyTemplate = `{
             "Effect": "Allow"
         }
     ]
-}`
+}
+`
