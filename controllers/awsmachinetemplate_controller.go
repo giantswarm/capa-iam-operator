@@ -143,8 +143,8 @@ func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 						return ctrl.Result{}, err
 					}
 				}
-				// route53 role depends on KIAM role, so it will be crated only if both roles are enabled
-				if r.EnableKiamRole && r.EnableRoute53Role {
+
+				if r.EnableRoute53Role {
 					err = iamService.DeleteRoute53Role()
 					if err != nil {
 						return ctrl.Result{}, err

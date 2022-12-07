@@ -14,4 +14,9 @@ resources:
   group: infrastructure.cluster.x-k8s.io
   kind: AWSMachinePool
   version: v1alpha3
+- controller: true
+  group: core
+  kind: Secret
+  path: k8s.io/api/core/v1
+  version: v1
 version: "3"

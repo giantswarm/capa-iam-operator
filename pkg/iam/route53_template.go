@@ -13,6 +13,24 @@ const route53TrustIdentityPolicy = `{
   ]
 }`
 
+const route53TrustIdentityPolicyForIRSA = `{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+        "Effect": "Allow",
+        "Principal": {
+            "Federated": "arn:aws:iam::{{.AccountID}}:oidc-provider/{{.CloudFrontDomain}}"
+        },
+        "Action": "sts:AssumeRoleWithWebIdentity",
+        "Condition": {
+            "StringEquals": {
+                "{{.CloudFrontDomain}}:sub": "system:serviceaccount:{{.Namespace}}:{{.ServiceAccount}}"
+            }
+        }
+    }
+  ]
+}`
+
 const route53RolePolicyTemplate = `{
     "Version": "2012-10-17",
     "Statement": [
