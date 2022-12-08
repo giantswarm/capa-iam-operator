@@ -3,6 +3,8 @@ aws:
   secretAccessKey: secretkey
   region: region
 
+enableKiamRole: true
+
 project:
   branch: "[[ .Branch ]]"
   commit: "[[ .SHA ]]"
