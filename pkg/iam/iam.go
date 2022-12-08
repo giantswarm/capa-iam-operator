@@ -147,7 +147,6 @@ func (s *IAMService) ReconcileRoute53Role() error {
 
 	var params Route53RoleParams
 	params, err := s.generateRoute53RoleParams()
-
 	if err != nil {
 		s.log.Error(err, "failed to generate Route53 role parameters")
 		return err
@@ -208,7 +207,6 @@ func (s *IAMService) reconcileRole(roleName string, roleType string, params inte
 	if err != nil {
 		return err
 	}
-
 
 	if s.roleType == IRSARole {
 		if err = s.applyAssumePolicyRole(roleName, IRSARole, params); err != nil {
@@ -309,7 +307,6 @@ func (s *IAMService) createRole(roleName string, roleType string, params interfa
 		return err
 	} else {
 		l.Info("IAM Role already exists, skipping creation")
-
 	}
 
 	return nil
@@ -470,7 +467,7 @@ func (s *IAMService) deleteRole(roleName string) error {
 
 	_, err = s.iamClient.RemoveRoleFromInstanceProfile(i)
 	if IsNotFound(err) {
-		//fall thru
+		// fall thru
 	} else if err != nil {
 		l.Error(err, "failed to remove role from instance profile")
 		return err
@@ -482,7 +479,7 @@ func (s *IAMService) deleteRole(roleName string) error {
 
 	_, err = s.iamClient.DeleteInstanceProfile(i2)
 	if IsNotFound(err) {
-		//fall thru
+		// fall thru
 	} else if err != nil {
 		l.Error(err, "failed to delete instance profile")
 		return err

@@ -28,9 +28,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/go-logr/logr"
+
 	"github.com/giantswarm/capa-iam-operator/pkg/awsclient"
 	"github.com/giantswarm/capa-iam-operator/pkg/iam"
-	"github.com/go-logr/logr"
 )
 
 const (
@@ -116,7 +117,7 @@ func (r *SecretReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			MainRoleName:     "-",
 			RoleType:         role,
 			Log:              logger,
-			AccountID:     accountID,
+			AccountID:        accountID,
 			CloudFrontDomain: domain,
 		}
 		iamService, err = iam.New(c)
