@@ -55,6 +55,7 @@ func init() {
 func main() {
 	var metricsAddr string
 	var enableKiamRole bool
+	var enableIRSARole bool
 	var enableLeaderElection bool
 	var enableRoute53Role bool
 	var probeAddr string
@@ -62,6 +63,8 @@ func main() {
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableKiamRole, "enable-kiam-role", true,
 		"Enable creation and management of KIAM role for kiam app.")
+	flag.BoolVar(&enableIRSARole, "enable-irsa-role", true,
+		"Enable creation and management of IRSA role for irsa app.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
@@ -108,7 +111,7 @@ func main() {
 	}
 	if err = (&controllers.SecretReconciler{
 		Client:         mgr.GetClient(),
-		EnableKiamRole: enableKiamRole,
+		EnableIRSARole: enableIRSARole,
 		Log:            ctrl.Log.WithName("controllers").WithName("Secrets"),
 		Scheme:         mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {

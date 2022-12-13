@@ -164,23 +164,22 @@ func (s *IAMService) ReconcileRoute53Role() error {
 func (s *IAMService) generateRoute53RoleParams() (Route53RoleParams, error) {
 	var namespace string = "kube-system"
 	var serviceAccount string = "external-dns"
-
-	if s.roleType == KIAMRole {
-		var kiamRoleARN string
-		{
-			i := &awsiam.GetRoleInput{
-				RoleName: aws.String(roleName(KIAMRole, s.clusterName)),
-			}
-
-			o, err := s.iamClient.GetRole(i)
-			if err != nil {
-				s.log.Error(err, "failed to fetch KIAM role")
-				return Route53RoleParams{}, err
-			}
-
-			kiamRoleARN = *o.Role.Arn
+	var kiamRoleARN string
+	{
+		i := &awsiam.GetRoleInput{
+			RoleName: aws.String(roleName(KIAMRole, s.clusterName)),
 		}
 
+		o, err := s.iamClient.GetRole(i)
+		if err != nil {
+			s.log.Error(err, "failed to fetch KIAM role")
+			return Route53RoleParams{}, err
+		}
+
+		kiamRoleARN = *o.Role.Arn
+	}
+
+	if s.roleType == KIAMRole {
 		params := Route53RoleParams{
 			EC2ServiceDomain: ec2ServiceDomain(s.region),
 			KIAMRoleARN:      kiamRoleARN,
@@ -195,6 +194,7 @@ func (s *IAMService) generateRoute53RoleParams() (Route53RoleParams, error) {
 		CloudFrontDomain: s.cloudFrontDomain,
 		Namespace:        namespace,
 		ServiceAccount:   serviceAccount,
+		KIAMRoleARN:      kiamRoleARN,
 	}
 
 	return params, nil

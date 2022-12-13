@@ -41,7 +41,7 @@ const (
 // SecretReconciler reconciles a Secret object
 type SecretReconciler struct {
 	client.Client
-	EnableKiamRole bool
+	EnableIRSARole bool
 	Log            logr.Logger
 	Scheme         *runtime.Scheme
 }
@@ -55,8 +55,8 @@ func (r *SecretReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	logger := r.Log.WithValues("namespace", req.Namespace, "secret", req.Name)
 
-	if r.EnableKiamRole {
-		logger.Info("Kiam is enabled. So IRSA secrets will not be reconciled.")
+	if !r.EnableIRSARole {
+		logger.Info("IRSA is not enabled")
 		return ctrl.Result{}, nil
 	}
 

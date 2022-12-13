@@ -67,7 +67,7 @@ func gentTrustPolicyTemplate(roleName string) string {
 	case KIAMRole:
 		return kiamTrustIdentityPolicy
 	case IRSARole:
-		return route53TrustIdentityPolicyForIRSA
+		return route53TrustIdentityPolicyWithIRSA
 	default:
 		return ""
 	}

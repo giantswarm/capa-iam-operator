@@ -13,9 +13,16 @@ const route53TrustIdentityPolicy = `{
   ]
 }`
 
-const route53TrustIdentityPolicyForIRSA = `{
+const route53TrustIdentityPolicyWithIRSA = `{
   "Version": "2012-10-17",
   "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "{{.KIAMRoleARN}}"
+      },
+      "Action": "sts:AssumeRole"
+    },
     {
         "Effect": "Allow",
         "Principal": {

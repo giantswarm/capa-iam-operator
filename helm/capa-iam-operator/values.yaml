@@ -4,6 +4,7 @@ aws:
   region: region
 
 enableKiamRole: true
+enableIRSARole: true
 
 project:
   branch: "[[ .Branch ]]"
