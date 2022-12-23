@@ -44,9 +44,8 @@ type AWSMachinePoolReconciler struct {
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinepools/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinepools/finalizers,verbs=update
 
-func (r *AWSMachinePoolReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var err error
-	ctx := context.TODO()
 	logger := r.Log.WithValues("namespace", req.Namespace, "awsMachinePool", req.Name)
 
 	awsMachinePool := &expcapa.AWSMachinePool{}

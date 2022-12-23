@@ -48,9 +48,6 @@ func New(config IAMServiceConfig) (*IAMService, error) {
 	if config.MainRoleName == "" {
 		return nil, errors.New("cannot create IAMService with empty MainRoleName")
 	}
-	if config.Log == nil {
-		return nil, errors.New("cannot create IAMService with Log equal to nil")
-	}
 	if !(config.RoleType == ControlPlaneRole || config.RoleType == NodesRole || config.RoleType == BastionRole) {
 		return nil, fmt.Errorf("cannot create IAMService with invalid RoleType '%s'", config.RoleType)
 	}
