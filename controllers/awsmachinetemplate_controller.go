@@ -23,7 +23,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
-	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	capa "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"

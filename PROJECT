@@ -8,10 +8,10 @@ resources:
   domain: giantswarm.io
   group: infrastructure.cluster.x-k8s.io
   kind: AWSMachineTemplate
-  version: v1alpha3
+  version: v1beta2
 - controller: true
   domain: giantswarm.io
   group: infrastructure.cluster.x-k8s.io
   kind: AWSMachinePool
-  version: v1alpha3
+  version: v1beta2
 version: "3"
