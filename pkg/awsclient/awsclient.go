@@ -6,8 +6,7 @@ import (
 
 	clientaws "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/go-logr/logr"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
-	capalogger "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	capiutil "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -58,7 +57,7 @@ func (a *AwsClient) GetAWSClientSession(ctx context.Context) (clientaws.ConfigPr
 	// Create the cluster scope just to reuse logic of getting proper AWS session from cluster-api-provider-aws controller code
 	clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
 		Client:         a.ctrlClient,
-		Logger:         capalogger.NewLogger(a.log),
+		Logger:         &a.log,
 		Cluster:        cluster,
 		AWSCluster:     awsCluster,
 		ControllerName: "capa-iam",

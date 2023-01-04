@@ -27,8 +27,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	capa "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
-	expcapa "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	expcapa "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
