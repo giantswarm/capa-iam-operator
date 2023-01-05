@@ -32,9 +32,6 @@ func New(config AWSClientConfig) (*AwsClient, error) {
 	if config.CtrlClient == nil {
 		return nil, errors.New("failed to generate new awsClient from nil CtrlClient")
 	}
-	if config.Log == nil {
-		return nil, errors.New("failed to generate new awsClient from nil Log")
-	}
 
 	a := &AwsClient{
 		clusterName: config.ClusterName,
@@ -60,7 +57,7 @@ func (a *AwsClient) GetAWSClientSession(ctx context.Context) (clientaws.ConfigPr
 	// Create the cluster scope just to reuse logic of getting proper AWS session from cluster-api-provider-aws controller code
 	clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
 		Client:         a.ctrlClient,
-		Logger:         a.log,
+		Logger:         &a.log,
 		Cluster:        cluster,
 		AWSCluster:     awsCluster,
 		ControllerName: "capa-iam",

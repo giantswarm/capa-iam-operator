@@ -3,8 +3,8 @@ package controllers
 import (
 	"context"
 
-	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
-	expcapa "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
+	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	expcapa "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 

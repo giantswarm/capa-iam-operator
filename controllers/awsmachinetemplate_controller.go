@@ -23,7 +23,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
-	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -50,9 +50,8 @@ type AWSMachineTemplateReconciler struct {
 // move the current state of the cluster closer to the desired state.
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
-func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var err error
-	ctx := context.TODO()
 	logger := r.Log.WithValues("namespace", req.Namespace, "awsMachineTemplate", req.Name)
 
 	awsMachineTemplate := &capa.AWSMachineTemplate{}
