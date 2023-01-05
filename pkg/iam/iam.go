@@ -12,8 +12,8 @@ import (
 
 const (
 	BastionRole      = "bastion"
-	ControlPlaneRole = "control-plane"
-	NodesRole        = "nodes"
+	ControlPlaneRole = "control-plane" // also used as part of finalizer name
+	NodesRole        = "nodes"         // also used as part of finalizer name
 	Route53Role      = "route53-role"
 	KIAMRole         = "kiam-role"
 

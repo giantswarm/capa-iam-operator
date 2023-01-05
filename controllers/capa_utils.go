@@ -20,7 +20,7 @@ func isRoleUsedElsewhere(ctx context.Context, ctrlClient client.Client, roleName
 		return false, err
 	}
 	for _, mt := range awsMachineTemplates.Items {
-		if mt.DeletionTimestamp != nil && mt.Spec.Template.Spec.IAMInstanceProfile == roleName {
+		if mt.DeletionTimestamp == nil && mt.Spec.Template.Spec.IAMInstanceProfile == roleName {
 			return true, err
 		}
 	}
@@ -33,8 +33,8 @@ func isRoleUsedElsewhere(ctx context.Context, ctrlClient client.Client, roleName
 	if err != nil {
 		return false, err
 	}
-	for _, mt := range awsMachinePools.Items {
-		if mt.DeletionTimestamp != nil && mt.Spec.AWSLaunchTemplate.IamInstanceProfile == roleName {
+	for _, mp := range awsMachinePools.Items {
+		if mp.DeletionTimestamp == nil && mp.Spec.AWSLaunchTemplate.IamInstanceProfile == roleName {
 			return true, err
 		}
 	}
