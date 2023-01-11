@@ -50,9 +50,7 @@ type SecretReconciler struct {
 //+kubebuilder:rbac:groups=core,resources=secrets/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=core,resources=secrets/finalizers,verbs=update
 
-func (r *SecretReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.TODO()
-
+func (r *SecretReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := r.Log.WithValues("namespace", req.Namespace, "secret", req.Name)
 
 	if !r.EnableIRSARole {
