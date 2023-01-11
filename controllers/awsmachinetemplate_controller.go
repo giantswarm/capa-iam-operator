@@ -22,8 +22,10 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -50,14 +52,15 @@ type AWSMachineTemplateReconciler struct {
 // move the current state of the cluster closer to the desired state.
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
-func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var err error
-	ctx := context.TODO()
 	logger := r.Log.WithValues("namespace", req.Namespace, "awsMachineTemplate", req.Name)
 
 	awsMachineTemplate := &capa.AWSMachineTemplate{}
 	if err := r.Get(ctx, req.NamespacedName, awsMachineTemplate); err != nil {
-		logger.Error(err, "AWSMachineTemplate does not exist")
+		if apierrors.IsNotFound(err) {
+			return ctrl.Result{}, nil
+		}
 		return ctrl.Result{}, err
 	}
 	// check if CR got CAPI watch-filter label
@@ -159,22 +162,74 @@ func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 				logger.Error(err, "failed to get awsCluster")
 				return ctrl.Result{}, err
 			}
-			controllerutil.RemoveFinalizer(awsCluster, key.FinalizerName(iam.ControlPlaneRole))
-			err = r.Update(ctx, awsCluster)
-			if err != nil {
-				logger.Error(err, "failed to remove finalizer on AWSCluster")
-				return ctrl.Result{}, err
+
+			if controllerutil.ContainsFinalizer(awsCluster, key.FinalizerName(iam.ControlPlaneRole)) {
+				patchHelper, err := patch.NewHelper(awsCluster, r.Client)
+				if err != nil {
+					return ctrl.Result{}, err
+				}
+				controllerutil.RemoveFinalizer(awsCluster, key.FinalizerName(iam.ControlPlaneRole))
+				err = patchHelper.Patch(ctx, awsCluster)
+				if err != nil {
+					logger.Error(err, "failed to remove finalizer on AWSCluster")
+					return ctrl.Result{}, err
+				}
+				logger.Info("successfully removed finalizer from AWSCluster", "finalizer_name", iam.ControlPlaneRole)
 			}
 		}
 
 		// remove finalizer from AWSMachineTemplate
-		controllerutil.RemoveFinalizer(awsMachineTemplate, key.FinalizerName(iam.ControlPlaneRole))
-		err = r.Update(ctx, awsMachineTemplate)
-		if err != nil {
-			logger.Error(err, "failed to remove finalizer from AWSMachineTemplate")
-			return ctrl.Result{}, err
+		if controllerutil.ContainsFinalizer(awsMachineTemplate, key.FinalizerName(iam.ControlPlaneRole)) {
+			patchHelper, err := patch.NewHelper(awsMachineTemplate, r.Client)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			controllerutil.RemoveFinalizer(awsMachineTemplate, key.FinalizerName(iam.ControlPlaneRole))
+			err = patchHelper.Patch(ctx, awsMachineTemplate)
+			if err != nil {
+				logger.Error(err, "failed to remove finalizer from AWSMachineTemplate")
+				return ctrl.Result{}, err
+			}
+			logger.Info("successfully removed finalizer from AWSMachineTemplate", "finalizer_name", iam.ControlPlaneRole)
 		}
 	} else {
+		// add finalizer to AWSMachineTemplate
+		if !controllerutil.ContainsFinalizer(awsMachineTemplate, key.FinalizerName(iam.ControlPlaneRole)) {
+			patchHelper, err := patch.NewHelper(awsMachineTemplate, r.Client)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			controllerutil.AddFinalizer(awsMachineTemplate, key.FinalizerName(iam.ControlPlaneRole))
+			err = patchHelper.Patch(ctx, awsMachineTemplate)
+			if err != nil {
+				logger.Error(err, "failed to add finalizer on AWSMachineTemplate")
+				return ctrl.Result{}, err
+			}
+			logger.Info("successfully added finalizer to AWSMachineTemplate", "finalizer_name", iam.ControlPlaneRole)
+		}
+
+		// add finalizer to AWSCluster
+		{
+			awsCluster, err := key.GetAWSClusterByName(ctx, r.Client, clusterName)
+			if err != nil {
+				logger.Error(err, "failed to get awsCluster")
+				return ctrl.Result{}, err
+			}
+			if !controllerutil.ContainsFinalizer(awsCluster, key.FinalizerName(iam.ControlPlaneRole)) {
+				patchHelper, err := patch.NewHelper(awsCluster, r.Client)
+				if err != nil {
+					return ctrl.Result{}, err
+				}
+				controllerutil.AddFinalizer(awsCluster, key.FinalizerName(iam.ControlPlaneRole))
+				err = patchHelper.Patch(ctx, awsCluster)
+				if err != nil {
+					logger.Error(err, "failed to add finalizer on AWSCluster")
+					return ctrl.Result{}, err
+				}
+				logger.Info("successfully added finalizer to AWSCluster", "finalizer_name", iam.ControlPlaneRole)
+			}
+		}
+
 		err = iamService.ReconcileRole()
 		if err != nil {
 			return ctrl.Result{}, err
@@ -192,28 +247,6 @@ func (r *AWSMachineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 				if err != nil {
 					return ctrl.Result{}, err
 				}
-			}
-		}
-		// add finalizer to AWSMachineTemplate
-		controllerutil.AddFinalizer(awsMachineTemplate, key.FinalizerName(iam.ControlPlaneRole))
-		err = r.Update(ctx, awsMachineTemplate)
-		if err != nil {
-			logger.Error(err, "failed to add finalizer on AWSMachineTemplate")
-			return ctrl.Result{}, err
-		}
-
-		// add finalizer to AWSCluster
-		{
-			awsCluster, err := key.GetAWSClusterByName(ctx, r.Client, clusterName)
-			if err != nil {
-				logger.Error(err, "failed to get awsCluster")
-				return ctrl.Result{}, err
-			}
-			controllerutil.AddFinalizer(awsCluster, key.FinalizerName(iam.ControlPlaneRole))
-			err = r.Update(ctx, awsCluster)
-			if err != nil {
-				logger.Error(err, "failed to add finalizer on AWSCluster")
-				return ctrl.Result{}, err
 			}
 		}
 	}

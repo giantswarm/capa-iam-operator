@@ -12,8 +12,8 @@ import (
 
 const (
 	BastionRole      = "bastion"
-	ControlPlaneRole = "control-plane"
-	NodesRole        = "nodes"
+	ControlPlaneRole = "control-plane" // also used as part of finalizer name
+	NodesRole        = "nodes"         // also used as part of finalizer name
 	Route53Role      = "route53-role"
 	KIAMRole         = "kiam-role"
 	IRSARole         = "irsa-role"
@@ -61,9 +61,6 @@ func New(config IAMServiceConfig) (*IAMService, error) {
 	}
 	if config.MainRoleName == "" {
 		return nil, errors.New("cannot create IAMService with empty MainRoleName")
-	}
-	if config.Log == nil {
-		return nil, errors.New("cannot create IAMService with Log equal to nil")
 	}
 	if !(config.RoleType == ControlPlaneRole || config.RoleType == NodesRole || config.RoleType == BastionRole || config.RoleType == IRSARole) {
 		return nil, fmt.Errorf("cannot create IAMService with invalid RoleType '%s'", config.RoleType)
