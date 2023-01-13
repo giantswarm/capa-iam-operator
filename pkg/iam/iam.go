@@ -462,9 +462,7 @@ func (s *IAMService) deleteRole(roleName string) error {
 	}
 
 	_, err = s.iamClient.RemoveRoleFromInstanceProfile(i)
-	if IsNotFound(err) {
-		// fall thru
-	} else if err != nil {
+	if err != nil && !IsNotFound(err) {
 		l.Error(err, "failed to remove role from instance profile")
 		return err
 	}
@@ -474,9 +472,7 @@ func (s *IAMService) deleteRole(roleName string) error {
 	}
 
 	_, err = s.iamClient.DeleteInstanceProfile(i2)
-	if IsNotFound(err) {
-		// fall thru
-	} else if err != nil {
+	if err != nil && !IsNotFound(err) {
 		l.Error(err, "failed to delete instance profile")
 		return err
 	}
