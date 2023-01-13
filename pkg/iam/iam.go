@@ -199,7 +199,6 @@ func (s *IAMService) generateRoute53RoleParams() (Route53RoleParams, error) {
 
 func (s *IAMService) reconcileRole(roleName string, roleType string, params interface{}) error {
 	l := s.log.WithValues("role_name", roleName)
-	fmt.Println(params)
 	err := s.createRole(roleName, roleType, params)
 	if err != nil {
 		return err
