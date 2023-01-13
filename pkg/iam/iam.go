@@ -16,26 +16,40 @@ const (
 	NodesRole        = "nodes"         // also used as part of finalizer name
 	Route53Role      = "route53-role"
 	KIAMRole         = "kiam-role"
+	IRSARole         = "irsa-role"
 
 	IAMControllerOwnedTag = "capi-iam-controller/owned"
 	ClusterIDTag          = "sigs.k8s.io/cluster-api-provider-aws/cluster/%s"
 )
 
 type IAMServiceConfig struct {
-	AWSSession   awsclient.ConfigProvider
-	ClusterName  string
-	MainRoleName string
-	Log          logr.Logger
-	RoleType     string
+	AWSSession       awsclient.ConfigProvider
+	ClusterName      string
+	MainRoleName     string
+	Log              logr.Logger
+	RoleType         string
+	AccountID        string
+	CloudFrontDomain string
 }
 
 type IAMService struct {
-	clusterName  string
-	iamClient    *awsiam.IAM
-	mainRoleName string
-	log          logr.Logger
-	region       string
-	roleType     string
+	clusterName      string
+	iamClient        *awsiam.IAM
+	mainRoleName     string
+	log              logr.Logger
+	region           string
+	roleType         string
+	accountID        string
+	cloudFrontDomain string
+}
+
+type Route53RoleParams struct {
+	EC2ServiceDomain string
+	AccountID        string
+	CloudFrontDomain string
+	Namespace        string
+	ServiceAccount   string
+	KIAMRoleARN      string
 }
 
 func New(config IAMServiceConfig) (*IAMService, error) {
@@ -48,7 +62,7 @@ func New(config IAMServiceConfig) (*IAMService, error) {
 	if config.MainRoleName == "" {
 		return nil, errors.New("cannot create IAMService with empty MainRoleName")
 	}
-	if !(config.RoleType == ControlPlaneRole || config.RoleType == NodesRole || config.RoleType == BastionRole) {
+	if !(config.RoleType == ControlPlaneRole || config.RoleType == NodesRole || config.RoleType == BastionRole || config.RoleType == IRSARole) {
 		return nil, fmt.Errorf("cannot create IAMService with invalid RoleType '%s'", config.RoleType)
 	}
 	client := awsiam.New(config.AWSSession)
@@ -56,12 +70,14 @@ func New(config IAMServiceConfig) (*IAMService, error) {
 	l := config.Log.WithValues("clusterName", config.ClusterName, "iam-role", config.RoleType)
 
 	s := &IAMService{
-		clusterName:  config.ClusterName,
-		iamClient:    client,
-		mainRoleName: config.MainRoleName,
-		log:          l,
-		roleType:     config.RoleType,
-		region:       client.SigningRegion,
+		clusterName:      config.ClusterName,
+		iamClient:        client,
+		mainRoleName:     config.MainRoleName,
+		log:              l,
+		roleType:         config.RoleType,
+		region:           client.SigningRegion,
+		accountID:        config.AccountID,
+		cloudFrontDomain: config.CloudFrontDomain,
 	}
 
 	return s, nil
@@ -126,6 +142,25 @@ func (s *IAMService) ReconcileKiamRole() error {
 func (s *IAMService) ReconcileRoute53Role() error {
 	s.log.Info("reconciling Route53 IAM role")
 
+	var params Route53RoleParams
+	params, err := s.generateRoute53RoleParams()
+	if err != nil {
+		s.log.Error(err, "failed to generate Route53 role parameters")
+		return err
+	}
+
+	err = s.reconcileRole(roleName(Route53Role, s.clusterName), Route53Role, params)
+	if err != nil {
+		return err
+	}
+
+	s.log.Info("finished reconciling Route53 role")
+	return nil
+}
+
+func (s *IAMService) generateRoute53RoleParams() (Route53RoleParams, error) {
+	var namespace string = "kube-system"
+	var serviceAccount string = "external-dns"
 	var kiamRoleARN string
 	{
 		i := &awsiam.GetRoleInput{
@@ -135,27 +170,31 @@ func (s *IAMService) ReconcileRoute53Role() error {
 		o, err := s.iamClient.GetRole(i)
 		if err != nil {
 			s.log.Error(err, "failed to fetch KIAM role")
-			return err
+			return Route53RoleParams{}, err
 		}
 
 		kiamRoleARN = *o.Role.Arn
 	}
 
-	params := struct {
-		EC2ServiceDomain string
-		KIAMRoleARN      string
-	}{
+	if s.roleType == KIAMRole {
+		params := Route53RoleParams{
+			EC2ServiceDomain: ec2ServiceDomain(s.region),
+			KIAMRoleARN:      kiamRoleARN,
+		}
+
+		return params, nil
+	}
+
+	params := Route53RoleParams{
 		EC2ServiceDomain: ec2ServiceDomain(s.region),
+		AccountID:        s.accountID,
+		CloudFrontDomain: s.cloudFrontDomain,
+		Namespace:        namespace,
+		ServiceAccount:   serviceAccount,
 		KIAMRoleARN:      kiamRoleARN,
 	}
 
-	err := s.reconcileRole(roleName(Route53Role, s.clusterName), Route53Role, params)
-	if err != nil {
-		return err
-	}
-
-	s.log.Info("finished reconciling Route53 role")
-	return nil
+	return params, nil
 }
 
 func (s *IAMService) reconcileRole(roleName string, roleType string, params interface{}) error {
@@ -163,6 +202,13 @@ func (s *IAMService) reconcileRole(roleName string, roleType string, params inte
 	err := s.createRole(roleName, roleType, params)
 	if err != nil {
 		return err
+	}
+
+	if s.roleType == IRSARole {
+		if err = s.applyAssumePolicyRole(roleName, IRSARole, params); err != nil {
+			l.Error(err, "Failed to apply assume role policy to role")
+			return err
+		}
 	}
 
 	// we only attach the inline policy to a role that is owned (and was created) by iam controller
@@ -260,6 +306,43 @@ func (s *IAMService) createRole(roleName string, roleType string, params interfa
 	}
 
 	return nil
+}
+
+func (s *IAMService) applyAssumePolicyRole(roleName string, roleType string, params interface{}) error {
+	log := s.log.WithValues("role_name", roleName)
+	i := &awsiam.GetRoleInput{
+		RoleName: aws.String(roleName),
+	}
+
+	_, err := s.iamClient.GetRole(i)
+
+	if IsNotFound(err) {
+		log.Info("role doesn't exist. Skipping application of assume policy")
+		return nil
+	}
+
+	if !IsNotFound(err) && err != nil {
+		log.Error(err, "failed to fetch IAM role")
+		return err
+	}
+
+	log.Info("applying assume policy role to role")
+
+	tmpl := gentTrustPolicyTemplate(roleType)
+	assumeRolePolicyDocument, err := generatePolicyDocument(tmpl, params)
+	if err != nil {
+		log.Error(err, "failed to generate assume policy document from template for IAM role")
+		return err
+	}
+
+	updateInput := &awsiam.UpdateAssumeRolePolicyInput{
+		RoleName:       aws.String(roleName),
+		PolicyDocument: aws.String(assumeRolePolicyDocument),
+	}
+
+	_, err = s.iamClient.UpdateAssumeRolePolicy(updateInput)
+
+	return err
 }
 
 // attachInlinePolicy  will attach inline policy to the main IAM role
@@ -379,9 +462,7 @@ func (s *IAMService) deleteRole(roleName string) error {
 	}
 
 	_, err = s.iamClient.RemoveRoleFromInstanceProfile(i)
-	if IsNotFound(err) {
-		//fall thru
-	} else if err != nil {
+	if err != nil && !IsNotFound(err) {
 		l.Error(err, "failed to remove role from instance profile")
 		return err
 	}
@@ -391,9 +472,7 @@ func (s *IAMService) deleteRole(roleName string) error {
 	}
 
 	_, err = s.iamClient.DeleteInstanceProfile(i2)
-	if IsNotFound(err) {
-		//fall thru
-	} else if err != nil {
+	if err != nil && !IsNotFound(err) {
 		l.Error(err, "failed to delete instance profile")
 		return err
 	}

@@ -53,6 +53,8 @@ spec:
         - /manager
         args:
         - --leader-elect
+        - --enable-kiam-role={{ $.Values.enableKiamRole }}
+        - --enable-irsa-role={{ $.Values.enableIRSARole }}
         resources:
           requests:
             cpu: 100m
