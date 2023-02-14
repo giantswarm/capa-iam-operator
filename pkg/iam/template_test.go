@@ -24,8 +24,7 @@ type testParams struct {
 // It uses golden file as reference template and when changes to template are
 // intentional, they can be updated by providing -update flag for go test.
 //
-//  go test ./pkg/iam -run Test_Role_Policy_Template_Render -update
-//
+//	go test ./pkg/iam -run Test_Role_Policy_Template_Render -update
 func Test_Role_Policy_Template_Render(t *testing.T) {
 	testCases := []struct {
 		name   string
@@ -85,6 +84,9 @@ func Test_Role_Policy_Template_Render(t *testing.T) {
 				t.Fatal(err)
 			}
 
+			fmt.Println(string(goldenFile))
+			fmt.Println(string(templateBody))
+
 			if !bytes.Equal([]byte(templateBody), goldenFile) {
 				t.Fatalf("\n\n%s\n", cmp.Diff(string(goldenFile), templateBody))
 			}
@@ -95,8 +97,7 @@ func Test_Role_Policy_Template_Render(t *testing.T) {
 // It uses golden file as reference template and when changes to template are
 // intentional, they can be updated by providing -update flag for go test.
 //
-//  go test ./pkg/iam -run Test_Trust_Identity_Policy_Template_Render -update
-//
+//	go test ./pkg/iam -run Test_Trust_Identity_Policy_Template_Render -update
 func Test_Trust_Identity_Policy_Template_Render(t *testing.T) {
 	testCases := []struct {
 		name   string

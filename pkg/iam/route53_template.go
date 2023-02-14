@@ -43,15 +43,16 @@ const route53RolePolicyTemplate = `{
     "Statement": [
         {
             "Action": "route53:GetChange",
-            "Resource": "arn:aws:route53:::change/*",
+            "Resource": [
+                "arn:aws:route53:::change/*"
+            ],
             "Effect": "Allow"
         },
         {
-            "Action": [
-              "route53:ChangeResourceRecordSets",
-              "route53:ListResourceRecordSets"
+            "Action": "route53:ChangeResourceRecordSets",
+            "Resource": [
+                "arn:aws:route53:::hostedzone/*"
             ],
-            "Resource": "*",
             "Effect": "Allow"
         },
         {
@@ -64,4 +65,5 @@ const route53RolePolicyTemplate = `{
             "Effect": "Allow"
         }
     ]
-}`
+}
+`
