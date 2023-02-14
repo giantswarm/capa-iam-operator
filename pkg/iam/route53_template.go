@@ -42,16 +42,23 @@ const route53RolePolicyTemplate = `{
     "Version": "2012-10-17",
     "Statement": [
         {
-            "Action": "route53:ChangeResourceRecordSets",
-            "Resource": [
-                "arn:aws:route53:::hostedzone/*"
+            "Action": "route53:GetChange",
+            "Resource": "arn:aws:route53:::change/*",
+            "Effect": "Allow"
+        },
+        {
+            "Action": [
+              "route53:ChangeResourceRecordSets",
+              "route53:ListResourceRecordSets"
             ],
+            "Resource": "*",
             "Effect": "Allow"
         },
         {
             "Action": [
                 "route53:ListHostedZones",
-                "route53:ListResourceRecordSets"
+                "route53:ListResourceRecordSets",
+                "route53:ListHostedZonesByName"
             ],
             "Resource": "*",
             "Effect": "Allow"
