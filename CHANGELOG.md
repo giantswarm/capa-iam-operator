@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Statements and actions to `route53` trust policy to support `cert-manager` with IRSA
+- Added the use of the runtime/default seccomp profile.
 
 ## [0.5.1] - 2023-01-30
 
