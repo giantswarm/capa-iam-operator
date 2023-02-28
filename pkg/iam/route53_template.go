@@ -30,7 +30,7 @@ const route53TrustIdentityPolicyWithIRSA = `{
       },
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
-        "StringEquals": {
+        "ForAnyValue:StringEquals": {
           "{{.CloudFrontDomain}}:sub": [{{- range $index, $sa :=  .ServiceAccounts -}}
             {{- if $index }}, {{ end -}}
               "system:serviceaccount:{{$sa.Namespace}}:{{$sa.Name}}"
