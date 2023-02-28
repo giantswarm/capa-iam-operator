@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Update route53 trust identity policy with IRSA to account for `cert-manager-controller`
 
+### Fixed
+
+- Allow required volume types in PSP so that pods can still be admitted
+
 ## [0.6.0] - 2023-02-17
 
 ### Added
