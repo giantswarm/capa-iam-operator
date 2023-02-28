@@ -47,9 +47,13 @@ type Route53RoleParams struct {
 	EC2ServiceDomain string
 	AccountID        string
 	CloudFrontDomain string
-	Namespace        string
-	ServiceAccount   string
+	ServiceAccounts  []ServiceAccount
 	KIAMRoleARN      string
+}
+
+type ServiceAccount struct {
+	Name      string
+	Namespace string
 }
 
 func New(config IAMServiceConfig) (*IAMService, error) {
@@ -159,8 +163,17 @@ func (s *IAMService) ReconcileRoute53Role() error {
 }
 
 func (s *IAMService) generateRoute53RoleParams() (Route53RoleParams, error) {
-	var namespace string = "kube-system"
-	var serviceAccount string = "external-dns"
+	serviceAccounts := []ServiceAccount{
+		{
+			Name:      "external-dns",
+			Namespace: "kube-system",
+		},
+		{
+			Name:      "cert-manager-controller",
+			Namespace: "kube-system",
+		},
+	}
+
 	var kiamRoleARN string
 	{
 		i := &awsiam.GetRoleInput{
@@ -189,8 +202,7 @@ func (s *IAMService) generateRoute53RoleParams() (Route53RoleParams, error) {
 		EC2ServiceDomain: ec2ServiceDomain(s.region),
 		AccountID:        s.accountID,
 		CloudFrontDomain: s.cloudFrontDomain,
-		Namespace:        namespace,
-		ServiceAccount:   serviceAccount,
+		ServiceAccounts:  serviceAccounts,
 		KIAMRoleARN:      kiamRoleARN,
 	}
 

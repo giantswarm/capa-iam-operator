@@ -19,13 +19,15 @@ type testParams struct {
 	ControlPlaneRoleARN string
 	EC2ServiceDomain    string
 	KIAMRoleARN         string
+	AccountID           string
+	CloudFrontDomain    string
+	ServiceAccounts     []ServiceAccount
 }
 
 // It uses golden file as reference template and when changes to template are
 // intentional, they can be updated by providing -update flag for go test.
 //
-//  go test ./pkg/iam -run Test_Role_Policy_Template_Render -update
-//
+//	go test ./pkg/iam -run Test_Role_Policy_Template_Render -update
 func Test_Role_Policy_Template_Render(t *testing.T) {
 	testCases := []struct {
 		name   string
@@ -95,8 +97,7 @@ func Test_Role_Policy_Template_Render(t *testing.T) {
 // It uses golden file as reference template and when changes to template are
 // intentional, they can be updated by providing -update flag for go test.
 //
-//  go test ./pkg/iam -run Test_Trust_Identity_Policy_Template_Render -update
-//
+//	go test ./pkg/iam -run Test_Trust_Identity_Policy_Template_Render -update
 func Test_Trust_Identity_Policy_Template_Render(t *testing.T) {
 	testCases := []struct {
 		name   string
@@ -130,6 +131,25 @@ func Test_Trust_Identity_Policy_Template_Render(t *testing.T) {
 				KIAMRoleARN: "arn:aws:iam::751852626996:role/apie1-kiam-role",
 			},
 			role: Route53Role,
+		},
+		{
+			name: "case-3-route53-with-IRSA",
+			params: testParams{
+				KIAMRoleARN:      "arn:aws:iam::751852626996:role/apie1-kiam-role",
+				AccountID:        "751852626996",
+				CloudFrontDomain: "d12qpcaph79a8w.cloudfront.net",
+				ServiceAccounts: []ServiceAccount{
+					{
+						Name:      "external-dns",
+						Namespace: "kube-system",
+					},
+					{
+						Name:      "cert-manager-controller",
+						Namespace: "kube-system",
+					},
+				},
+			},
+			role: IRSARole,
 		},
 		{
 			name: "case-3-control-plane-china",

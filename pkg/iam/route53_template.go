@@ -24,19 +24,24 @@ const route53TrustIdentityPolicyWithIRSA = `{
       "Action": "sts:AssumeRole"
     },
     {
-        "Effect": "Allow",
-        "Principal": {
-            "Federated": "arn:aws:iam::{{.AccountID}}:oidc-provider/{{.CloudFrontDomain}}"
-        },
-        "Action": "sts:AssumeRoleWithWebIdentity",
-        "Condition": {
-            "StringEquals": {
-                "{{.CloudFrontDomain}}:sub": "system:serviceaccount:{{.Namespace}}:{{.ServiceAccount}}"
-            }
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::{{.AccountID}}:oidc-provider/{{.CloudFrontDomain}}"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "ForAnyValue:StringEquals": {
+          "{{.CloudFrontDomain}}:sub": [{{- range $index, $sa :=  .ServiceAccounts -}}
+            {{- if $index }}, {{ end -}}
+              "system:serviceaccount:{{$sa.Namespace}}:{{$sa.Name}}"
+            {{- end -}}
+          ]
         }
+      }
     }
   ]
-}`
+}
+`
 
 const route53RolePolicyTemplate = `{
     "Version": "2012-10-17",
