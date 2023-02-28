@@ -243,7 +243,7 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 			}
 			// route53 role depends on KIAM role
 			if r.EnableKiamRole && r.EnableRoute53Role {
-				err = iamService.ReconcileRoute53Role()
+				err = iamService.ReconcileRoute53Roles()
 				if err != nil {
 					return ctrl.Result{}, err
 				}

@@ -21,7 +21,8 @@ type testParams struct {
 	KIAMRoleARN         string
 	AccountID           string
 	CloudFrontDomain    string
-	ServiceAccounts     []ServiceAccount
+	Namespace           string
+	ServiceAccount      string
 }
 
 // It uses golden file as reference template and when changes to template are
@@ -61,6 +62,13 @@ func Test_Role_Policy_Template_Render(t *testing.T) {
 				ClusterName: "test",
 			},
 			role: Route53Role,
+		},
+		{
+			name: "case-3-cert-manager",
+			params: testParams{
+				ClusterName: "test",
+			},
+			role: CertManagerRole,
 		},
 	}
 
@@ -138,18 +146,21 @@ func Test_Trust_Identity_Policy_Template_Render(t *testing.T) {
 				KIAMRoleARN:      "arn:aws:iam::751852626996:role/apie1-kiam-role",
 				AccountID:        "751852626996",
 				CloudFrontDomain: "d12qpcaph79a8w.cloudfront.net",
-				ServiceAccounts: []ServiceAccount{
-					{
-						Name:      "external-dns",
-						Namespace: "kube-system",
-					},
-					{
-						Name:      "cert-manager-controller",
-						Namespace: "kube-system",
-					},
-				},
+				Namespace:        "kube-system",
+				ServiceAccount:   "external-dns",
 			},
 			role: IRSARole,
+		},
+		{
+			name: "case-3-route53-for-cert-manager",
+			params: testParams{
+				KIAMRoleARN:      "arn:aws:iam::751852626996:role/apie1-kiam-role",
+				AccountID:        "751852626996",
+				CloudFrontDomain: "d12qpcaph79a8w.cloudfront.net",
+				Namespace:        "kube-system",
+				ServiceAccount:   "cert-manager-controller",
+			},
+			role: CertManagerRole,
 		},
 		{
 			name: "case-3-control-plane-china",

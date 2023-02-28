@@ -49,6 +49,8 @@ func getInlinePolicyTemplate(roleName string) string {
 		return kiamRolePolicyTemplate
 	case IRSARole:
 		return route53RolePolicyTemplate
+	case CertManagerRole:
+		return route53RolePolicyTemplateForCertManager
 	default:
 		return ""
 	}
@@ -67,6 +69,8 @@ func gentTrustPolicyTemplate(roleName string) string {
 	case KIAMRole:
 		return kiamTrustIdentityPolicy
 	case IRSARole:
+		return route53TrustIdentityPolicyWithIRSA
+	case CertManagerRole:
 		return route53TrustIdentityPolicyWithIRSA
 	default:
 		return ""
