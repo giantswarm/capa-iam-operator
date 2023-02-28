@@ -167,7 +167,12 @@ func (s *IAMService) ReconcileRoute53Roles() error {
 
 func (s *IAMService) generateRoute53RoleParams() (Route53RoleParams, error) {
 	namespace := "kube-system"
-	serviceAccount := getServiceAccount(s.roleType)
+	serviceAccount, err := getServiceAccount(s.roleType)
+
+	if err != nil {
+		s.log.Error(err, "failed to get service account for role")
+		return Route53RoleParams{}, err
+	}
 
 	var kiamRoleARN string
 	{
@@ -607,10 +612,14 @@ func policyName(role string, clusterID string) string {
 	return fmt.Sprintf("%s-%s-policy", role, clusterID)
 }
 
-func getServiceAccount(role string) string {
+func getServiceAccount(role string) (string, error) {
 	if role == CertManagerRole {
-		return "cert-manager-controller"
+		return "cert-manager-controller", nil
+	} else if role == IRSARole {
+		return "external-dns", nil
+	} else if role == Route53Role {
+		return "external-dns", nil
 	}
 
-	return "external-dns"
+	return "", fmt.Errorf("Cannot get service account for specified role - %s", role)
 }
