@@ -16,7 +16,7 @@
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
         "StringEquals": {
-          "d12qpcaph79a8w.cloudfront.net:sub": "system:serviceaccount:kube-system:external-dns"
+          "d12qpcaph79a8w.cloudfront.net:sub": "system:serviceaccount:kube-system:cert-manager-controller"
         }
       }
     }
