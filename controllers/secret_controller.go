@@ -24,14 +24,17 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/go-logr/logr"
 
 	"github.com/giantswarm/capa-iam-operator/pkg/awsclient"
 	"github.com/giantswarm/capa-iam-operator/pkg/iam"
+	"github.com/giantswarm/capa-iam-operator/pkg/key"
 )
 
 const (
@@ -46,9 +49,9 @@ type SecretReconciler struct {
 	Scheme         *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=core,resources=secrets/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=core,resources=secrets/finalizers,verbs=update
+// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core,resources=secrets/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=core,resources=secrets/finalizers,verbs=update
 
 func (r *SecretReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := r.Log.WithValues("namespace", req.Namespace, "secret", req.Name)
@@ -72,6 +75,33 @@ func (r *SecretReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return reconcile.Result{}, err
 	}
 
+	var result ctrl.Result
+
+	if secret.DeletionTimestamp != nil {
+		result, err = r.reconcileNormal(ctx, logger, secret)
+	} else {
+		result, err = r.reconcileDelete(ctx, logger, secret)
+
+	}
+
+	return result, err
+}
+
+func (r *SecretReconciler) reconcileNormal(ctx context.Context, logger logr.Logger, secret *corev1.Secret) (ctrl.Result, error) {
+	// add finalizer to Secret
+	if !controllerutil.ContainsFinalizer(secret, key.FinalizerName(iam.IRSARole)) {
+		patchHelper, err := patch.NewHelper(secret, r.Client)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		controllerutil.AddFinalizer(secret, key.FinalizerName(iam.IRSARole))
+		err = patchHelper.Patch(ctx, secret)
+		if err != nil {
+			logger.Error(err, "failed to add finalizer on AWSMachineTemplate")
+			return ctrl.Result{}, err
+		}
+		logger.Info("successfully added finalizer to AWSMachineTemplate", "finalizer_name", iam.IRSARole)
+	}
 	accountID, err := getAWSAcountId(secret)
 	if err != nil {
 		logger.Error(err, "Could not get account ID")
@@ -84,7 +114,7 @@ func (r *SecretReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return reconcile.Result{}, err
 	}
 
-	clusterName := strings.Split(req.Name, "-")[0]
+	clusterName := strings.Split(secret.Name, "-")[0]
 	role := iam.IRSARole
 
 	var awsClientGetter *awsclient.AwsClient
@@ -130,6 +160,24 @@ func (r *SecretReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, err
 	}
 
+	return ctrl.Result{}, nil
+}
+
+func (r *SecretReconciler) reconcileDelete(ctx context.Context, logger logr.Logger, secret *corev1.Secret) (ctrl.Result, error) {
+
+	if controllerutil.ContainsFinalizer(secret, key.FinalizerName(iam.IRSARole)) {
+		patchHelper, err := patch.NewHelper(secret, r.Client)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		controllerutil.RemoveFinalizer(secret, key.FinalizerName(iam.IRSARole))
+		err = patchHelper.Patch(ctx, secret)
+		if err != nil {
+			logger.Error(err, "failed to remove finalizer on Secret")
+			return ctrl.Result{}, err
+		}
+		logger.Info("successfully removed finalizer from Secret", "finalizer_name", iam.IRSARole)
+	}
 	return ctrl.Result{}, nil
 }
 
