@@ -17,6 +17,7 @@ const (
 	Route53Role      = "route53-role"
 	KIAMRole         = "kiam-role"
 	IRSARole         = "irsa-role"
+	CertManagerRole  = "cert-manager-role"
 
 	IAMControllerOwnedTag = "capi-iam-controller/owned"
 	ClusterIDTag          = "sigs.k8s.io/cluster-api-provider-aws/cluster/%s"
@@ -47,13 +48,9 @@ type Route53RoleParams struct {
 	EC2ServiceDomain string
 	AccountID        string
 	CloudFrontDomain string
-	ServiceAccounts  []ServiceAccount
+	Namespace        string
+	ServiceAccount   string
 	KIAMRoleARN      string
-}
-
-type ServiceAccount struct {
-	Name      string
-	Namespace string
 }
 
 func New(config IAMServiceConfig) (*IAMService, error) {
@@ -97,7 +94,6 @@ func (s *IAMService) ReconcileRole() error {
 		ClusterName:      s.clusterName,
 		EC2ServiceDomain: ec2ServiceDomain(s.region),
 	}
-
 	err := s.reconcileRole(s.mainRoleName, s.roleType, params)
 	if err != nil {
 		return err
@@ -143,7 +139,7 @@ func (s *IAMService) ReconcileKiamRole() error {
 	return nil
 }
 
-func (s *IAMService) ReconcileRoute53Role() error {
+func (s *IAMService) ReconcileRoute53Roles() error {
 	s.log.Info("reconciling Route53 IAM role")
 
 	var params Route53RoleParams
@@ -159,19 +155,23 @@ func (s *IAMService) ReconcileRoute53Role() error {
 	}
 
 	s.log.Info("finished reconciling Route53 role")
+
+	err = s.reconcileRole(roleName(CertManagerRole, s.clusterName), CertManagerRole, params)
+	if err != nil {
+		return err
+	}
+
+	s.log.Info("finished reconciling Cert Manager role")
 	return nil
 }
 
 func (s *IAMService) generateRoute53RoleParams() (Route53RoleParams, error) {
-	serviceAccounts := []ServiceAccount{
-		{
-			Name:      "external-dns",
-			Namespace: "kube-system",
-		},
-		{
-			Name:      "cert-manager-controller",
-			Namespace: "kube-system",
-		},
+	namespace := "kube-system"
+	serviceAccount, err := getServiceAccount(s.roleType)
+
+	if err != nil {
+		s.log.Error(err, "failed to get service account for role")
+		return Route53RoleParams{}, err
 	}
 
 	var kiamRoleARN string
@@ -202,7 +202,8 @@ func (s *IAMService) generateRoute53RoleParams() (Route53RoleParams, error) {
 		EC2ServiceDomain: ec2ServiceDomain(s.region),
 		AccountID:        s.accountID,
 		CloudFrontDomain: s.cloudFrontDomain,
-		ServiceAccounts:  serviceAccounts,
+		Namespace:        namespace,
+		ServiceAccount:   serviceAccount,
 		KIAMRoleARN:      kiamRoleARN,
 	}
 
@@ -216,7 +217,7 @@ func (s *IAMService) reconcileRole(roleName string, roleType string, params inte
 		return err
 	}
 
-	if s.roleType == IRSARole {
+	if s.roleType == IRSARole || s.roleType == CertManagerRole {
 		if err = s.applyAssumePolicyRole(roleName, IRSARole, params); err != nil {
 			l.Error(err, "Failed to apply assume role policy to role")
 			return err
@@ -600,6 +601,8 @@ func roleName(role string, clusterID string) string {
 		return fmt.Sprintf("%s-Route53Manager-Role", clusterID)
 	} else if role == KIAMRole {
 		return fmt.Sprintf("%s-IAMManager-Role", clusterID)
+	} else if role == CertManagerRole {
+		return fmt.Sprintf("%s-CertManager-Role", clusterID)
 	} else {
 		return fmt.Sprintf("%s-%s", clusterID, role)
 	}
@@ -607,4 +610,16 @@ func roleName(role string, clusterID string) string {
 
 func policyName(role string, clusterID string) string {
 	return fmt.Sprintf("%s-%s-policy", role, clusterID)
+}
+
+func getServiceAccount(role string) (string, error) {
+	if role == CertManagerRole {
+		return "cert-manager-controller", nil
+	} else if role == IRSARole {
+		return "external-dns", nil
+	} else if role == Route53Role {
+		return "external-dns", nil
+	}
+
+	return "", fmt.Errorf("Cannot get service account for specified role - %s", role)
 }

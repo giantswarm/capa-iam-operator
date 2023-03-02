@@ -30,12 +30,8 @@ const route53TrustIdentityPolicyWithIRSA = `{
       },
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
-        "ForAnyValue:StringEquals": {
-          "{{.CloudFrontDomain}}:sub": [{{- range $index, $sa :=  .ServiceAccounts -}}
-            {{- if $index }}, {{ end -}}
-              "system:serviceaccount:{{$sa.Namespace}}:{{$sa.Name}}"
-            {{- end -}}
-          ]
+        "StringEquals": {
+          "{{.CloudFrontDomain}}:sub": "system:serviceaccount:{{.Namespace}}:{{.ServiceAccount}}"
         }
       }
     }
@@ -47,13 +43,6 @@ const route53RolePolicyTemplate = `{
     "Version": "2012-10-17",
     "Statement": [
         {
-            "Action": "route53:GetChange",
-            "Resource": [
-                "arn:aws:route53:::change/*"
-            ],
-            "Effect": "Allow"
-        },
-        {
             "Action": "route53:ChangeResourceRecordSets",
             "Resource": [
                 "arn:aws:route53:::hostedzone/*"
@@ -63,12 +52,36 @@ const route53RolePolicyTemplate = `{
         {
             "Action": [
                 "route53:ListHostedZones",
-                "route53:ListResourceRecordSets",
-                "route53:ListHostedZonesByName"
+                "route53:ListResourceRecordSets"
             ],
             "Resource": "*",
             "Effect": "Allow"
         }
     ]
+}
+`
+
+const route53RolePolicyTemplateForCertManager = `{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "route53:GetChange",
+      "Resource": "arn:aws:route53:::change/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "route53:ChangeResourceRecordSets",
+        "route53:ListResourceRecordSets"
+      ],
+      "Resource": "arn:aws:route53:::hostedzone/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": "route53:ListHostedZonesByName",
+      "Resource": "*"
+    }
+  ]
 }
 `
