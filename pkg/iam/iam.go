@@ -431,16 +431,30 @@ func (s *IAMService) DeleteKiamRole() error {
 	return nil
 }
 
-func (s *IAMService) DeleteRolesForIRSA() error {
-	s.log.Info("deleting IAM roles for IRSA")
+func (s *IAMService) DeleteRoute53Role() error {
+	s.log.Info("deleting Route53 IAM resources\"")
 
 	// delete route3 role
 	err := s.deleteRole(roleName(Route53Role, s.clusterName))
 	if err != nil {
 		return err
 	}
+
+	s.log.Info("finished deleting Route53 IAM resources")
+	return nil
+}
+
+func (s *IAMService) DeleteRolesForIRSA() error {
+	s.log.Info("deleting IAM roles for IRSA")
+
 	// delete cert-manager role
-	err = s.deleteRole(roleName(CertManagerRole, s.clusterName))
+	err := s.deleteRole(roleName(CertManagerRole, s.clusterName))
+	if err != nil {
+		return err
+	}
+
+	// delete route3 role
+	err = s.deleteRole(roleName(Route53Role, s.clusterName))
 	if err != nil {
 		return err
 	}
