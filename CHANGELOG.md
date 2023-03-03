@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add finalizer to the IRSA cloudfront secret.
+- Add deletion logic for the IRSA roles.
+
 ### Change
 
 - Update route53 trust identity policy with IRSA to account for `cert-manager-controller`
