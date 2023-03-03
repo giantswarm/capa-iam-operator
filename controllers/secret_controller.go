@@ -220,7 +220,7 @@ func (r *SecretReconciler) reconcileDelete(ctx context.Context, logger logr.Logg
 			logger.Error(err, "failed to remove finalizer on Secret")
 			return ctrl.Result{}, err
 		}
-		logger.Info("successfully removed finalizer from Secret", "finalizer_name", iam.IRSARole)
+		logger.Info("successfully removed finalizer from Secret", "finalizer_name", key.FinalizerName(iam.IRSARole))
 	}
 	return ctrl.Result{}, nil
 }
