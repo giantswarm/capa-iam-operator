@@ -154,7 +154,7 @@ func (r *SecretReconciler) reconcileNormal(ctx context.Context, logger logr.Logg
 		}
 	}
 
-	err = iamService.ReconcileRoute53Roles()
+	err = iamService.ReconcileRolesForIRSA()
 	if err != nil {
 		logger.Error(err, "Unable to reconcile role")
 		return ctrl.Result{}, err

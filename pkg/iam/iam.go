@@ -139,8 +139,8 @@ func (s *IAMService) ReconcileKiamRole() error {
 	return nil
 }
 
-func (s *IAMService) ReconcileRoute53Roles() error {
-	s.log.Info("reconciling Route53 IAM role")
+func (s *IAMService) ReconcileRolesForIRSA() error {
+	s.log.Info("reconciling IAM roles for IRSA\"")
 
 	var params Route53RoleParams
 	params, err := s.generateRoute53RoleParams()
@@ -154,14 +154,12 @@ func (s *IAMService) ReconcileRoute53Roles() error {
 		return err
 	}
 
-	s.log.Info("finished reconciling Route53 role")
-
 	err = s.reconcileRole(roleName(CertManagerRole, s.clusterName), CertManagerRole, params)
 	if err != nil {
 		return err
 	}
 
-	s.log.Info("finished reconciling Cert Manager role")
+	s.log.Info("finished reconciling IAM roles for IRSA\"")
 	return nil
 }
 
@@ -433,16 +431,21 @@ func (s *IAMService) DeleteKiamRole() error {
 	return nil
 }
 
-func (s *IAMService) DeleteRoute53Role() error {
-	s.log.Info("deleting Route53 IAM resources")
+func (s *IAMService) DeleteRolesForIRSA() error {
+	s.log.Info("deleting IAM roles for IRSA")
 
 	// delete route3 role
 	err := s.deleteRole(roleName(Route53Role, s.clusterName))
 	if err != nil {
 		return err
 	}
+	// delete cert-manager role
+	err = s.deleteRole(roleName(CertManagerRole, s.clusterName))
+	if err != nil {
+		return err
+	}
 
-	s.log.Info("finished deleting Route53 IAM resources")
+	s.log.Info("finished deleting IAM roles for IRSA")
 	return nil
 }
 
