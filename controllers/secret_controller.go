@@ -165,6 +165,49 @@ func (r *SecretReconciler) reconcileNormal(ctx context.Context, logger logr.Logg
 }
 
 func (r *SecretReconciler) reconcileDelete(ctx context.Context, logger logr.Logger, secret *corev1.Secret) (ctrl.Result, error) {
+	var err error
+	clusterName := strings.Split(secret.Name, "-")[0]
+	role := iam.IRSARole
+	var awsClientGetter *awsclient.AwsClient
+	{
+		c := awsclient.AWSClientConfig{
+			ClusterName: clusterName,
+			CtrlClient:  r.Client,
+			Log:         logger,
+		}
+		awsClientGetter, err = awsclient.New(c)
+		if err != nil {
+			logger.Error(err, "Failed to generate awsClientGetter")
+			return ctrl.Result{}, err
+		}
+	}
+
+	awsClientSession, err := awsClientGetter.GetAWSClientSession(ctx)
+	if err != nil {
+		logger.Error(err, "Failed to get aws client session")
+		return ctrl.Result{}, err
+	}
+
+	var iamService *iam.IAMService
+	{
+		c := iam.IAMServiceConfig{
+			AWSSession:   awsClientSession,
+			ClusterName:  clusterName,
+			MainRoleName: "-",
+			RoleType:     role,
+			Log:          logger,
+		}
+		iamService, err = iam.New(c)
+		if err != nil {
+			logger.Error(err, "Failed to generate IAM service")
+		}
+	}
+
+	err = iamService.DeleteRolesForIRSA()
+	if err != nil {
+		logger.Error(err, "Unable to reconcile role")
+		return ctrl.Result{}, err
+	}
 
 	if controllerutil.ContainsFinalizer(secret, key.FinalizerName(iam.IRSARole)) {
 		patchHelper, err := patch.NewHelper(secret, r.Client)
