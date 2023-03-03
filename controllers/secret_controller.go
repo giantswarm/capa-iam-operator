@@ -63,8 +63,6 @@ func (r *SecretReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	// We can say its a secret created by the IRSA operator if it has this suffix
 	if !strings.HasSuffix(req.Name, IRSASecretSuffix) {
-		logger.Info(fmt.Sprintf(" secret '%s' does not have suffix %s", req.Name, IRSASecretSuffix))
-
 		return reconcile.Result{}, nil
 	}
 
@@ -79,15 +77,12 @@ func (r *SecretReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	var result ctrl.Result
 
-	if secret.DeletionTimestamp != nil {
+	if secret.DeletionTimestamp == nil {
 		logger.Info("IRSA Secrets - reconcile normal")
-
 		result, err = r.reconcileNormal(ctx, logger, secret)
 	} else {
 		logger.Info("IRSA Secrets - reconcile delete")
-
 		result, err = r.reconcileDelete(ctx, logger, secret)
-
 	}
 
 	return result, err
