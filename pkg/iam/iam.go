@@ -140,7 +140,7 @@ func (s *IAMService) ReconcileKiamRole() error {
 }
 
 func (s *IAMService) ReconcileRolesForIRSA() error {
-	s.log.Info("reconciling IAM roles for IRSA\"")
+	s.log.Info("reconciling IAM roles for IRSA")
 
 	var params Route53RoleParams
 	params, err := s.generateRoute53RoleParams()
@@ -159,7 +159,7 @@ func (s *IAMService) ReconcileRolesForIRSA() error {
 		return err
 	}
 
-	s.log.Info("finished reconciling IAM roles for IRSA\"")
+	s.log.Info("finished reconciling IAM roles for IRSA")
 	return nil
 }
 
