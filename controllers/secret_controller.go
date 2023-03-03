@@ -97,10 +97,10 @@ func (r *SecretReconciler) reconcileNormal(ctx context.Context, logger logr.Logg
 		controllerutil.AddFinalizer(secret, key.FinalizerName(iam.IRSARole))
 		err = patchHelper.Patch(ctx, secret)
 		if err != nil {
-			logger.Error(err, "failed to add finalizer on AWSMachineTemplate")
+			logger.Error(err, "failed to add finalizer on Secret")
 			return ctrl.Result{}, err
 		}
-		logger.Info("successfully added finalizer to AWSMachineTemplate", "finalizer_name", iam.IRSARole)
+		logger.Info("successfully added finalizer to Secret", "finalizer_name", iam.IRSARole)
 	}
 	accountID, err := getAWSAcountId(secret)
 	if err != nil {
