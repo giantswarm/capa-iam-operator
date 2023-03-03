@@ -72,7 +72,7 @@ func (r *SecretReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	err := r.Get(ctx, req.NamespacedName, secret)
 	if err != nil {
 		logger.Error(err, "Failed to get the secret")
-		return reconcile.Result{}, err
+		return reconcile.Result{Requeue: false}, err
 	}
 
 	var result ctrl.Result
