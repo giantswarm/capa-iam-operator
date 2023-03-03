@@ -432,7 +432,7 @@ func (s *IAMService) DeleteKiamRole() error {
 }
 
 func (s *IAMService) DeleteRoute53Role() error {
-	s.log.Info("deleting Route53 IAM resources\"")
+	s.log.Info("deleting Route53 IAM resources")
 
 	// delete route3 role
 	err := s.deleteRole(roleName(Route53Role, s.clusterName))
