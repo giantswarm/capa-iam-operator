@@ -56,7 +56,7 @@ func getInlinePolicyTemplate(roleName string) string {
 	}
 }
 
-func gentTrustPolicyTemplate(roleName string) string {
+func getTrustPolicyTemplate(roleName string) string {
 	switch roleName {
 	case BastionRole:
 		return ec2TrustIdentityPolicyTemplate

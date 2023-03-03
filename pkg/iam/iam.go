@@ -243,78 +243,77 @@ func (s *IAMService) reconcileRole(roleName string, roleType string, params inte
 // createRole will create requested IAM role
 func (s *IAMService) createRole(roleName string, roleType string, params interface{}) error {
 	l := s.log.WithValues("role_name", roleName)
-	i := &awsiam.GetRoleInput{
-		RoleName: aws.String(roleName),
-	}
 
-	_, err := s.iamClient.GetRole(i)
+	_, err := s.iamClient.GetRole(&awsiam.GetRoleInput{
+		RoleName: aws.String(roleName),
+	})
 
 	// create new IAMRole if it does not exists yet
-	if IsNotFound(err) {
-		tmpl := gentTrustPolicyTemplate(roleType)
-
-		assumeRolePolicyDocument, err := generatePolicyDocument(tmpl, params)
-		if err != nil {
-			l.Error(err, "failed to generate assume policy document from template for IAM role")
-			return err
-		}
-
-		tags := []*awsiam.Tag{
-			{
-				Key:   aws.String(IAMControllerOwnedTag),
-				Value: aws.String(""),
-			},
-			{
-				Key:   aws.String(fmt.Sprintf(ClusterIDTag, s.clusterName)),
-				Value: aws.String("owned"),
-			},
-		}
-
-		i := &awsiam.CreateRoleInput{
-			RoleName:                 aws.String(roleName),
-			AssumeRolePolicyDocument: aws.String(assumeRolePolicyDocument),
-			Tags:                     tags,
-		}
-
-		_, err = s.iamClient.CreateRole(i)
-		if err != nil {
-			l.Error(err, "failed to create IAM Role")
-			return err
-		}
-
-		i2 := &awsiam.CreateInstanceProfileInput{
-			InstanceProfileName: aws.String(roleName),
-			Tags:                tags,
-		}
-
-		_, err = s.iamClient.CreateInstanceProfile(i2)
-		if IsAlreadyExists(err) {
-			// fall thru
-		} else if err != nil {
-			l.Error(err, "failed to create instance profile")
-			return err
-		}
-
-		i3 := &awsiam.AddRoleToInstanceProfileInput{
-			InstanceProfileName: aws.String(roleName),
-			RoleName:            aws.String(roleName),
-		}
-
-		_, err = s.iamClient.AddRoleToInstanceProfile(i3)
-		if IsAlreadyExists(err) {
-			// fall thru
-		} else if err != nil {
-			l.Error(err, "failed to add role to instance profile")
-			return err
-		}
-
-		l.Info("successfully created a new IAM role")
-	} else if err != nil {
+	if err == nil {
+		l.Info("IAM Role already exists, skipping creation")
+		return nil
+	}
+	if !IsNotFound(err) {
 		l.Error(err, "Failed to fetch IAM Role")
 		return err
-	} else {
-		l.Info("IAM Role already exists, skipping creation")
 	}
+
+	tmpl := getTrustPolicyTemplate(roleType)
+
+	assumeRolePolicyDocument, err := generatePolicyDocument(tmpl, params)
+	if err != nil {
+		l.Error(err, "failed to generate assume policy document from template for IAM role")
+		return err
+	}
+
+	tags := []*awsiam.Tag{
+		{
+			Key:   aws.String(IAMControllerOwnedTag),
+			Value: aws.String(""),
+		},
+		{
+			Key:   aws.String(fmt.Sprintf(ClusterIDTag, s.clusterName)),
+			Value: aws.String("owned"),
+		},
+	}
+
+	_, err = s.iamClient.CreateRole(&awsiam.CreateRoleInput{
+		RoleName:                 aws.String(roleName),
+		AssumeRolePolicyDocument: aws.String(assumeRolePolicyDocument),
+		Tags:                     tags,
+	})
+	if err != nil {
+		l.Error(err, "failed to create IAM Role")
+		return err
+	}
+
+	i2 := &awsiam.CreateInstanceProfileInput{
+		InstanceProfileName: aws.String(roleName),
+		Tags:                tags,
+	}
+
+	_, err = s.iamClient.CreateInstanceProfile(i2)
+	if IsAlreadyExists(err) {
+		// fall thru
+	} else if err != nil {
+		l.Error(err, "failed to create instance profile")
+		return err
+	}
+
+	i3 := &awsiam.AddRoleToInstanceProfileInput{
+		InstanceProfileName: aws.String(roleName),
+		RoleName:            aws.String(roleName),
+	}
+
+	_, err = s.iamClient.AddRoleToInstanceProfile(i3)
+	if IsAlreadyExists(err) {
+		// fall thru
+	} else if err != nil {
+		l.Error(err, "failed to add role to instance profile")
+		return err
+	}
+
+	l.Info("successfully created a new IAM role")
 
 	return nil
 }
@@ -339,7 +338,7 @@ func (s *IAMService) applyAssumePolicyRole(roleName string, roleType string, par
 
 	log.Info("applying assume policy role to role")
 
-	tmpl := gentTrustPolicyTemplate(roleType)
+	tmpl := getTrustPolicyTemplate(roleType)
 	assumeRolePolicyDocument, err := generatePolicyDocument(tmpl, params)
 	if err != nil {
 		log.Error(err, "failed to generate assume policy document from template for IAM role")

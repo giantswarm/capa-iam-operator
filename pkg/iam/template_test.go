@@ -175,7 +175,7 @@ func Test_Trust_Identity_Policy_Template_Render(t *testing.T) {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			var err error
 
-			template := gentTrustPolicyTemplate(tc.role)
+			template := getTrustPolicyTemplate(tc.role)
 
 			templateBody, err := generatePolicyDocument(template, tc.params)
 			if err != nil {
