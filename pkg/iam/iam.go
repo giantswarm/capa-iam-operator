@@ -209,7 +209,7 @@ func (s *IAMService) generateRoute53RoleParams() (Route53RoleParams, error) {
 }
 
 func (s *IAMService) reconcileRole(roleName string, roleType string, params interface{}) error {
-	l := s.log.WithValues("role_name", roleName)
+	l := s.log.WithValues("role_name", roleName, "role_type", roleType)
 	err := s.createRole(roleName, roleType, params)
 	if err != nil {
 		return err
@@ -242,7 +242,7 @@ func (s *IAMService) reconcileRole(roleName string, roleType string, params inte
 
 // createRole will create requested IAM role
 func (s *IAMService) createRole(roleName string, roleType string, params interface{}) error {
-	l := s.log.WithValues("role_name", roleName)
+	l := s.log.WithValues("role_name", roleName, "role_type", roleType)
 
 	_, err := s.iamClient.GetRole(&awsiam.GetRoleInput{
 		RoleName: aws.String(roleName),

@@ -35,8 +35,8 @@ func isChinaRegion(region string) bool {
 	return strings.Contains(region, "cn-")
 }
 
-func getInlinePolicyTemplate(roleName string) string {
-	switch roleName {
+func getInlinePolicyTemplate(roleType string) string {
+	switch roleType {
 	case BastionRole:
 		return bastionPolicyTemplate
 	case ControlPlaneRole:
@@ -56,8 +56,8 @@ func getInlinePolicyTemplate(roleName string) string {
 	}
 }
 
-func getTrustPolicyTemplate(roleName string) string {
-	switch roleName {
+func getTrustPolicyTemplate(roleType string) string {
+	switch roleType {
 	case BastionRole:
 		return ec2TrustIdentityPolicyTemplate
 	case ControlPlaneRole:

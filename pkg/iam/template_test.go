@@ -31,44 +31,44 @@ type testParams struct {
 //	go test ./pkg/iam -run Test_Role_Policy_Template_Render -update
 func Test_Role_Policy_Template_Render(t *testing.T) {
 	testCases := []struct {
-		name   string
-		params testParams
-		role   string
+		name     string
+		params   testParams
+		roleType string
 	}{
 		{
 			name: "case-0-control-plane",
 			params: testParams{
 				ClusterName: "test",
 			},
-			role: ControlPlaneRole,
+			roleType: ControlPlaneRole,
 		},
 		{
 			name: "case-1-node",
 			params: testParams{
 				ClusterName: "test",
 			},
-			role: NodesRole,
+			roleType: NodesRole,
 		},
 		{
 			name: "case-2-kiam",
 			params: testParams{
 				ClusterName: "test",
 			},
-			role: KIAMRole,
+			roleType: KIAMRole,
 		},
 		{
 			name: "case-3-route53",
 			params: testParams{
 				ClusterName: "test",
 			},
-			role: Route53Role,
+			roleType: Route53Role,
 		},
 		{
 			name: "case-3-cert-manager",
 			params: testParams{
 				ClusterName: "test",
 			},
-			role: CertManagerRole,
+			roleType: CertManagerRole,
 		},
 	}
 
@@ -76,7 +76,7 @@ func Test_Role_Policy_Template_Render(t *testing.T) {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			var err error
 
-			template := getInlinePolicyTemplate(tc.role)
+			template := getInlinePolicyTemplate(tc.roleType)
 
 			templateBody, err := generatePolicyDocument(template, tc.params)
 			if err != nil {
@@ -108,37 +108,37 @@ func Test_Role_Policy_Template_Render(t *testing.T) {
 //	go test ./pkg/iam -run Test_Trust_Identity_Policy_Template_Render -update
 func Test_Trust_Identity_Policy_Template_Render(t *testing.T) {
 	testCases := []struct {
-		name   string
-		params testParams
-		role   string
+		name     string
+		params   testParams
+		roleType string
 	}{
 		{
 			name: "case-0-control-plane",
 			params: testParams{
 				EC2ServiceDomain: ec2ServiceDomain("eu-central-1"),
 			},
-			role: ControlPlaneRole,
+			roleType: ControlPlaneRole,
 		},
 		{
 			name: "case-1-node",
 			params: testParams{
 				EC2ServiceDomain: ec2ServiceDomain("eu-central-1"),
 			},
-			role: NodesRole,
+			roleType: NodesRole,
 		},
 		{
 			name: "case-2-kiam",
 			params: testParams{
 				ControlPlaneRoleARN: "arn:aws:iam::751852626996:role/apie1-control-plane-role",
 			},
-			role: KIAMRole,
+			roleType: KIAMRole,
 		},
 		{
 			name: "case-3-route53",
 			params: testParams{
 				KIAMRoleARN: "arn:aws:iam::751852626996:role/apie1-kiam-role",
 			},
-			role: Route53Role,
+			roleType: Route53Role,
 		},
 		{
 			name: "case-3-route53-with-IRSA",
@@ -149,7 +149,7 @@ func Test_Trust_Identity_Policy_Template_Render(t *testing.T) {
 				Namespace:        "kube-system",
 				ServiceAccount:   "external-dns",
 			},
-			role: IRSARole,
+			roleType: IRSARole,
 		},
 		{
 			name: "case-3-route53-for-cert-manager",
@@ -160,14 +160,14 @@ func Test_Trust_Identity_Policy_Template_Render(t *testing.T) {
 				Namespace:        "kube-system",
 				ServiceAccount:   "cert-manager-controller",
 			},
-			role: CertManagerRole,
+			roleType: CertManagerRole,
 		},
 		{
 			name: "case-3-control-plane-china",
 			params: testParams{
 				EC2ServiceDomain: ec2ServiceDomain("eu-central-1"),
 			},
-			role: ControlPlaneRole,
+			roleType: ControlPlaneRole,
 		},
 	}
 
@@ -175,7 +175,7 @@ func Test_Trust_Identity_Policy_Template_Render(t *testing.T) {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			var err error
 
-			template := getTrustPolicyTemplate(tc.role)
+			template := getTrustPolicyTemplate(tc.roleType)
 
 			templateBody, err := generatePolicyDocument(template, tc.params)
 			if err != nil {
