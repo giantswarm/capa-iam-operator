@@ -453,7 +453,7 @@ func (s *IAMService) DeleteRolesForIRSA() error {
 		return err
 	}
 
-	// delete route3 role
+	// delete route53 role
 	err = s.deleteRole(roleName(Route53Role, s.clusterName))
 	if err != nil {
 		return err
