@@ -22,6 +22,7 @@ import (
 	"regexp"
 	"strings"
 
+	awsclientgo "github.com/aws/aws-sdk-go/aws/client"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -30,6 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"github.com/go-logr/logr"
 
 	"github.com/giantswarm/capa-iam-operator/pkg/awsclient"
@@ -44,9 +46,10 @@ const (
 // SecretReconciler reconciles a Secret object
 type SecretReconciler struct {
 	client.Client
-	EnableIRSARole bool
-	Log            logr.Logger
-	Scheme         *runtime.Scheme
+	EnableIRSARole            bool
+	Log                       logr.Logger
+	Scheme                    *runtime.Scheme
+	IAMClientAndRegionFactory func(awsclientgo.ConfigProvider) (iamiface.IAMAPI, string)
 }
 
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
@@ -116,7 +119,6 @@ func (r *SecretReconciler) reconcileNormal(ctx context.Context, logger logr.Logg
 	}
 
 	clusterName := strings.Split(secret.Name, "-")[0]
-	role := iam.IRSARole
 
 	var awsClientGetter *awsclient.AwsClient
 	{
@@ -141,13 +143,14 @@ func (r *SecretReconciler) reconcileNormal(ctx context.Context, logger logr.Logg
 	var iamService *iam.IAMService
 	{
 		c := iam.IAMServiceConfig{
-			AWSSession:       awsClientSession,
-			ClusterName:      clusterName,
-			MainRoleName:     "-",
-			RoleType:         role,
-			Log:              logger,
-			AccountID:        accountID,
-			CloudFrontDomain: domain,
+			AWSSession:                awsClientSession,
+			ClusterName:               clusterName,
+			MainRoleName:              "-",
+			RoleType:                  iam.IRSARole,
+			Log:                       logger,
+			AccountID:                 accountID,
+			CloudFrontDomain:          domain,
+			IAMClientAndRegionFactory: r.IAMClientAndRegionFactory,
 		}
 		iamService, err = iam.New(c)
 		if err != nil {
@@ -167,7 +170,7 @@ func (r *SecretReconciler) reconcileNormal(ctx context.Context, logger logr.Logg
 func (r *SecretReconciler) reconcileDelete(ctx context.Context, logger logr.Logger, secret *corev1.Secret) (ctrl.Result, error) {
 	var err error
 	clusterName := strings.Split(secret.Name, "-")[0]
-	role := iam.IRSARole
+
 	var awsClientGetter *awsclient.AwsClient
 	{
 		c := awsclient.AWSClientConfig{
@@ -191,11 +194,12 @@ func (r *SecretReconciler) reconcileDelete(ctx context.Context, logger logr.Logg
 	var iamService *iam.IAMService
 	{
 		c := iam.IAMServiceConfig{
-			AWSSession:   awsClientSession,
-			ClusterName:  clusterName,
-			MainRoleName: "-",
-			RoleType:     role,
-			Log:          logger,
+			AWSSession:                awsClientSession,
+			ClusterName:               clusterName,
+			MainRoleName:              "-",
+			RoleType:                  iam.IRSARole,
+			Log:                       logger,
+			IAMClientAndRegionFactory: r.IAMClientAndRegionFactory,
 		}
 		iamService, err = iam.New(c)
 		if err != nil {

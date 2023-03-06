@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strconv"
 	"testing"
@@ -25,6 +25,7 @@ type testParams struct {
 	ServiceAccount      string
 }
 
+// TODO remove these tests in favor of controller tests?!
 // It uses golden file as reference template and when changes to template are
 // intentional, they can be updated by providing -update flag for go test.
 //
@@ -85,18 +86,18 @@ func Test_Role_Policy_Template_Render(t *testing.T) {
 			p := filepath.Join("testdata", fmt.Sprintf("inline-role-policy-%s.golden", tc.name))
 
 			if *update {
-				err := ioutil.WriteFile(p, []byte(templateBody), 0644) // nolint: gosec
+				err := os.WriteFile(p, []byte(templateBody), 0644) // nolint: gosec
 				if err != nil {
 					t.Fatal(err)
 				}
 			}
-			goldenFile, err := ioutil.ReadFile(p)
+			goldenFile, err := os.ReadFile(p)
 			if err != nil {
 				t.Fatal(err)
 			}
 
 			if !bytes.Equal([]byte(templateBody), goldenFile) {
-				t.Fatalf("\n\n%s\n", cmp.Diff(string(goldenFile), templateBody))
+				t.Fatalf("Rendered body does not match %s\n\n%s\n", p, cmp.Diff(string(goldenFile), templateBody))
 			}
 		})
 	}
@@ -184,12 +185,12 @@ func Test_Trust_Identity_Policy_Template_Render(t *testing.T) {
 			p := filepath.Join("testdata", fmt.Sprintf("trust-identity-policy-%s.golden", tc.name))
 
 			if *update {
-				err := ioutil.WriteFile(p, []byte(templateBody), 0644) // nolint: gosec
+				err := os.WriteFile(p, []byte(templateBody), 0644) // nolint: gosec
 				if err != nil {
 					t.Fatal(err)
 				}
 			}
-			goldenFile, err := ioutil.ReadFile(p)
+			goldenFile, err := os.ReadFile(p)
 			if err != nil {
 				t.Fatal(err)
 			}

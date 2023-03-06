@@ -25,6 +25,9 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	klogr "k8s.io/klog/v2/klogr"
 
+	awsclientgo "github.com/aws/aws-sdk-go/aws/client"
+	awsiam "github.com/aws/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
@@ -91,29 +94,37 @@ func main() {
 		os.Exit(1)
 	}
 
+	iamClientAndRegionFactory := func(session awsclientgo.ConfigProvider) (iamiface.IAMAPI, string) {
+		client := awsiam.New(session)
+		return client, client.SigningRegion
+	}
+
 	if err = (&controllers.AWSMachineTemplateReconciler{
-		Client:            mgr.GetClient(),
-		EnableKiamRole:    enableKiamRole,
-		EnableRoute53Role: enableRoute53Role,
-		Log:               ctrl.Log.WithName("controllers").WithName("AWSMachineTemplate"),
-		Scheme:            mgr.GetScheme(),
+		Client:                    mgr.GetClient(),
+		EnableKiamRole:            enableKiamRole,
+		EnableRoute53Role:         enableRoute53Role,
+		Log:                       ctrl.Log.WithName("controllers").WithName("AWSMachineTemplate"),
+		Scheme:                    mgr.GetScheme(),
+		IAMClientAndRegionFactory: iamClientAndRegionFactory,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AWSMachineTemplate")
 		os.Exit(1)
 	}
 	if err = (&controllers.AWSMachinePoolReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("AWSMachinePool"),
-		Scheme: mgr.GetScheme(),
+		Client:                    mgr.GetClient(),
+		Log:                       ctrl.Log.WithName("controllers").WithName("AWSMachinePool"),
+		Scheme:                    mgr.GetScheme(),
+		IAMClientAndRegionFactory: iamClientAndRegionFactory,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AWSMachinePool")
 		os.Exit(1)
 	}
 	if err = (&controllers.SecretReconciler{
-		Client:         mgr.GetClient(),
-		EnableIRSARole: enableIRSARole,
-		Log:            ctrl.Log.WithName("controllers").WithName("Secrets"),
-		Scheme:         mgr.GetScheme(),
+		Client:                    mgr.GetClient(),
+		EnableIRSARole:            enableIRSARole,
+		Log:                       ctrl.Log.WithName("controllers").WithName("Secrets"),
+		Scheme:                    mgr.GetScheme(),
+		IAMClientAndRegionFactory: iamClientAndRegionFactory,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Secret")
 		os.Exit(1)

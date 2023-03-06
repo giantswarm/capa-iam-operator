@@ -21,7 +21,10 @@ import (
 	"fmt"
 	"time"
 
+	awsclientgo "github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"github.com/go-logr/logr"
+	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
@@ -38,10 +41,11 @@ import (
 // AWSMachineTemplateReconciler reconciles a AWSMachineTemplate object
 type AWSMachineTemplateReconciler struct {
 	client.Client
-	EnableKiamRole    bool
-	EnableRoute53Role bool
-	Log               logr.Logger
-	Scheme            *runtime.Scheme
+	EnableKiamRole            bool
+	EnableRoute53Role         bool
+	Log                       logr.Logger
+	Scheme                    *runtime.Scheme
+	IAMClientAndRegionFactory func(awsclientgo.ConfigProvider) (iamiface.IAMAPI, string)
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinetemplates,verbs=get;list;watch;create;update;patch;delete
@@ -81,7 +85,10 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 		// ignoring this CR
 		return ctrl.Result{}, nil
 	}
-	clusterName := key.GetClusterIDFromLabels(awsMachineTemplate.ObjectMeta)
+	clusterName, err := key.GetClusterIDFromLabels(awsMachineTemplate.ObjectMeta)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to get cluster name from AWSMachineTemplate")
+	}
 
 	logger = logger.WithValues("cluster", clusterName, "role", role)
 
@@ -115,11 +122,12 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 	var iamService *iam.IAMService
 	{
 		c := iam.IAMServiceConfig{
-			AWSSession:   awsClientSession,
-			ClusterName:  clusterName,
-			MainRoleName: mainRoleName,
-			Log:          logger,
-			RoleType:     role,
+			AWSSession:                awsClientSession,
+			ClusterName:               clusterName,
+			MainRoleName:              mainRoleName,
+			Log:                       logger,
+			RoleType:                  role,
+			IAMClientAndRegionFactory: r.IAMClientAndRegionFactory,
 		}
 		iamService, err = iam.New(c)
 		if err != nil {
