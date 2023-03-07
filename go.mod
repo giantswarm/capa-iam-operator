@@ -10,6 +10,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.5.9
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
+	github.com/maxbrunsfeld/counterfeiter/v6 v6.6.1 // indirect
 	github.com/onsi/gomega v1.27.2
 	github.com/pkg/errors v0.9.1
 	github.com/rogpeppe/go-internal v1.8.0 // indirect
