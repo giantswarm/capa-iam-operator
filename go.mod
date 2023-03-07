@@ -9,8 +9,9 @@ require (
 	github.com/go-logr/logr v1.2.3
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.5.9
+	github.com/google/uuid v1.3.0
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
-	github.com/maxbrunsfeld/counterfeiter/v6 v6.6.1 // indirect
+	github.com/onsi/ginkgo/v2 v2.8.4
 	github.com/onsi/gomega v1.27.2
 	github.com/pkg/errors v0.9.1
 	github.com/rogpeppe/go-internal v1.8.0 // indirect
@@ -22,6 +23,7 @@ require (
 	k8s.io/apimachinery v0.25.0
 	k8s.io/client-go v0.25.0
 	k8s.io/klog/v2 v2.80.1
+	k8s.io/kubectl v0.26.2
 	sigs.k8s.io/cluster-api v1.3.1
 	sigs.k8s.io/cluster-api-provider-aws v1.5.2
 	sigs.k8s.io/controller-runtime v0.13.1

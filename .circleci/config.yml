@@ -9,7 +9,8 @@ workflows:
       - architect/go-build:
           name: go-build
           binary: capa-iam-operator
-          pre_test_target: generate-go
+          pre_test_target: generate
+          test_target: test-unit
           filters:
             tags:
               only: /^v.*/

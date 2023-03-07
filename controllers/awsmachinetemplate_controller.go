@@ -25,8 +25,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -119,6 +121,31 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	mainRoleName := awsMachineTemplate.Spec.Template.Spec.IAMInstanceProfile
 
+	secret := &corev1.Secret{}
+	err = r.Get(
+		ctx,
+		types.NamespacedName{
+			Namespace: req.NamespacedName.Namespace,
+			Name:      fmt.Sprintf("%s-%s", clusterName, IRSASecretSuffix),
+		},
+		secret)
+	if err != nil {
+		logger.Error(err, "Failed to get the irsa-cloudfront secret for cluster")
+
+		// irsa-operator may not have created the secret yet
+		if apierrors.IsNotFound(err) {
+			return ctrl.Result{Requeue: true, RequeueAfter: 1 * time.Minute}, err
+		} else {
+			return ctrl.Result{}, err
+		}
+	}
+
+	cloudFrontDomain, err := getCloudFrontDomain(secret)
+	if err != nil {
+		logger.Error(err, "Could not get the cloudfront domain")
+		return ctrl.Result{}, err
+	}
+
 	var iamService *iam.IAMService
 	{
 		c := iam.IAMServiceConfig{
@@ -128,6 +155,7 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 			Log:                       logger,
 			RoleType:                  role,
 			IAMClientAndRegionFactory: r.IAMClientAndRegionFactory,
+			CloudFrontDomain:          cloudFrontDomain,
 		}
 		iamService, err = iam.New(c)
 		if err != nil {

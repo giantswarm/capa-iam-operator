@@ -11,7 +11,8 @@ const route53TrustIdentityPolicy = `{
       "Action": "sts:AssumeRole"
     }
   ]
-}`
+}
+`
 
 const route53TrustIdentityPolicyWithIRSA = `{
   "Version": "2012-10-17",
@@ -40,48 +41,48 @@ const route53TrustIdentityPolicyWithIRSA = `{
 `
 
 const route53RolePolicyTemplate = `{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Action": "route53:ChangeResourceRecordSets",
-            "Resource": [
-                "arn:aws:route53:::hostedzone/*"
-            ],
-            "Effect": "Allow"
-        },
-        {
-            "Action": [
-                "route53:ListHostedZones",
-                "route53:ListResourceRecordSets"
-            ],
-            "Resource": "*",
-            "Effect": "Allow"
-        }
-    ]
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "route53:ChangeResourceRecordSets",
+      "Resource": [
+        "arn:aws:route53:::hostedzone/*"
+      ],
+      "Effect": "Allow"
+    },
+    {
+      "Action": [
+        "route53:ListHostedZones",
+        "route53:ListResourceRecordSets"
+      ],
+      "Resource": "*",
+      "Effect": "Allow"
+    }
+  ]
 }
 `
 
 const route53RolePolicyTemplateForCertManager = `{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": "route53:GetChange",
-            "Resource": "arn:aws:route53:::change/*"
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "route53:ChangeResourceRecordSets",
-                "route53:ListResourceRecordSets"
-            ],
-            "Resource": "arn:aws:route53:::hostedzone/*"
-        },
-        {
-            "Effect": "Allow",
-            "Action": "route53:ListHostedZonesByName",
-            "Resource": "*"
-        }
-    ]
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "route53:GetChange",
+      "Resource": "arn:aws:route53:::change/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "route53:ChangeResourceRecordSets",
+        "route53:ListResourceRecordSets"
+      ],
+      "Resource": "arn:aws:route53:::hostedzone/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": "route53:ListHostedZonesByName",
+      "Resource": "*"
+    }
+  ]
 }
 `
