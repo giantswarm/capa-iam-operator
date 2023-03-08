@@ -1,19 +1,5 @@
 package iam
 
-const trustIdentityPolicyKIAM = `{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "AWS": "{{.KIAMRoleARN}}"
-      },
-      "Action": "sts:AssumeRole"
-    }
-  ]
-}
-`
-
 const trustIdentityPolicyKIAMAndIRSA = `{
   "Version": "2012-10-17",
   "Statement": [
