@@ -489,4 +489,60 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 			Expect(reconcileErr).To(BeNil())
 		})
 	})
+
+	When("a role already exists", func() {
+		BeforeEach(func() {
+			for _, info := range expectedRoleStatusesOnSuccess {
+				mockIAMClient.EXPECT().GetRole(&iam.GetRoleInput{
+					RoleName: aws.String(info.ExpectedName),
+				}).MinTimes(1).Return(&iam.GetRoleOutput{
+					Role: &iam.Role{
+						Arn:  aws.String(info.ReturnRoleArn),
+						Tags: expectedIAMTags,
+					},
+				}, nil)
+			}
+		})
+
+		It("works on the existing role", func() {
+			Skip("TODO The controller is not idempotent to this extent, but should be. Once this is implemented, we should also add test cases for failures in each AWS SDK call")
+
+			for _, info := range expectedRoleStatusesOnSuccess {
+				mockIAMClient.EXPECT().CreateInstanceProfile(&iam.CreateInstanceProfileInput{
+					InstanceProfileName: aws.String(info.ExpectedName),
+					Tags:                expectedIAMTags,
+				}).Return(&iam.CreateInstanceProfileOutput{}, nil)
+
+				mockIAMClient.EXPECT().AddRoleToInstanceProfile(&iam.AddRoleToInstanceProfileInput{
+					InstanceProfileName: aws.String(info.ExpectedName),
+					RoleName:            aws.String(info.ExpectedName),
+				}).Return(&iam.AddRoleToInstanceProfileOutput{}, nil)
+
+				// Implementation detail: instead of storing the ARN, the controller calls `GetRole` multiple times
+				// from different places. Remove once we don't do this anymore (hence the `MinTimes` call so we
+				// would notice).
+				mockIAMClient.EXPECT().GetRole(&iam.GetRoleInput{
+					RoleName: aws.String(info.ExpectedName),
+				}).MinTimes(1).Return(&iam.GetRoleOutput{
+					Role: &iam.Role{
+						Arn:  aws.String(info.ReturnRoleArn),
+						Tags: expectedIAMTags,
+					},
+				}, nil)
+
+				mockIAMClient.EXPECT().ListRolePolicies(&iam.ListRolePoliciesInput{
+					RoleName: aws.String(info.ExpectedName),
+				}).Return(&iam.ListRolePoliciesOutput{}, nil)
+
+				mockIAMClient.EXPECT().PutRolePolicy(&iam.PutRolePolicyInput{
+					PolicyName:     aws.String(info.ExpectedPolicyName),
+					PolicyDocument: aws.String(info.ExpectedPolicyDocument),
+					RoleName:       aws.String(info.ExpectedName),
+				}).Return(&iam.PutRolePolicyOutput{}, nil)
+			}
+
+			_, reconcileErr = reconciler.Reconcile(ctx, req)
+			Expect(reconcileErr).To(BeNil())
+		})
+	})
 })
