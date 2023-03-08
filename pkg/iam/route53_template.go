@@ -1,6 +1,6 @@
 package iam
 
-const route53TrustIdentityPolicy = `{
+const trustIdentityPolicyKIAM = `{
   "Version": "2012-10-17",
   "Statement": [
     {
@@ -14,7 +14,7 @@ const route53TrustIdentityPolicy = `{
 }
 `
 
-const route53TrustIdentityPolicyWithIRSA = `{
+const trustIdentityPolicyKIAMAndIRSA = `{
   "Version": "2012-10-17",
   "Statement": [
     {

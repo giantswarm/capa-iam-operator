@@ -24,16 +24,15 @@ import (
 	"github.com/giantswarm/capa-iam-operator/pkg/test/mocks"
 )
 
-var (
-	ctx           context.Context
-	mockCtrl      *gomock.Controller
-	mockIAMClient *mocks.MockIAMAPI
-	reconcileErr  error
-	reconciler    *controllers.AWSMachineTemplateReconciler
-)
-
 var _ = Describe("AWSMachineTemplateReconciler", func() {
-	var req ctrl.Request
+	var (
+		ctx           context.Context
+		mockCtrl      *gomock.Controller
+		mockIAMClient *mocks.MockIAMAPI
+		reconcileErr  error
+		reconciler    *controllers.AWSMachineTemplateReconciler
+		req           ctrl.Request
+	)
 
 	BeforeEach(func() {
 		logger := zap.New(zap.WriteTo(GinkgoWriter))
@@ -120,13 +119,6 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 		mockCtrl.Finish()
 	})
 
-	type RoleInfo struct {
-		ExpectedName                     string
-		ExpectedAssumeRolePolicyDocument string
-		ExpectedPolicyName               string
-		ExpectedPolicyDocument           string
-		ReturnRoleArn                    string
-	}
 	expectedRoleStatusesOnSuccess := []RoleInfo{
 		// Control plane node
 		{
@@ -320,108 +312,9 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 			ReturnRoleArn: "arn:aws:iam::999666333:role/test-cluster-IAMManager-Role",
 		},
 
-		// external-dns (called "Route53" in our code)
-		{
-			ExpectedName: "test-cluster-Route53Manager-Role",
+		externalDnsRoleInfo,
 
-			ExpectedAssumeRolePolicyDocument: `{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "AWS": "arn:aws:iam::999666333:role/test-cluster-IAMManager-Role"
-      },
-      "Action": "sts:AssumeRole"
-    }
-  ]
-}
-`,
-
-			ExpectedPolicyName: "control-plane-test-cluster-policy",
-			ExpectedPolicyDocument: `{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": "route53:ChangeResourceRecordSets",
-      "Resource": [
-        "arn:aws:route53:::hostedzone/*"
-      ],
-      "Effect": "Allow"
-    },
-    {
-      "Action": [
-        "route53:ListHostedZones",
-        "route53:ListResourceRecordSets"
-      ],
-      "Resource": "*",
-      "Effect": "Allow"
-    }
-  ]
-}
-`,
-
-			ReturnRoleArn: "arn:aws:iam::55554444:role/test-cluster-Route53Manager-Role",
-		},
-
-		// cert-manager
-		{
-			ExpectedName: "test-cluster-CertManager-Role",
-
-			ExpectedAssumeRolePolicyDocument: `{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "AWS": "arn:aws:iam::999666333:role/test-cluster-IAMManager-Role"
-      },
-      "Action": "sts:AssumeRole"
-    },
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Federated": "arn:aws:iam:::oidc-provider/foobar.cloudfront.net"
-      },
-      "Action": "sts:AssumeRoleWithWebIdentity",
-      "Condition": {
-        "StringEquals": {
-          "foobar.cloudfront.net:sub": "system:serviceaccount:kube-system:cert-manager-controller"
-        }
-      }
-    }
-  ]
-}
-`,
-
-			ExpectedPolicyName: "control-plane-test-cluster-policy",
-			ExpectedPolicyDocument: `{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": "route53:GetChange",
-      "Resource": "arn:aws:route53:::change/*"
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
-        "route53:ChangeResourceRecordSets",
-        "route53:ListResourceRecordSets"
-      ],
-      "Resource": "arn:aws:route53:::hostedzone/*"
-    },
-    {
-      "Effect": "Allow",
-      "Action": "route53:ListHostedZonesByName",
-      "Resource": "*"
-    }
-  ]
-}
-`,
-
-			ReturnRoleArn: "arn:aws:iam::121245456767:role/test-cluster-CertManager-Role",
-		},
+		certManagerRoleInfo,
 	}
 
 	expectedIAMTags := []*iam.Tag{

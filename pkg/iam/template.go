@@ -65,13 +65,13 @@ func getTrustPolicyTemplate(roleType string) string {
 	case NodesRole:
 		return ec2TrustIdentityPolicyTemplate
 	case Route53Role:
-		return route53TrustIdentityPolicy
+		return trustIdentityPolicyKIAMAndIRSA
 	case KIAMRole:
 		return kiamTrustIdentityPolicy
 	case IRSARole:
-		return route53TrustIdentityPolicyWithIRSA
+		return trustIdentityPolicyKIAMAndIRSA
 	case CertManagerRole:
-		return route53TrustIdentityPolicyWithIRSA
+		return trustIdentityPolicyKIAMAndIRSA
 	default:
 		return ""
 	}

@@ -220,7 +220,7 @@ func (s *IAMService) reconcileRole(roleName string, roleType string, params inte
 	}
 
 	if s.roleType == IRSARole || s.roleType == CertManagerRole {
-		if err = s.applyAssumePolicyRole(roleName, IRSARole, params); err != nil {
+		if err = s.applyAssumePolicyRole(roleName, roleType, params); err != nil {
 			l.Error(err, "Failed to apply assume role policy to role")
 			return err
 		}

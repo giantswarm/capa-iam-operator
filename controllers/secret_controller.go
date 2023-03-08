@@ -106,7 +106,7 @@ func (r *SecretReconciler) reconcileNormal(ctx context.Context, logger logr.Logg
 		}
 		logger.Info("successfully added finalizer to Secret", "finalizer_name", key.FinalizerName(iam.IRSARole))
 	}
-	accountID, err := getAWSAcountId(secret)
+	accountID, err := getAWSAccountID(secret)
 	if err != nil {
 		logger.Error(err, "Could not get account ID")
 		return reconcile.Result{}, err
@@ -118,7 +118,7 @@ func (r *SecretReconciler) reconcileNormal(ctx context.Context, logger logr.Logg
 		return reconcile.Result{}, err
 	}
 
-	clusterName := strings.Split(secret.Name, "-")[0]
+	clusterName := strings.TrimSuffix(secret.Name, "-"+IRSASecretSuffix)
 
 	var awsClientGetter *awsclient.AwsClient
 	{
@@ -136,7 +136,7 @@ func (r *SecretReconciler) reconcileNormal(ctx context.Context, logger logr.Logg
 
 	awsClientSession, err := awsClientGetter.GetAWSClientSession(ctx)
 	if err != nil {
-		logger.Error(err, "Failed to get aws client session")
+		logger.Error(err, "Failed to get aws client session", "cluster_name", clusterName)
 		return ctrl.Result{}, err
 	}
 
@@ -169,7 +169,7 @@ func (r *SecretReconciler) reconcileNormal(ctx context.Context, logger logr.Logg
 
 func (r *SecretReconciler) reconcileDelete(ctx context.Context, logger logr.Logger, secret *corev1.Secret) (ctrl.Result, error) {
 	var err error
-	clusterName := strings.Split(secret.Name, "-")[0]
+	clusterName := strings.TrimSuffix(secret.Name, "-"+IRSASecretSuffix)
 
 	var awsClientGetter *awsclient.AwsClient
 	{
@@ -229,12 +229,12 @@ func (r *SecretReconciler) reconcileDelete(ctx context.Context, logger logr.Logg
 	return ctrl.Result{}, nil
 }
 
-func getAWSAcountId(secret *corev1.Secret) (string, error) {
+func getAWSAccountID(secret *corev1.Secret) (string, error) {
 	data := secret.Data
 	arn := string(data["arn"])
 
 	if arn == "" || len(strings.TrimSpace(arn)) < 1 {
-		err := fmt.Errorf("Unable to extract ARN from secret %s", secret.Name)
+		err := fmt.Errorf("unable to extract ARN from secret %s", secret.Name)
 		return "", err
 	}
 
@@ -242,7 +242,7 @@ func getAWSAcountId(secret *corev1.Secret) (string, error) {
 	accountID := re.FindAllString(arn, 1)[0]
 
 	if accountID == "" || len(strings.TrimSpace(accountID)) < 1 {
-		err := fmt.Errorf("Unable to extract aws account ID from ARN %s", arn)
+		err := fmt.Errorf("unable to extract AWS account ID from ARN %s", arn)
 		return "", err
 	}
 
@@ -254,7 +254,7 @@ func getCloudFrontDomain(secret *corev1.Secret) (string, error) {
 	domain := string(data["domain"])
 
 	if domain == "" || len(strings.TrimSpace(domain)) < 1 {
-		err := fmt.Errorf("Unable to extract CloudFront domain from secret %s", secret.Name)
+		err := fmt.Errorf("unable to extract CloudFront domain from secret %s", secret.Name)
 		return "", err
 	}
 
