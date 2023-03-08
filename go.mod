@@ -8,7 +8,6 @@ require (
 	github.com/benbjohnson/clock v1.3.0 // indirect
 	github.com/go-logr/logr v1.2.3
 	github.com/golang/mock v1.6.0
-	github.com/google/go-cmp v0.5.9
 	github.com/google/uuid v1.3.0
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/onsi/ginkgo/v2 v2.8.4
