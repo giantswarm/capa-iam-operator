@@ -33,6 +33,8 @@ var (
 )
 
 var _ = Describe("AWSMachineTemplateReconciler", func() {
+	var req ctrl.Request
+
 	BeforeEach(func() {
 		logger := zap.New(zap.WriteTo(GinkgoWriter))
 		ctx = log.IntoContext(context.Background(), logger)
@@ -73,7 +75,7 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 				},
 			},
 		})
-		Expect(err).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
 
 		err = k8sClient.Create(ctx, &capa.AWSCluster{
 			ObjectMeta: metav1.ObjectMeta{
@@ -84,7 +86,7 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 				Namespace: namespace,
 			},
 		})
-		Expect(err).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
 
 		err = k8sClient.Create(ctx, &capi.Cluster{
 			ObjectMeta: metav1.ObjectMeta{
@@ -92,7 +94,7 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 				Namespace: namespace,
 			},
 		})
-		Expect(err).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
 
 		err = k8sClient.Create(ctx, &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
@@ -103,41 +105,34 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 				"domain": []byte("foobar.cloudfront.net"),
 			},
 		})
-		Expect(err).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(namespace).NotTo(BeEmpty())
+		req = ctrl.Request{
+			NamespacedName: client.ObjectKey{
+				Name:      "my-awsmt",
+				Namespace: namespace,
+			},
+		}
 	})
 
 	AfterEach(func() {
 		mockCtrl.Finish()
 	})
 
-	JustBeforeEach(func() {
-		_, reconcileErr = reconciler.Reconcile(ctx, ctrl.Request{
-			NamespacedName: client.ObjectKey{
-				Name:      "my-awsmt",
-				Namespace: namespace,
-			},
-		})
-	})
+	type RoleInfo struct {
+		ExpectedName                     string
+		ExpectedAssumeRolePolicyDocument string
+		ExpectedPolicyName               string
+		ExpectedPolicyDocument           string
+		ReturnRoleArn                    string
+	}
+	expectedRoleStatusesOnSuccess := []RoleInfo{
+		// Control plane node
+		{
+			ExpectedName: "the-profile",
 
-	When("nothing exists yet and all AWS SDK calls work", func() {
-		BeforeEach(func() {
-			expectedIAMTags := []*iam.Tag{
-				{
-					Key:   aws.String("capi-iam-controller/owned"),
-					Value: aws.String(""),
-				},
-				{
-					Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
-					Value: aws.String("owned"),
-				},
-			}
-
-			mockIAMClient.EXPECT().GetRole(&iam.GetRoleInput{
-				RoleName: aws.String("the-profile"),
-			}).Return(nil, awserr.New(iam.ErrCodeNoSuchEntityException, "unit test", nil))
-
-			mockIAMClient.EXPECT().CreateRole(&iam.CreateRoleInput{
-				AssumeRolePolicyDocument: aws.String(`{
+			ExpectedAssumeRolePolicyDocument: `{
   "Version": "2012-10-17",
   "Statement": [
     {
@@ -149,39 +144,10 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
     }
   ]
 }
-`),
-				RoleName: aws.String("the-profile"),
-				Tags:     expectedIAMTags,
-			}).Return(&iam.CreateRoleOutput{}, nil)
+`,
 
-			mockIAMClient.EXPECT().CreateInstanceProfile(&iam.CreateInstanceProfileInput{
-				InstanceProfileName: aws.String("the-profile"),
-				Tags:                expectedIAMTags,
-			}).Return(&iam.CreateInstanceProfileOutput{}, nil)
-
-			mockIAMClient.EXPECT().AddRoleToInstanceProfile(&iam.AddRoleToInstanceProfileInput{
-				InstanceProfileName: aws.String("the-profile"),
-				RoleName:            aws.String("the-profile"),
-			}).Return(&iam.AddRoleToInstanceProfileOutput{}, nil)
-
-			// Implementation detail: instead of storing the ARN, the controller calls `GetRole` multiple times
-			// from different places
-			mockIAMClient.EXPECT().GetRole(&iam.GetRoleInput{
-				RoleName: aws.String("the-profile"),
-			}).MinTimes(1).Return(&iam.GetRoleOutput{
-				Role: &iam.Role{
-					Arn:  aws.String("arn:aws:iam::12345678:role/the-profile"),
-					Tags: expectedIAMTags,
-				},
-			}, nil)
-
-			mockIAMClient.EXPECT().ListRolePolicies(&iam.ListRolePoliciesInput{
-				RoleName: aws.String("the-profile"),
-			}).Return(&iam.ListRolePoliciesOutput{}, nil)
-
-			mockIAMClient.EXPECT().PutRolePolicy(&iam.PutRolePolicyInput{
-				PolicyName: aws.String("control-plane-test-cluster-policy"),
-				PolicyDocument: aws.String(`{
+			ExpectedPolicyName: "control-plane-test-cluster-policy",
+			ExpectedPolicyDocument: `{
   "Version": "2012-10-17",
   "Statement": [
     {
@@ -317,18 +283,16 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
     }
   ]
 }
-`),
-				RoleName: aws.String("the-profile"),
-			}).Return(&iam.PutRolePolicyOutput{}, nil)
+`,
 
-			// KIAM
+			ReturnRoleArn: "arn:aws:iam::12345678:role/the-profile",
+		},
 
-			mockIAMClient.EXPECT().GetRole(&iam.GetRoleInput{
-				RoleName: aws.String("test-cluster-IAMManager-Role"),
-			}).Return(nil, awserr.New(iam.ErrCodeNoSuchEntityException, "unit test", nil))
+		// KIAM
+		{
+			ExpectedName: "test-cluster-IAMManager-Role",
 
-			mockIAMClient.EXPECT().CreateRole(&iam.CreateRoleInput{
-				AssumeRolePolicyDocument: aws.String(`{
+			ExpectedAssumeRolePolicyDocument: `{
   "Version": "2012-10-17",
   "Statement": [
     {
@@ -340,37 +304,10 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
     }
   ]
 }
-`),
-				RoleName: aws.String("test-cluster-IAMManager-Role"),
-				Tags:     expectedIAMTags,
-			}).Return(&iam.CreateRoleOutput{}, nil)
+`,
 
-			mockIAMClient.EXPECT().CreateInstanceProfile(&iam.CreateInstanceProfileInput{
-				InstanceProfileName: aws.String("test-cluster-IAMManager-Role"),
-				Tags:                expectedIAMTags,
-			}).Return(&iam.CreateInstanceProfileOutput{}, nil)
-
-			mockIAMClient.EXPECT().AddRoleToInstanceProfile(&iam.AddRoleToInstanceProfileInput{
-				InstanceProfileName: aws.String("test-cluster-IAMManager-Role"),
-				RoleName:            aws.String("test-cluster-IAMManager-Role"),
-			}).Return(&iam.AddRoleToInstanceProfileOutput{}, nil)
-
-			mockIAMClient.EXPECT().GetRole(&iam.GetRoleInput{
-				RoleName: aws.String("test-cluster-IAMManager-Role"),
-			}).MinTimes(1).Return(&iam.GetRoleOutput{
-				Role: &iam.Role{
-					Arn:  aws.String("arn:aws:iam::999666333:role/test-cluster-IAMManager-Role"),
-					Tags: expectedIAMTags,
-				},
-			}, nil)
-
-			mockIAMClient.EXPECT().ListRolePolicies(&iam.ListRolePoliciesInput{
-				RoleName: aws.String("test-cluster-IAMManager-Role"),
-			}).Return(&iam.ListRolePoliciesOutput{}, nil)
-
-			mockIAMClient.EXPECT().PutRolePolicy(&iam.PutRolePolicyInput{
-				PolicyName: aws.String("control-plane-test-cluster-policy"),
-				PolicyDocument: aws.String(`{
+			ExpectedPolicyName: "control-plane-test-cluster-policy",
+			ExpectedPolicyDocument: `{
   "Version": "2012-10-17",
   "Statement": {
     "Action": "sts:AssumeRole",
@@ -378,18 +315,16 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
     "Effect": "Allow"
   }
 }
-`),
-				RoleName: aws.String("test-cluster-IAMManager-Role"),
-			}).Return(&iam.PutRolePolicyOutput{}, nil)
+`,
 
-			// external-dns (called "Route53" in our code)
+			ReturnRoleArn: "arn:aws:iam::999666333:role/test-cluster-IAMManager-Role",
+		},
 
-			mockIAMClient.EXPECT().GetRole(&iam.GetRoleInput{
-				RoleName: aws.String("test-cluster-Route53Manager-Role"),
-			}).Return(nil, awserr.New(iam.ErrCodeNoSuchEntityException, "unit test", nil))
+		// external-dns (called "Route53" in our code)
+		{
+			ExpectedName: "test-cluster-Route53Manager-Role",
 
-			mockIAMClient.EXPECT().CreateRole(&iam.CreateRoleInput{
-				AssumeRolePolicyDocument: aws.String(`{
+			ExpectedAssumeRolePolicyDocument: `{
   "Version": "2012-10-17",
   "Statement": [
     {
@@ -401,37 +336,10 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
     }
   ]
 }
-`),
-				RoleName: aws.String("test-cluster-Route53Manager-Role"),
-				Tags:     expectedIAMTags,
-			}).Return(&iam.CreateRoleOutput{}, nil)
+`,
 
-			mockIAMClient.EXPECT().CreateInstanceProfile(&iam.CreateInstanceProfileInput{
-				InstanceProfileName: aws.String("test-cluster-Route53Manager-Role"),
-				Tags:                expectedIAMTags,
-			}).Return(&iam.CreateInstanceProfileOutput{}, nil)
-
-			mockIAMClient.EXPECT().AddRoleToInstanceProfile(&iam.AddRoleToInstanceProfileInput{
-				InstanceProfileName: aws.String("test-cluster-Route53Manager-Role"),
-				RoleName:            aws.String("test-cluster-Route53Manager-Role"),
-			}).Return(&iam.AddRoleToInstanceProfileOutput{}, nil)
-
-			mockIAMClient.EXPECT().GetRole(&iam.GetRoleInput{
-				RoleName: aws.String("test-cluster-Route53Manager-Role"),
-			}).Return(&iam.GetRoleOutput{
-				Role: &iam.Role{
-					Arn:  aws.String("arn:aws:iam::55554444:role/test-cluster-Route53Manager-Role"),
-					Tags: expectedIAMTags,
-				},
-			}, nil)
-
-			mockIAMClient.EXPECT().ListRolePolicies(&iam.ListRolePoliciesInput{
-				RoleName: aws.String("test-cluster-Route53Manager-Role"),
-			}).Return(&iam.ListRolePoliciesOutput{}, nil)
-
-			mockIAMClient.EXPECT().PutRolePolicy(&iam.PutRolePolicyInput{
-				PolicyName: aws.String("control-plane-test-cluster-policy"),
-				PolicyDocument: aws.String(`{
+			ExpectedPolicyName: "control-plane-test-cluster-policy",
+			ExpectedPolicyDocument: `{
   "Version": "2012-10-17",
   "Statement": [
     {
@@ -451,18 +359,16 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
     }
   ]
 }
-`),
-				RoleName: aws.String("test-cluster-Route53Manager-Role"),
-			}).Return(&iam.PutRolePolicyOutput{}, nil)
+`,
 
-			// cert-manager
+			ReturnRoleArn: "arn:aws:iam::55554444:role/test-cluster-Route53Manager-Role",
+		},
 
-			mockIAMClient.EXPECT().GetRole(&iam.GetRoleInput{
-				RoleName: aws.String("test-cluster-CertManager-Role"),
-			}).Return(nil, awserr.New(iam.ErrCodeNoSuchEntityException, "unit test", nil))
+		// cert-manager
+		{
+			ExpectedName: "test-cluster-CertManager-Role",
 
-			mockIAMClient.EXPECT().CreateRole(&iam.CreateRoleInput{
-				AssumeRolePolicyDocument: aws.String(`{
+			ExpectedAssumeRolePolicyDocument: `{
   "Version": "2012-10-17",
   "Statement": [
     {
@@ -486,37 +392,10 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
     }
   ]
 }
-`),
-				RoleName: aws.String("test-cluster-CertManager-Role"),
-				Tags:     expectedIAMTags,
-			}).Return(&iam.CreateRoleOutput{}, nil)
+`,
 
-			mockIAMClient.EXPECT().CreateInstanceProfile(&iam.CreateInstanceProfileInput{
-				InstanceProfileName: aws.String("test-cluster-CertManager-Role"),
-				Tags:                expectedIAMTags,
-			}).Return(&iam.CreateInstanceProfileOutput{}, nil)
-
-			mockIAMClient.EXPECT().AddRoleToInstanceProfile(&iam.AddRoleToInstanceProfileInput{
-				InstanceProfileName: aws.String("test-cluster-CertManager-Role"),
-				RoleName:            aws.String("test-cluster-CertManager-Role"),
-			}).Return(&iam.AddRoleToInstanceProfileOutput{}, nil)
-
-			mockIAMClient.EXPECT().GetRole(&iam.GetRoleInput{
-				RoleName: aws.String("test-cluster-CertManager-Role"),
-			}).Return(&iam.GetRoleOutput{
-				Role: &iam.Role{
-					Arn:  aws.String("arn:aws:iam::121245456767:role/test-cluster-CertManager-Role"),
-					Tags: expectedIAMTags,
-				},
-			}, nil)
-
-			mockIAMClient.EXPECT().ListRolePolicies(&iam.ListRolePoliciesInput{
-				RoleName: aws.String("test-cluster-CertManager-Role"),
-			}).Return(&iam.ListRolePoliciesOutput{}, nil)
-
-			mockIAMClient.EXPECT().PutRolePolicy(&iam.PutRolePolicyInput{
-				PolicyName: aws.String("control-plane-test-cluster-policy"),
-				PolicyDocument: aws.String(`{
+			ExpectedPolicyName: "control-plane-test-cluster-policy",
+			ExpectedPolicyDocument: `{
   "Version": "2012-10-17",
   "Statement": [
     {
@@ -539,12 +418,74 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
     }
   ]
 }
-`),
-				RoleName: aws.String("test-cluster-CertManager-Role"),
-			}).Return(&iam.PutRolePolicyOutput{}, nil)
+`,
+
+			ReturnRoleArn: "arn:aws:iam::121245456767:role/test-cluster-CertManager-Role",
+		},
+	}
+
+	expectedIAMTags := []*iam.Tag{
+		{
+			Key:   aws.String("capi-iam-controller/owned"),
+			Value: aws.String(""),
+		},
+		{
+			Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+			Value: aws.String("owned"),
+		},
+	}
+
+	When("a role does not exist", func() {
+		BeforeEach(func() {
+			for _, info := range expectedRoleStatusesOnSuccess {
+				mockIAMClient.EXPECT().GetRole(&iam.GetRoleInput{
+					RoleName: aws.String(info.ExpectedName),
+				}).Return(nil, awserr.New(iam.ErrCodeNoSuchEntityException, "unit test", nil))
+			}
 		})
 
-		It("succeeds", func() {
+		It("creates the role", func() {
+			for _, info := range expectedRoleStatusesOnSuccess {
+				mockIAMClient.EXPECT().CreateRole(&iam.CreateRoleInput{
+					AssumeRolePolicyDocument: aws.String(info.ExpectedAssumeRolePolicyDocument),
+					RoleName:                 aws.String(info.ExpectedName),
+					Tags:                     expectedIAMTags,
+				}).Return(&iam.CreateRoleOutput{}, nil)
+
+				mockIAMClient.EXPECT().CreateInstanceProfile(&iam.CreateInstanceProfileInput{
+					InstanceProfileName: aws.String(info.ExpectedName),
+					Tags:                expectedIAMTags,
+				}).Return(&iam.CreateInstanceProfileOutput{}, nil)
+
+				mockIAMClient.EXPECT().AddRoleToInstanceProfile(&iam.AddRoleToInstanceProfileInput{
+					InstanceProfileName: aws.String(info.ExpectedName),
+					RoleName:            aws.String(info.ExpectedName),
+				}).Return(&iam.AddRoleToInstanceProfileOutput{}, nil)
+
+				// Implementation detail: instead of storing the ARN, the controller calls `GetRole` multiple times
+				// from different places. Remove once we don't do this anymore (hence the `MinTimes` call so we
+				// would notice).
+				mockIAMClient.EXPECT().GetRole(&iam.GetRoleInput{
+					RoleName: aws.String(info.ExpectedName),
+				}).MinTimes(1).Return(&iam.GetRoleOutput{
+					Role: &iam.Role{
+						Arn:  aws.String(info.ReturnRoleArn),
+						Tags: expectedIAMTags,
+					},
+				}, nil)
+
+				mockIAMClient.EXPECT().ListRolePolicies(&iam.ListRolePoliciesInput{
+					RoleName: aws.String(info.ExpectedName),
+				}).Return(&iam.ListRolePoliciesOutput{}, nil)
+
+				mockIAMClient.EXPECT().PutRolePolicy(&iam.PutRolePolicyInput{
+					PolicyName:     aws.String(info.ExpectedPolicyName),
+					PolicyDocument: aws.String(info.ExpectedPolicyDocument),
+					RoleName:       aws.String(info.ExpectedName),
+				}).Return(&iam.PutRolePolicyOutput{}, nil)
+			}
+
+			_, reconcileErr = reconciler.Reconcile(ctx, req)
 			Expect(reconcileErr).To(BeNil())
 		})
 	})
