@@ -282,7 +282,9 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 			if r.EnableKiamRole {
 				err = iamService.ReconcileKiamRole()
 				if err != nil {
-					return ctrl.Result{}, err
+					// IAM role for control plane may have been created already, but not known to IAM yet
+					// (returns `MalformedPolicyDocument: Invalid principal in policy: "AWS":"arn:aws:iam::[...]:role/control-plane-[...]"`)
+					return ctrl.Result{Requeue: true, RequeueAfter: 1 * time.Minute}, err
 				}
 			}
 			// route53 role depends on KIAM role
