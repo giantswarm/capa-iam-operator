@@ -53,6 +53,7 @@ type AWSMachineTemplateReconciler struct {
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinetemplates,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinetemplates/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinetemplates/finalizers,verbs=update
+// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -140,6 +141,12 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 		}
 	}
 
+	accountID, err := getAWSAccountID(secret)
+	if err != nil {
+		logger.Error(err, "Could not get account ID")
+		return ctrl.Result{}, err
+	}
+
 	cloudFrontDomain, err := getCloudFrontDomain(secret)
 	if err != nil {
 		logger.Error(err, "Could not get the cloudfront domain")
@@ -154,8 +161,9 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 			MainRoleName:              mainRoleName,
 			Log:                       logger,
 			RoleType:                  role,
-			IAMClientAndRegionFactory: r.IAMClientAndRegionFactory,
+			AccountID:                 accountID,
 			CloudFrontDomain:          cloudFrontDomain,
+			IAMClientAndRegionFactory: r.IAMClientAndRegionFactory,
 		}
 		iamService, err = iam.New(c)
 		if err != nil {

@@ -101,6 +101,7 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 				Namespace: namespace,
 			},
 			Data: map[string][]byte{
+				"arn":    []byte("arn:aws:cloudfront::123456789999:distribution/EABCDEGUGUGUG"),
 				"domain": []byte("foobar.cloudfront.net"),
 			},
 		})
