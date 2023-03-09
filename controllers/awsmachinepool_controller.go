@@ -94,7 +94,7 @@ func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 	}
 
-	awsClientSession, err := awsClientGetter.GetAWSClientSession(ctx)
+	awsClientSession, err := awsClientGetter.GetAWSClientSession(ctx, awsMachinePool.GetNamespace())
 	if err != nil {
 		logger.Error(err, "Failed to get aws client session")
 		return ctrl.Result{}, err
@@ -134,7 +134,7 @@ func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 		// remove finalizer from AWSCluster
 		{
-			awsCluster, err := key.GetAWSClusterByName(ctx, r.Client, clusterName)
+			awsCluster, err := key.GetAWSClusterByName(ctx, r.Client, clusterName, awsMachinePool.GetNamespace())
 			if err != nil {
 				logger.Error(err, "failed to get awsCluster")
 				return ctrl.Result{}, err
@@ -186,7 +186,7 @@ func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 		// add finalizer to AWSCluster
 		{
-			awsCluster, err := key.GetAWSClusterByName(ctx, r.Client, clusterName)
+			awsCluster, err := key.GetAWSClusterByName(ctx, r.Client, clusterName, awsMachinePool.GetNamespace())
 			if err != nil {
 				logger.Error(err, "failed to get awsCluster")
 				return ctrl.Result{}, err

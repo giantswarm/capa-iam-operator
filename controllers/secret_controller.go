@@ -134,7 +134,7 @@ func (r *SecretReconciler) reconcileNormal(ctx context.Context, logger logr.Logg
 		}
 	}
 
-	awsClientSession, err := awsClientGetter.GetAWSClientSession(ctx)
+	awsClientSession, err := awsClientGetter.GetAWSClientSession(ctx, secret.GetNamespace())
 	if err != nil {
 		logger.Error(err, "Failed to get aws client session", "cluster_name", clusterName)
 		return ctrl.Result{}, err
@@ -185,7 +185,7 @@ func (r *SecretReconciler) reconcileDelete(ctx context.Context, logger logr.Logg
 		}
 	}
 
-	awsClientSession, err := awsClientGetter.GetAWSClientSession(ctx)
+	awsClientSession, err := awsClientGetter.GetAWSClientSession(ctx, secret.GetNamespace())
 	if err != nil {
 		logger.Error(err, "Failed to get aws client session")
 		return ctrl.Result{}, err
