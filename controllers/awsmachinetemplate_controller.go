@@ -133,12 +133,8 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 	if err != nil {
 		logger.Error(err, "Failed to get the irsa-cloudfront secret for cluster")
 
-		// irsa-operator may not have created the secret yet
-		if apierrors.IsNotFound(err) {
-			return ctrl.Result{Requeue: true, RequeueAfter: 1 * time.Minute}, err
-		} else {
-			return ctrl.Result{}, err
-		}
+		// irsa-operator may not have created the secret yet. If so, it will succeed after requeueing.
+		return ctrl.Result{}, err
 	}
 
 	accountID, err := getAWSAccountID(secret)

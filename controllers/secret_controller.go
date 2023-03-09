@@ -29,7 +29,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"github.com/go-logr/logr"
@@ -66,7 +65,7 @@ func (r *SecretReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	// We can say its a secret created by the IRSA operator if it has this suffix
 	if !strings.HasSuffix(req.Name, IRSASecretSuffix) {
-		return reconcile.Result{}, nil
+		return ctrl.Result{}, nil
 	}
 
 	logger.Info("Reconciling IRSA Secrets")
@@ -75,7 +74,7 @@ func (r *SecretReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	err := r.Get(ctx, req.NamespacedName, secret)
 	if err != nil {
 		logger.Error(err, "Failed to get the secret")
-		return reconcile.Result{Requeue: false}, err
+		return ctrl.Result{}, err
 	}
 
 	var result ctrl.Result
@@ -109,13 +108,13 @@ func (r *SecretReconciler) reconcileNormal(ctx context.Context, logger logr.Logg
 	accountID, err := getAWSAccountID(secret)
 	if err != nil {
 		logger.Error(err, "Could not get account ID")
-		return reconcile.Result{}, err
+		return ctrl.Result{}, err
 	}
 
 	domain, err := getCloudFrontDomain(secret)
 	if err != nil {
 		logger.Error(err, "Could not get the cloudfront domain")
-		return reconcile.Result{}, err
+		return ctrl.Result{}, err
 	}
 
 	clusterName := strings.TrimSuffix(secret.Name, "-"+IRSASecretSuffix)
