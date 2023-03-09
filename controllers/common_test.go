@@ -8,6 +8,8 @@ type RoleInfo struct {
 	ReturnRoleArn                    string
 }
 
+const fakeRegion = "fakeregion"
+
 var certManagerRoleInfo = RoleInfo{
 	ExpectedName: "test-cluster-CertManager-Role",
 

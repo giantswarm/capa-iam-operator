@@ -53,7 +53,7 @@ var _ = Describe("SecretReconciler", func() {
 			Log:            ctrl.Log,
 
 			IAMClientAndRegionFactory: func(session awsclientupstream.ConfigProvider) (iamiface.IAMAPI, string) {
-				return mockIAMClient, "fakeregion"
+				return mockIAMClient, fakeRegion
 			},
 		}
 
