@@ -11,14 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add finalizer to the IRSA cloudfront secret.
 - Add deletion logic for the IRSA roles.
-
-### Change
-
-- Update route53 trust identity policy with IRSA to account for `cert-manager-controller`
+- Add IRSA support for `cert-manager-controller` service account
 
 ### Fixed
 
 - Allow required volume types in PSP so that pods can still be admitted
+- Make controllers consistently put the "allow both KIAM and IRSA" IAM policy
+- Retry policy creation if referenced principal (the role ARN) is not available yet
 
 ## [0.6.0] - 2023-02-17
 
