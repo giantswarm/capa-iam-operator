@@ -32,7 +32,10 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 		reconcileErr  error
 		reconciler    *controllers.AWSMachineTemplateReconciler
 		req           ctrl.Request
+		namespace     string
 	)
+
+	SetupNamespaceBeforeAfterEach(&namespace)
 
 	BeforeEach(func() {
 		logger := zap.New(zap.WriteTo(GinkgoWriter))

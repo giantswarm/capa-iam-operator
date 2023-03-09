@@ -29,7 +29,6 @@ func TestControllers(t *testing.T) {
 
 var (
 	k8sClient client.Client
-	namespace string
 	testEnv   *envtest.Environment
 )
 
@@ -78,15 +77,16 @@ var _ = AfterSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 })
 
-var _ = BeforeEach(func() {
-	namespace = fmt.Sprintf("capa-iam-operator-test-%s", uuid.New())
-	namespaceObj := &corev1.Namespace{}
-	namespaceObj.Name = namespace
-	Expect(k8sClient.Create(context.Background(), namespaceObj)).To(Succeed())
-})
-
-var _ = AfterEach(func() {
-	namespaceObj := &corev1.Namespace{}
-	namespaceObj.Name = namespace
-	Expect(k8sClient.Delete(context.Background(), namespaceObj)).To(Succeed())
-})
+func SetupNamespaceBeforeAfterEach(namespace *string) {
+	BeforeEach(func() {
+		*namespace = fmt.Sprintf("capa-iam-operator-test-%s", uuid.New())
+		namespaceObj := &corev1.Namespace{}
+		namespaceObj.Name = *namespace
+		Expect(k8sClient.Create(context.Background(), namespaceObj)).To(Succeed())
+	})
+	AfterEach(func() {
+		namespaceObj := &corev1.Namespace{}
+		namespaceObj.Name = *namespace
+		Expect(k8sClient.Delete(context.Background(), namespaceObj)).To(Succeed())
+	})
+}

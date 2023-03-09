@@ -33,7 +33,10 @@ var _ = Describe("AWSMachinePoolReconciler", func() {
 		reconcileErr  error
 		reconciler    *controllers.AWSMachinePoolReconciler
 		req           ctrl.Request
+		namespace     string
 	)
+
+	SetupNamespaceBeforeAfterEach(&namespace)
 
 	BeforeEach(func() {
 		logger := zap.New(zap.WriteTo(GinkgoWriter))

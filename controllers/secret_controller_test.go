@@ -32,7 +32,10 @@ var _ = Describe("SecretReconciler", func() {
 		reconcileErr  error
 		reconciler    *controllers.SecretReconciler
 		req           ctrl.Request
+		namespace     string
 	)
+
+	SetupNamespaceBeforeAfterEach(&namespace)
 
 	BeforeEach(func() {
 		logger := zap.New(zap.WriteTo(GinkgoWriter))
