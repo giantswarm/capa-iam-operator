@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2023-03-10
+
 ### Added
 
 - Add finalizer to the IRSA cloudfront secret.
@@ -98,7 +100,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implement `AWSMachineTemplate` reconciler.
 - Implement `AWSMachinePool` reconciler.
 
-[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/giantswarm/capa-iam-operator/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/giantswarm/capa-iam-operator/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/giantswarm/capa-iam-operator/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/giantswarm/capa-iam-operator/compare/v0.4.5...v0.5.0
