@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  architect: giantswarm/architect@4.24.0
+  architect: giantswarm/architect@4.28.1
 
 workflows:
   build:
@@ -9,6 +9,8 @@ workflows:
       - architect/go-build:
           name: go-build
           binary: capa-iam-operator
+          pre_test_target: generate
+          test_target: test-unit
           filters:
             tags:
               only: /^v.*/

@@ -42,8 +42,8 @@ func New(config AWSClientConfig) (*AwsClient, error) {
 	return a, nil
 }
 
-func (a *AwsClient) GetAWSClientSession(ctx context.Context) (clientaws.ConfigProvider, error) {
-	awsCluster, err := key.GetAWSClusterByName(ctx, a.ctrlClient, a.clusterName)
+func (a *AwsClient) GetAWSClientSession(ctx context.Context, namespace string) (clientaws.ConfigProvider, error) {
+	awsCluster, err := key.GetAWSClusterByName(ctx, a.ctrlClient, a.clusterName, namespace)
 	if err != nil {
 		a.log.Error(err, "failed to get AWSCluster")
 		return nil, err

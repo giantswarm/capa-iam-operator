@@ -21,15 +21,20 @@ func FinalizerName(roleName string) string {
 	return fmt.Sprintf("capa-iam-operator.finalizers.giantswarm.io/%s", roleName)
 }
 
-func GetClusterIDFromLabels(t v1.ObjectMeta) string {
-	return t.GetLabels()[ClusterNameLabel]
+func GetClusterIDFromLabels(t v1.ObjectMeta) (string, error) {
+	value := t.GetLabels()[ClusterNameLabel]
+	if value == "" {
+		return "", fmt.Errorf("missing label %q", ClusterNameLabel)
+	}
+	return value, nil
 }
 
-func GetAWSClusterByName(ctx context.Context, ctrlClient client.Client, clusterName string) (*capa.AWSCluster, error) {
+func GetAWSClusterByName(ctx context.Context, ctrlClient client.Client, clusterName string, namespace string) (*capa.AWSCluster, error) {
 	awsClusterList := &capa.AWSClusterList{}
 
 	if err := ctrlClient.List(ctx,
 		awsClusterList,
+		client.InNamespace(namespace),
 		client.MatchingLabels{ClusterNameLabel: clusterName},
 	); err != nil {
 		return nil, err

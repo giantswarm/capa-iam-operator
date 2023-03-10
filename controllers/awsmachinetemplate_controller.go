@@ -21,9 +21,14 @@ import (
 	"fmt"
 	"time"
 
+	awsclientgo "github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"github.com/go-logr/logr"
+	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -38,15 +43,17 @@ import (
 // AWSMachineTemplateReconciler reconciles a AWSMachineTemplate object
 type AWSMachineTemplateReconciler struct {
 	client.Client
-	EnableKiamRole    bool
-	EnableRoute53Role bool
-	Log               logr.Logger
-	Scheme            *runtime.Scheme
+	EnableKiamRole            bool
+	EnableRoute53Role         bool
+	Log                       logr.Logger
+	Scheme                    *runtime.Scheme
+	IAMClientAndRegionFactory func(awsclientgo.ConfigProvider) (iamiface.IAMAPI, string)
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinetemplates,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinetemplates/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinetemplates/finalizers,verbs=update
+// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -81,7 +88,10 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 		// ignoring this CR
 		return ctrl.Result{}, nil
 	}
-	clusterName := key.GetClusterIDFromLabels(awsMachineTemplate.ObjectMeta)
+	clusterName, err := key.GetClusterIDFromLabels(awsMachineTemplate.ObjectMeta)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to get cluster name from AWSMachineTemplate")
+	}
 
 	logger = logger.WithValues("cluster", clusterName, "role", role)
 
@@ -104,7 +114,7 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 		}
 	}
 
-	awsClientSession, err := awsClientGetter.GetAWSClientSession(ctx)
+	awsClientSession, err := awsClientGetter.GetAWSClientSession(ctx, awsMachineTemplate.GetNamespace())
 	if err != nil {
 		logger.Error(err, "Failed to get aws client session")
 		return ctrl.Result{}, err
@@ -112,14 +122,44 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	mainRoleName := awsMachineTemplate.Spec.Template.Spec.IAMInstanceProfile
 
+	secret := &corev1.Secret{}
+	err = r.Get(
+		ctx,
+		types.NamespacedName{
+			Namespace: req.NamespacedName.Namespace,
+			Name:      fmt.Sprintf("%s-%s", clusterName, IRSASecretSuffix),
+		},
+		secret)
+	if err != nil {
+		logger.Error(err, "Failed to get the irsa-cloudfront secret for cluster")
+
+		// irsa-operator may not have created the secret yet. If so, it will succeed after requeueing.
+		return ctrl.Result{}, err
+	}
+
+	accountID, err := getAWSAccountID(secret)
+	if err != nil {
+		logger.Error(err, "Could not get account ID")
+		return ctrl.Result{}, err
+	}
+
+	cloudFrontDomain, err := getCloudFrontDomain(secret)
+	if err != nil {
+		logger.Error(err, "Could not get the cloudfront domain")
+		return ctrl.Result{}, err
+	}
+
 	var iamService *iam.IAMService
 	{
 		c := iam.IAMServiceConfig{
-			AWSSession:   awsClientSession,
-			ClusterName:  clusterName,
-			MainRoleName: mainRoleName,
-			Log:          logger,
-			RoleType:     role,
+			AWSSession:                awsClientSession,
+			ClusterName:               clusterName,
+			MainRoleName:              mainRoleName,
+			Log:                       logger,
+			RoleType:                  role,
+			AccountID:                 accountID,
+			CloudFrontDomain:          cloudFrontDomain,
+			IAMClientAndRegionFactory: r.IAMClientAndRegionFactory,
 		}
 		iamService, err = iam.New(c)
 		if err != nil {
@@ -157,7 +197,7 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 		}
 		// remove finalizer from AWSCluster
 		{
-			awsCluster, err := key.GetAWSClusterByName(ctx, r.Client, clusterName)
+			awsCluster, err := key.GetAWSClusterByName(ctx, r.Client, clusterName, awsMachineTemplate.GetNamespace())
 			if err != nil {
 				logger.Error(err, "failed to get awsCluster")
 				return ctrl.Result{}, err
@@ -210,7 +250,7 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 		// add finalizer to AWSCluster
 		{
-			awsCluster, err := key.GetAWSClusterByName(ctx, r.Client, clusterName)
+			awsCluster, err := key.GetAWSClusterByName(ctx, r.Client, clusterName, awsMachineTemplate.GetNamespace())
 			if err != nil {
 				logger.Error(err, "failed to get awsCluster")
 				return ctrl.Result{}, err
@@ -238,6 +278,9 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 			if r.EnableKiamRole {
 				err = iamService.ReconcileKiamRole()
 				if err != nil {
+					// IAM role for control plane may have been created already, but not known to IAM yet
+					// (returns `MalformedPolicyDocument: Invalid principal in policy: "AWS":"arn:aws:iam::[...]:role/control-plane-[...]"`).
+					// That will succeed after requeueing.
 					return ctrl.Result{}, err
 				}
 			}

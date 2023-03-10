@@ -7,18 +7,22 @@ require (
 	github.com/aws/aws-sdk-go v1.44.217
 	github.com/benbjohnson/clock v1.3.0 // indirect
 	github.com/go-logr/logr v1.2.3
-	github.com/google/go-cmp v0.5.9
+	github.com/golang/mock v1.6.0
+	github.com/google/uuid v1.3.0
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
+	github.com/onsi/ginkgo/v2 v2.8.4
+	github.com/onsi/gomega v1.27.2
+	github.com/pkg/errors v0.9.1
 	github.com/rogpeppe/go-internal v1.8.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
-	golang.org/x/net v0.7.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20221014153046-6fdb5e3db783 // indirect
 	google.golang.org/genproto v0.0.0-20221014173430-6e2ab493f96b // indirect
 	k8s.io/api v0.25.0
 	k8s.io/apimachinery v0.25.0
 	k8s.io/client-go v0.25.0
 	k8s.io/klog/v2 v2.80.1
+	k8s.io/kubectl v0.26.2
 	sigs.k8s.io/cluster-api v1.3.1
 	sigs.k8s.io/cluster-api-provider-aws v1.5.2
 	sigs.k8s.io/controller-runtime v0.13.1

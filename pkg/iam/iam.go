@@ -5,8 +5,9 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
-	awsclient "github.com/aws/aws-sdk-go/aws/client"
+	awsclientgo "github.com/aws/aws-sdk-go/aws/client"
 	awsiam "github.com/aws/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"github.com/go-logr/logr"
 )
 
@@ -24,18 +25,21 @@ const (
 )
 
 type IAMServiceConfig struct {
-	AWSSession       awsclient.ConfigProvider
+	AWSSession       awsclientgo.ConfigProvider
 	ClusterName      string
 	MainRoleName     string
 	Log              logr.Logger
 	RoleType         string
 	AccountID        string
 	CloudFrontDomain string
+
+	// This must return a client and the signing region
+	IAMClientAndRegionFactory func(awsclientgo.ConfigProvider) (iamiface.IAMAPI, string)
 }
 
 type IAMService struct {
 	clusterName      string
-	iamClient        *awsiam.IAM
+	iamClient        iamiface.IAMAPI
 	mainRoleName     string
 	log              logr.Logger
 	region           string
@@ -57,6 +61,9 @@ func New(config IAMServiceConfig) (*IAMService, error) {
 	if config.AWSSession == nil {
 		return nil, errors.New("cannot create IAMService with AWSSession equal to nil")
 	}
+	if config.IAMClientAndRegionFactory == nil {
+		return nil, errors.New("cannot create IAMService with IAMClientAndRegionFactory equal to nil")
+	}
 	if config.ClusterName == "" {
 		return nil, errors.New("cannot create IAMService with empty ClusterName")
 	}
@@ -66,7 +73,7 @@ func New(config IAMServiceConfig) (*IAMService, error) {
 	if !(config.RoleType == ControlPlaneRole || config.RoleType == NodesRole || config.RoleType == BastionRole || config.RoleType == IRSARole) {
 		return nil, fmt.Errorf("cannot create IAMService with invalid RoleType '%s'", config.RoleType)
 	}
-	client := awsiam.New(config.AWSSession)
+	client, region := config.IAMClientAndRegionFactory(config.AWSSession)
 
 	l := config.Log.WithValues("clusterName", config.ClusterName, "iam-role", config.RoleType)
 
@@ -76,7 +83,7 @@ func New(config IAMServiceConfig) (*IAMService, error) {
 		mainRoleName:     config.MainRoleName,
 		log:              l,
 		roleType:         config.RoleType,
-		region:           client.SigningRegion,
+		region:           region,
 		accountID:        config.AccountID,
 		cloudFrontDomain: config.CloudFrontDomain,
 	}
@@ -142,30 +149,27 @@ func (s *IAMService) ReconcileKiamRole() error {
 func (s *IAMService) ReconcileRolesForIRSA() error {
 	s.log.Info("reconciling IAM roles for IRSA")
 
-	var params Route53RoleParams
-	params, err := s.generateRoute53RoleParams()
-	if err != nil {
-		s.log.Error(err, "failed to generate Route53 role parameters")
-		return err
-	}
+	for _, roleTypeToReconcile := range []string{Route53Role, CertManagerRole} {
+		var params Route53RoleParams
+		params, err := s.generateRoute53RoleParams(roleTypeToReconcile)
+		if err != nil {
+			s.log.Error(err, "failed to generate Route53 role parameters")
+			return err
+		}
 
-	err = s.reconcileRole(roleName(Route53Role, s.clusterName), Route53Role, params)
-	if err != nil {
-		return err
-	}
-
-	err = s.reconcileRole(roleName(CertManagerRole, s.clusterName), CertManagerRole, params)
-	if err != nil {
-		return err
+		err = s.reconcileRole(roleName(roleTypeToReconcile, s.clusterName), roleTypeToReconcile, params)
+		if err != nil {
+			return err
+		}
 	}
 
 	s.log.Info("finished reconciling IAM roles for IRSA")
 	return nil
 }
 
-func (s *IAMService) generateRoute53RoleParams() (Route53RoleParams, error) {
+func (s *IAMService) generateRoute53RoleParams(roleTypeToReconcile string) (Route53RoleParams, error) {
 	namespace := "kube-system"
-	serviceAccount, err := getServiceAccount(s.roleType)
+	serviceAccount, err := getServiceAccount(roleTypeToReconcile)
 
 	if err != nil {
 		s.log.Error(err, "failed to get service account for role")
@@ -209,14 +213,14 @@ func (s *IAMService) generateRoute53RoleParams() (Route53RoleParams, error) {
 }
 
 func (s *IAMService) reconcileRole(roleName string, roleType string, params interface{}) error {
-	l := s.log.WithValues("role_name", roleName)
+	l := s.log.WithValues("role_name", roleName, "role_type", roleType)
 	err := s.createRole(roleName, roleType, params)
 	if err != nil {
 		return err
 	}
 
 	if s.roleType == IRSARole || s.roleType == CertManagerRole {
-		if err = s.applyAssumePolicyRole(roleName, IRSARole, params); err != nil {
+		if err = s.applyAssumePolicyRole(roleName, roleType, params); err != nil {
 			l.Error(err, "Failed to apply assume role policy to role")
 			return err
 		}
@@ -230,7 +234,7 @@ func (s *IAMService) reconcileRole(roleName string, roleType string, params inte
 	}
 	// check if the policy is created by this controller, if its not than we skip adding inline policy
 	if !owned {
-		l.Info("IAM role is not owned by IAM controller, skipping adding inline policy")
+		l.Info("IAM role is not owned by IAM controller, skipping adding inline policy", "role_name", roleName)
 	} else {
 		err = s.attachInlinePolicy(roleName, roleType, params)
 		if err != nil {
@@ -242,79 +246,78 @@ func (s *IAMService) reconcileRole(roleName string, roleType string, params inte
 
 // createRole will create requested IAM role
 func (s *IAMService) createRole(roleName string, roleType string, params interface{}) error {
-	l := s.log.WithValues("role_name", roleName)
-	i := &awsiam.GetRoleInput{
+	l := s.log.WithValues("role_name", roleName, "role_type", roleType)
+
+	_, err := s.iamClient.GetRole(&awsiam.GetRoleInput{
 		RoleName: aws.String(roleName),
+	})
+
+	// create new IAMRole if it does not exist yet
+	if err == nil {
+		l.Info("IAM Role already exists, skipping creation")
+		return nil
 	}
-
-	_, err := s.iamClient.GetRole(i)
-
-	// create new IAMRole if it does not exists yet
-	if IsNotFound(err) {
-		tmpl := gentTrustPolicyTemplate(roleType)
-
-		assumeRolePolicyDocument, err := generatePolicyDocument(tmpl, params)
-		if err != nil {
-			l.Error(err, "failed to generate assume policy document from template for IAM role")
-			return err
-		}
-
-		tags := []*awsiam.Tag{
-			{
-				Key:   aws.String(IAMControllerOwnedTag),
-				Value: aws.String(""),
-			},
-			{
-				Key:   aws.String(fmt.Sprintf(ClusterIDTag, s.clusterName)),
-				Value: aws.String("owned"),
-			},
-		}
-
-		i := &awsiam.CreateRoleInput{
-			RoleName:                 aws.String(roleName),
-			AssumeRolePolicyDocument: aws.String(assumeRolePolicyDocument),
-			Tags:                     tags,
-		}
-
-		_, err = s.iamClient.CreateRole(i)
-		if err != nil {
-			l.Error(err, "failed to create IAM Role")
-			return err
-		}
-
-		i2 := &awsiam.CreateInstanceProfileInput{
-			InstanceProfileName: aws.String(roleName),
-			Tags:                tags,
-		}
-
-		_, err = s.iamClient.CreateInstanceProfile(i2)
-		if IsAlreadyExists(err) {
-			// fall thru
-		} else if err != nil {
-			l.Error(err, "failed to create instance profile")
-			return err
-		}
-
-		i3 := &awsiam.AddRoleToInstanceProfileInput{
-			InstanceProfileName: aws.String(roleName),
-			RoleName:            aws.String(roleName),
-		}
-
-		_, err = s.iamClient.AddRoleToInstanceProfile(i3)
-		if IsAlreadyExists(err) {
-			// fall thru
-		} else if err != nil {
-			l.Error(err, "failed to add role to instance profile")
-			return err
-		}
-
-		l.Info("successfully created a new IAM role")
-	} else if err != nil {
+	if !IsNotFound(err) {
 		l.Error(err, "Failed to fetch IAM Role")
 		return err
-	} else {
-		l.Info("IAM Role already exists, skipping creation")
 	}
+
+	tmpl := getTrustPolicyTemplate(roleType)
+
+	assumeRolePolicyDocument, err := generatePolicyDocument(tmpl, params)
+	if err != nil {
+		l.Error(err, "failed to generate assume policy document from template for IAM role")
+		return err
+	}
+
+	tags := []*awsiam.Tag{
+		{
+			Key:   aws.String(IAMControllerOwnedTag),
+			Value: aws.String(""),
+		},
+		{
+			Key:   aws.String(fmt.Sprintf(ClusterIDTag, s.clusterName)),
+			Value: aws.String("owned"),
+		},
+	}
+
+	_, err = s.iamClient.CreateRole(&awsiam.CreateRoleInput{
+		RoleName:                 aws.String(roleName),
+		AssumeRolePolicyDocument: aws.String(assumeRolePolicyDocument),
+		Tags:                     tags,
+	})
+	if err != nil {
+		l.Error(err, "failed to create IAM Role")
+		return err
+	}
+
+	i2 := &awsiam.CreateInstanceProfileInput{
+		InstanceProfileName: aws.String(roleName),
+		Tags:                tags,
+	}
+
+	_, err = s.iamClient.CreateInstanceProfile(i2)
+	if IsAlreadyExists(err) {
+		// fall thru
+	} else if err != nil {
+		l.Error(err, "failed to create instance profile")
+		return err
+	}
+
+	i3 := &awsiam.AddRoleToInstanceProfileInput{
+		InstanceProfileName: aws.String(roleName),
+		RoleName:            aws.String(roleName),
+	}
+
+	_, err = s.iamClient.AddRoleToInstanceProfile(i3)
+	if IsAlreadyExists(err) {
+		// fall thru
+	} else if err != nil {
+		l.Error(err, "failed to add role to instance profile")
+		return err
+	}
+
+	l.Info("successfully created a new IAM role")
 
 	return nil
 }
@@ -339,7 +342,7 @@ func (s *IAMService) applyAssumePolicyRole(roleName string, roleType string, par
 
 	log.Info("applying assume policy role to role")
 
-	tmpl := gentTrustPolicyTemplate(roleType)
+	tmpl := getTrustPolicyTemplate(roleType)
 	assumeRolePolicyDocument, err := generatePolicyDocument(tmpl, params)
 	if err != nil {
 		log.Error(err, "failed to generate assume policy document from template for IAM role")
@@ -586,7 +589,7 @@ func (s *IAMService) cleanAttachedPolicies(roleName string) error {
 	return nil
 }
 
-func isOwnedByIAMController(iamRoleName string, iamClient *awsiam.IAM) (bool, error) {
+func isOwnedByIAMController(iamRoleName string, iamClient iamiface.IAMAPI) (bool, error) {
 	i := &awsiam.GetRoleInput{
 		RoleName: aws.String(iamRoleName),
 	}
