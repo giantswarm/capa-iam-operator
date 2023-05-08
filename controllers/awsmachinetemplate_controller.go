@@ -232,6 +232,19 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 			}
 			logger.Info("successfully removed finalizer from AWSMachineTemplate", "finalizer_name", iam.ControlPlaneRole)
 		}
+		if controllerutil.ContainsFinalizer(secret, key.FinalizerName(iam.ControlPlaneRole)) {
+			patchHelper, err := patch.NewHelper(secret, r.Client)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			controllerutil.RemoveFinalizer(secret, key.FinalizerName(iam.ControlPlaneRole))
+			err = patchHelper.Patch(ctx, secret)
+			if err != nil {
+				logger.Error(err, "failed to remove finalizer from secret")
+				return ctrl.Result{}, err
+			}
+			logger.Info("successfully removed finalizer from secret", "finalizer_name", iam.ControlPlaneRole)
+		}
 	} else {
 		// add finalizer to AWSMachineTemplate
 		if !controllerutil.ContainsFinalizer(awsMachineTemplate, key.FinalizerName(iam.ControlPlaneRole)) {
@@ -246,6 +259,19 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 				return ctrl.Result{}, err
 			}
 			logger.Info("successfully added finalizer to AWSMachineTemplate", "finalizer_name", iam.ControlPlaneRole)
+		}
+		if !controllerutil.ContainsFinalizer(secret, key.FinalizerName(iam.ControlPlaneRole)) {
+			patchHelper, err := patch.NewHelper(secret, r.Client)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			controllerutil.AddFinalizer(secret, key.FinalizerName(iam.ControlPlaneRole))
+			err = patchHelper.Patch(ctx, secret)
+			if err != nil {
+				logger.Error(err, "failed to add finalizer from secret")
+				return ctrl.Result{}, err
+			}
+			logger.Info("successfully added finalizer from secret", "finalizer_name", iam.ControlPlaneRole)
 		}
 
 		// add finalizer to AWSCluster

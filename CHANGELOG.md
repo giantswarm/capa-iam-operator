@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.7.0] - 2023-03-10
 
+### Fixed
+
+- Add `control-plane` finalizer to IRSA cloudfront secret.
+
 ### Added
 
 - Add finalizer to the IRSA cloudfront secret.
