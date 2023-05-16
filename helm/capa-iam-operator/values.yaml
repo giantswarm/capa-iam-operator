@@ -26,6 +26,7 @@ verticalPodAutoscaler:
 
 # Add seccomp to pod security context
 podSecurityContext:
+  runAsNonRoot: true
   seccompProfile:
     type: RuntimeDefault
 
@@ -33,3 +34,6 @@ podSecurityContext:
 securityContext:
   seccompProfile:
     type: RuntimeDefault
+  capabilities:
+    drop:
+    - ALL

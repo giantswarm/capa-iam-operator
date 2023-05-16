@@ -64,6 +64,9 @@
                             "type": "string"
                         }
                     }
+                },
+                "runAsNonRoot": {
+                    "type": "boolean"  
                 }
             }
         },
@@ -94,6 +97,14 @@
                     "properties": {
                         "type": {
                             "type": "string"
+                        }
+                    }
+                },
+                "capabilities":{
+                    "type": "object",
+                    "properties": {
+                        "drop": {
+                            "type": "array"
                         }
                     }
                 }
