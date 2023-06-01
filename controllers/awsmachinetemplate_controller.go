@@ -122,33 +122,6 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	mainRoleName := awsMachineTemplate.Spec.Template.Spec.IAMInstanceProfile
 
-	secret := &corev1.Secret{}
-	err = r.Get(
-		ctx,
-		types.NamespacedName{
-			Namespace: req.NamespacedName.Namespace,
-			Name:      fmt.Sprintf("%s-%s", clusterName, IRSASecretSuffix),
-		},
-		secret)
-	if err != nil {
-		logger.Error(err, "Failed to get the irsa-cloudfront secret for cluster")
-
-		// irsa-operator may not have created the secret yet. If so, it will succeed after requeueing.
-		return ctrl.Result{}, err
-	}
-
-	accountID, err := getAWSAccountID(secret)
-	if err != nil {
-		logger.Error(err, "Could not get account ID")
-		return ctrl.Result{}, err
-	}
-
-	cloudFrontDomain, err := getCloudFrontDomain(secret)
-	if err != nil {
-		logger.Error(err, "Could not get the cloudfront domain")
-		return ctrl.Result{}, err
-	}
-
 	var iamService *iam.IAMService
 	{
 		c := iam.IAMServiceConfig{
@@ -157,8 +130,6 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 			MainRoleName:              mainRoleName,
 			Log:                       logger,
 			RoleType:                  role,
-			AccountID:                 accountID,
-			CloudFrontDomain:          cloudFrontDomain,
 			IAMClientAndRegionFactory: r.IAMClientAndRegionFactory,
 		}
 		iamService, err = iam.New(c)
@@ -232,6 +203,20 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 			}
 			logger.Info("successfully removed finalizer from AWSMachineTemplate", "finalizer_name", iam.ControlPlaneRole)
 		}
+
+		secret := &corev1.Secret{}
+		err = r.Get(
+			ctx,
+			types.NamespacedName{
+				Namespace: req.NamespacedName.Namespace,
+				Name:      fmt.Sprintf("%s-%s", clusterName, IRSASecretSuffix),
+			},
+			secret)
+		if err != nil {
+			logger.Error(err, "Failed to get the irsa-cloudfront secret for cluster")
+			return ctrl.Result{}, err
+		}
+
 		if controllerutil.ContainsFinalizer(secret, key.FinalizerName(iam.ControlPlaneRole)) {
 			patchHelper, err := patch.NewHelper(secret, r.Client)
 			if err != nil {
@@ -259,19 +244,6 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 				return ctrl.Result{}, err
 			}
 			logger.Info("successfully added finalizer to AWSMachineTemplate", "finalizer_name", iam.ControlPlaneRole)
-		}
-		if !controllerutil.ContainsFinalizer(secret, key.FinalizerName(iam.ControlPlaneRole)) {
-			patchHelper, err := patch.NewHelper(secret, r.Client)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-			controllerutil.AddFinalizer(secret, key.FinalizerName(iam.ControlPlaneRole))
-			err = patchHelper.Patch(ctx, secret)
-			if err != nil {
-				logger.Error(err, "failed to add finalizer from secret")
-				return ctrl.Result{}, err
-			}
-			logger.Info("successfully added finalizer from secret", "finalizer_name", iam.ControlPlaneRole)
 		}
 
 		// add finalizer to AWSCluster
@@ -312,7 +284,48 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 			}
 			// route53 role depends on KIAM role
 			if r.EnableKiamRole && r.EnableRoute53Role {
-				err = iamService.ReconcileRolesForIRSA()
+				secret := &corev1.Secret{}
+				err = r.Get(
+					ctx,
+					types.NamespacedName{
+						Namespace: req.NamespacedName.Namespace,
+						Name:      fmt.Sprintf("%s-%s", clusterName, IRSASecretSuffix),
+					},
+					secret)
+				if err != nil {
+					logger.Error(err, "Failed to get the irsa-cloudfront secret for cluster")
+
+					// irsa-operator may not have created the secret yet. If so, it will succeed after requeueing.
+					return ctrl.Result{}, err
+				}
+
+				if !controllerutil.ContainsFinalizer(secret, key.FinalizerName(iam.ControlPlaneRole)) {
+					patchHelper, err := patch.NewHelper(secret, r.Client)
+					if err != nil {
+						return ctrl.Result{}, err
+					}
+					controllerutil.AddFinalizer(secret, key.FinalizerName(iam.ControlPlaneRole))
+					err = patchHelper.Patch(ctx, secret)
+					if err != nil {
+						logger.Error(err, "failed to add finalizer from secret")
+						return ctrl.Result{}, err
+					}
+					logger.Info("successfully added finalizer from secret", "finalizer_name", iam.ControlPlaneRole)
+				}
+
+				accountID, err := getAWSAccountID(secret)
+				if err != nil {
+					logger.Error(err, "Could not get account ID")
+					return ctrl.Result{}, err
+				}
+
+				cloudFrontDomain, err := getCloudFrontDomain(secret)
+				if err != nil {
+					logger.Error(err, "Could not get the cloudfront domain")
+					return ctrl.Result{}, err
+				}
+
+				err = iamService.ReconcileRolesForIRSA(accountID, cloudFrontDomain)
 				if err != nil {
 					return ctrl.Result{}, err
 				}
