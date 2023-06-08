@@ -147,8 +147,6 @@ func (r *SecretReconciler) reconcileNormal(ctx context.Context, logger logr.Logg
 			MainRoleName:              "-",
 			RoleType:                  iam.IRSARole,
 			Log:                       logger,
-			AccountID:                 accountID,
-			CloudFrontDomain:          domain,
 			IAMClientAndRegionFactory: r.IAMClientAndRegionFactory,
 		}
 		iamService, err = iam.New(c)
@@ -157,7 +155,7 @@ func (r *SecretReconciler) reconcileNormal(ctx context.Context, logger logr.Logg
 		}
 	}
 
-	err = iamService.ReconcileRolesForIRSA()
+	err = iamService.ReconcileRolesForIRSA(accountID, domain)
 	if err != nil {
 		logger.Error(err, "Unable to reconcile role")
 		return ctrl.Result{}, err

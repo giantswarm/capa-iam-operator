@@ -25,27 +25,23 @@ const (
 )
 
 type IAMServiceConfig struct {
-	AWSSession       awsclientgo.ConfigProvider
-	ClusterName      string
-	MainRoleName     string
-	Log              logr.Logger
-	RoleType         string
-	AccountID        string
-	CloudFrontDomain string
+	AWSSession   awsclientgo.ConfigProvider
+	ClusterName  string
+	MainRoleName string
+	Log          logr.Logger
+	RoleType     string
 
 	// This must return a client and the signing region
 	IAMClientAndRegionFactory func(awsclientgo.ConfigProvider) (iamiface.IAMAPI, string)
 }
 
 type IAMService struct {
-	clusterName      string
-	iamClient        iamiface.IAMAPI
-	mainRoleName     string
-	log              logr.Logger
-	region           string
-	roleType         string
-	accountID        string
-	cloudFrontDomain string
+	clusterName  string
+	iamClient    iamiface.IAMAPI
+	mainRoleName string
+	log          logr.Logger
+	region       string
+	roleType     string
 }
 
 type Route53RoleParams struct {
@@ -78,14 +74,12 @@ func New(config IAMServiceConfig) (*IAMService, error) {
 	l := config.Log.WithValues("clusterName", config.ClusterName, "iam-role", config.RoleType)
 
 	s := &IAMService{
-		clusterName:      config.ClusterName,
-		iamClient:        client,
-		mainRoleName:     config.MainRoleName,
-		log:              l,
-		roleType:         config.RoleType,
-		region:           region,
-		accountID:        config.AccountID,
-		cloudFrontDomain: config.CloudFrontDomain,
+		clusterName:  config.ClusterName,
+		iamClient:    client,
+		mainRoleName: config.MainRoleName,
+		log:          l,
+		roleType:     config.RoleType,
+		region:       region,
 	}
 
 	return s, nil
@@ -146,12 +140,12 @@ func (s *IAMService) ReconcileKiamRole() error {
 	return nil
 }
 
-func (s *IAMService) ReconcileRolesForIRSA() error {
+func (s *IAMService) ReconcileRolesForIRSA(awsAccountID string, cloudFrontDomain string) error {
 	s.log.Info("reconciling IAM roles for IRSA")
 
 	for _, roleTypeToReconcile := range []string{Route53Role, CertManagerRole} {
 		var params Route53RoleParams
-		params, err := s.generateRoute53RoleParams(roleTypeToReconcile)
+		params, err := s.generateRoute53RoleParams(roleTypeToReconcile, awsAccountID, cloudFrontDomain)
 		if err != nil {
 			s.log.Error(err, "failed to generate Route53 role parameters")
 			return err
@@ -167,7 +161,7 @@ func (s *IAMService) ReconcileRolesForIRSA() error {
 	return nil
 }
 
-func (s *IAMService) generateRoute53RoleParams(roleTypeToReconcile string) (Route53RoleParams, error) {
+func (s *IAMService) generateRoute53RoleParams(roleTypeToReconcile string, awsAccountID string, cloudFrontDomain string) (Route53RoleParams, error) {
 	namespace := "kube-system"
 	serviceAccount, err := getServiceAccount(roleTypeToReconcile)
 
@@ -202,8 +196,8 @@ func (s *IAMService) generateRoute53RoleParams(roleTypeToReconcile string) (Rout
 
 	params := Route53RoleParams{
 		EC2ServiceDomain: ec2ServiceDomain(s.region),
-		AccountID:        s.accountID,
-		CloudFrontDomain: s.cloudFrontDomain,
+		AccountID:        awsAccountID,
+		CloudFrontDomain: cloudFrontDomain,
 		Namespace:        namespace,
 		ServiceAccount:   serviceAccount,
 		KIAMRoleARN:      kiamRoleARN,
