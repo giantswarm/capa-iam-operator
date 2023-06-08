@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Fetch IRSA secret resource just right befire creating IRSA role to avoid locking node role creation for control plane and workers.
+
 ## [0.8.0] - 2023-05-08
 
 ### Fixed
