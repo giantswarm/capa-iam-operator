@@ -6,7 +6,7 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/aws/aws-sdk-go v1.44.227
 	github.com/benbjohnson/clock v1.3.0 // indirect
-	github.com/giantswarm/microerror v0.4.0 // indirect
+	github.com/giantswarm/microerror v0.4.0
 	github.com/go-logr/logr v1.2.3
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.3.0
