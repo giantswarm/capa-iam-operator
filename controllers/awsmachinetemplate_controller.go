@@ -245,10 +245,10 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 			}
 			logger.Info("successfully added finalizer to AWSMachineTemplate", "finalizer_name", iam.ControlPlaneRole)
 		}
-
+		var awsCluster *capa.AWSCluster
 		// add finalizer to AWSCluster
 		{
-			awsCluster, err := key.GetAWSClusterByName(ctx, r.Client, clusterName, awsMachineTemplate.GetNamespace())
+			awsCluster, err = key.GetAWSClusterByName(ctx, r.Client, clusterName, awsMachineTemplate.GetNamespace())
 			if err != nil {
 				logger.Error(err, "failed to get awsCluster")
 				return ctrl.Result{}, err
@@ -313,17 +313,31 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 					logger.Info("successfully added finalizer from secret", "finalizer_name", iam.ControlPlaneRole)
 				}
 
-				accountID, err := getAWSAccountID(secret)
+				awsClusterRoleIdentity, err := key.GetAWSClusterRoleIdentity(ctx, r.Client, awsCluster.Spec.IdentityRef.Name)
+				if err != nil {
+					logger.Error(err, "could not get AWSClusterRoleIdentity")
+					return ctrl.Result{}, err
+				}
+
+				accountID, err := getAWSAccountID(awsClusterRoleIdentity)
 				if err != nil {
 					logger.Error(err, "Could not get account ID")
 					return ctrl.Result{}, err
 				}
 
-				cloudFrontDomain, err := getCloudFrontDomain(secret)
+				cluster, err := key.GetClusterByName(ctx, r.Client, clusterName, req.Namespace)
 				if err != nil {
-					logger.Error(err, "Could not get the cloudfront domain")
+					logger.Error(err, "Could not get cluster")
 					return ctrl.Result{}, err
 				}
+
+				baseDomain, err := key.BaseDomain(*cluster)
+				if err != nil {
+					logger.Error(err, "Could not get base domain")
+					return ctrl.Result{}, err
+				}
+
+				cloudFrontDomain := key.CloudFrontAlias(baseDomain)
 
 				err = iamService.ReconcileRolesForIRSA(accountID, cloudFrontDomain)
 				if err != nil {

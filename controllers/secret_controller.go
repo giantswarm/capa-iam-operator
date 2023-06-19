@@ -25,6 +25,7 @@ import (
 	awsclientgo "github.com/aws/aws-sdk-go/aws/client"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -105,19 +106,40 @@ func (r *SecretReconciler) reconcileNormal(ctx context.Context, logger logr.Logg
 		}
 		logger.Info("successfully added finalizer to Secret", "finalizer_name", key.FinalizerName(iam.IRSARole))
 	}
-	accountID, err := getAWSAccountID(secret)
+
+	clusterName := strings.TrimSuffix(secret.Name, "-"+IRSASecretSuffix)
+
+	awsCluster, err := key.GetAWSClusterByName(ctx, r.Client, clusterName, secret.Namespace)
+	if err != nil {
+		logger.Error(err, "failed to get awsCluster")
+		return ctrl.Result{}, err
+	}
+
+	awsClusterRoleIdentity, err := key.GetAWSClusterRoleIdentity(ctx, r.Client, awsCluster.Spec.IdentityRef.Name)
+	if err != nil {
+		logger.Error(err, "could not get AWSClusterRoleIdentity")
+		return ctrl.Result{}, err
+	}
+
+	accountID, err := getAWSAccountID(awsClusterRoleIdentity)
 	if err != nil {
 		logger.Error(err, "Could not get account ID")
 		return ctrl.Result{}, err
 	}
 
-	domain, err := getCloudFrontDomain(secret)
+	cluster, err := key.GetClusterByName(ctx, r.Client, clusterName, secret.Namespace)
 	if err != nil {
-		logger.Error(err, "Could not get the cloudfront domain")
+		logger.Error(err, "Could not get cluster")
 		return ctrl.Result{}, err
 	}
 
-	clusterName := strings.TrimSuffix(secret.Name, "-"+IRSASecretSuffix)
+	baseDomain, err := key.BaseDomain(*cluster)
+	if err != nil {
+		logger.Error(err, "Could not get base domain")
+		return ctrl.Result{}, err
+	}
+
+	cloudFrontDomain := key.CloudFrontAlias(baseDomain)
 
 	var awsClientGetter *awsclient.AwsClient
 	{
@@ -155,7 +177,7 @@ func (r *SecretReconciler) reconcileNormal(ctx context.Context, logger logr.Logg
 		}
 	}
 
-	err = iamService.ReconcileRolesForIRSA(accountID, domain)
+	err = iamService.ReconcileRolesForIRSA(accountID, cloudFrontDomain)
 	if err != nil {
 		logger.Error(err, "Unable to reconcile role")
 		return ctrl.Result{}, err
@@ -226,12 +248,10 @@ func (r *SecretReconciler) reconcileDelete(ctx context.Context, logger logr.Logg
 	return ctrl.Result{}, nil
 }
 
-func getAWSAccountID(secret *corev1.Secret) (string, error) {
-	data := secret.Data
-	arn := string(data["arn"])
-
+func getAWSAccountID(awsClusterRoleIdentity *capa.AWSClusterRoleIdentity) (string, error) {
+	arn := awsClusterRoleIdentity.Spec.RoleArn
 	if arn == "" || len(strings.TrimSpace(arn)) < 1 {
-		err := fmt.Errorf("unable to extract ARN from secret %s", secret.Name)
+		err := fmt.Errorf("unable to extract ARN from AWSClusterRoleIdentity %s", awsClusterRoleIdentity.Name)
 		return "", err
 	}
 
@@ -244,18 +264,6 @@ func getAWSAccountID(secret *corev1.Secret) (string, error) {
 	}
 
 	return accountID, nil
-}
-
-func getCloudFrontDomain(secret *corev1.Secret) (string, error) {
-	data := secret.Data
-	domain := string(data["domain"])
-
-	if domain == "" || len(strings.TrimSpace(domain)) < 1 {
-		err := fmt.Errorf("unable to extract CloudFront domain from secret %s", secret.Name)
-		return "", err
-	}
-
-	return domain, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
