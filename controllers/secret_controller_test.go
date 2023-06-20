@@ -69,6 +69,21 @@ var _ = Describe("SecretReconciler", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 
+		err = k8sClient.Create(ctx, &capa.AWSClusterRoleIdentity{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "test-2",
+			},
+			Spec: capa.AWSClusterRoleIdentitySpec{
+				AWSRoleSpec: capa.AWSRoleSpec{
+					RoleArn: "arn:aws:iam::012345678901:role/giantswarm-test-capa-controller",
+				},
+				AWSClusterIdentitySpec: capa.AWSClusterIdentitySpec{
+					AllowedNamespaces: &capa.AllowedNamespaces{},
+				},
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
 		err = k8sClient.Create(ctx, &capa.AWSCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Labels: map[string]string{
@@ -77,6 +92,12 @@ var _ = Describe("SecretReconciler", func() {
 				Name:      "myawsc",
 				Namespace: namespace,
 			},
+			Spec: capa.AWSClusterSpec{
+				IdentityRef: &capa.AWSIdentityReference{
+					Name: "test-2",
+					Kind: "AWSClusterRoleIdentity",
+				},
+			},
 		})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -84,6 +105,11 @@ var _ = Describe("SecretReconciler", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-cluster",
 				Namespace: namespace,
+			},
+			Spec: capi.ClusterSpec{
+				ControlPlaneEndpoint: capi.APIEndpoint{
+					Host: "api.testcluster-apiserver-123456789.eu-west-2.elb.amazonaws.com",
+				},
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())

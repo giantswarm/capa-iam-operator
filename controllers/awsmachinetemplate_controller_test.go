@@ -79,6 +79,21 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 
+		err = k8sClient.Create(ctx, &capa.AWSClusterRoleIdentity{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "test-1",
+			},
+			Spec: capa.AWSClusterRoleIdentitySpec{
+				AWSRoleSpec: capa.AWSRoleSpec{
+					RoleArn: "arn:aws:iam::012345678901:role/giantswarm-test-capa-controller",
+				},
+				AWSClusterIdentitySpec: capa.AWSClusterIdentitySpec{
+					AllowedNamespaces: &capa.AllowedNamespaces{},
+				},
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
 		err = k8sClient.Create(ctx, &capa.AWSCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Labels: map[string]string{
@@ -87,6 +102,12 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 				Name:      "my-awsc",
 				Namespace: namespace,
 			},
+			Spec: capa.AWSClusterSpec{
+				IdentityRef: &capa.AWSIdentityReference{
+					Name: "test-1",
+					Kind: "AWSClusterRoleIdentity",
+				},
+			},
 		})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -94,6 +115,11 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-cluster",
 				Namespace: namespace,
+			},
+			Spec: capi.ClusterSpec{
+				ControlPlaneEndpoint: capi.APIEndpoint{
+					Host: "testcluster-apiserver-123456789.eu-west-2.elb.amazonaws.com",
+				},
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
