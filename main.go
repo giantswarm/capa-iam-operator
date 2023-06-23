@@ -137,6 +137,7 @@ func main() {
 		Log:                       ctrl.Log.WithName("controllers").WithName("AWSMachinePool"),
 		Scheme:                    mgr.GetScheme(),
 		IAMClientAndRegionFactory: iamClientAndRegionFactory,
+		AWSClient:                 awsClient,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AWSMachinePool")
 		os.Exit(1)
@@ -156,6 +157,7 @@ func main() {
 		Log:                       ctrl.Log.WithName("controllers").WithName("Secrets"),
 		Scheme:                    mgr.GetScheme(),
 		IAMClientAndRegionFactory: iamClientAndRegionFactory,
+		AWSClient:                 awsClient,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Secret")
 		os.Exit(1)
