@@ -3,10 +3,11 @@ package key
 import (
 	"context"
 	"fmt"
-	"strings"
 
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/yaml"
 	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -112,13 +113,37 @@ func CloudFrontAlias(baseDomain string) string {
 	return fmt.Sprintf("irsa.%s", baseDomain)
 }
 
-func BaseDomain(cluster capi.Cluster) (string, error) {
-	apiEndpoint := cluster.Spec.ControlPlaneEndpoint.Host
-	if apiEndpoint == "" {
-		return "", microerror.Mask(missingApiEndpointError)
+func GetBaseDomain(ctx context.Context, ctrlClient client.Client, clusterName, namespace string) (string, error) {
+
+	cm := &corev1.ConfigMap{}
+	err := ctrlClient.Get(ctx, types.NamespacedName{
+		Name:      fmt.Sprintf("%s-cluster-values", clusterName),
+		Namespace: namespace,
+	}, cm)
+	if err != nil {
+		return "", err
 	}
-	if !strings.HasPrefix(apiEndpoint, "api.") {
-		return "", microerror.Mask(unexpectedApiEndpointError)
+
+	jsonStr := cm.Data["values"]
+	if jsonStr == "" {
+		return "", microerror.Mask(clusterValuesConfigMapNotFound)
 	}
-	return strings.TrimPrefix(apiEndpoint, "api."), nil
+
+	type clusterValues struct {
+		BaseDomain string `yaml:"baseDomain"`
+	}
+
+	cv := clusterValues{}
+
+	err = yaml.Unmarshal([]byte(jsonStr), &cv)
+	if err != nil {
+		return "", err
+	}
+
+	baseDomain := cv.BaseDomain
+	if baseDomain == "" {
+		return "", microerror.Mask(baseDomainNotFound)
+	}
+
+	return baseDomain, nil
 }

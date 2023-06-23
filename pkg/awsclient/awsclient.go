@@ -13,37 +13,35 @@ import (
 	"github.com/giantswarm/capa-iam-operator/pkg/key"
 )
 
+type AwsClientInterface interface {
+	GetAWSClientSession(ctx context.Context, clusterName, namespace string) (clientaws.ConfigProvider, error)
+}
+
 type AWSClientConfig struct {
-	ClusterName string
-	CtrlClient  client.Client
-	Log         logr.Logger
+	CtrlClient client.Client
+	Log        logr.Logger
 }
 
 type AwsClient struct {
-	clusterName string
-	ctrlClient  client.Client
-	log         logr.Logger
+	ctrlClient client.Client
+	log        logr.Logger
 }
 
 func New(config AWSClientConfig) (*AwsClient, error) {
-	if config.ClusterName == "" {
-		return nil, errors.New("failed to generate new awsClient from empty ClusterName")
-	}
 	if config.CtrlClient == nil {
 		return nil, errors.New("failed to generate new awsClient from nil CtrlClient")
 	}
 
 	a := &AwsClient{
-		clusterName: config.ClusterName,
-		ctrlClient:  config.CtrlClient,
-		log:         config.Log,
+		ctrlClient: config.CtrlClient,
+		log:        config.Log,
 	}
 
 	return a, nil
 }
 
-func (a *AwsClient) GetAWSClientSession(ctx context.Context, namespace string) (clientaws.ConfigProvider, error) {
-	awsCluster, err := key.GetAWSClusterByName(ctx, a.ctrlClient, a.clusterName, namespace)
+func (a *AwsClient) GetAWSClientSession(ctx context.Context, clusterName, namespace string) (clientaws.ConfigProvider, error) {
+	awsCluster, err := key.GetAWSClusterByName(ctx, a.ctrlClient, clusterName, namespace)
 	if err != nil {
 		a.log.Error(err, "failed to get AWSCluster")
 		return nil, err

@@ -48,6 +48,7 @@ type AWSMachineTemplateReconciler struct {
 	Log                       logr.Logger
 	Scheme                    *runtime.Scheme
 	IAMClientAndRegionFactory func(awsclientgo.ConfigProvider) (iamiface.IAMAPI, string)
+	AWSClient                 awsclient.AwsClientInterface
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinetemplates,verbs=get;list;watch;create;update;patch;delete
@@ -100,21 +101,7 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, nil
 	}
 
-	var awsClientGetter *awsclient.AwsClient
-	{
-		c := awsclient.AWSClientConfig{
-			ClusterName: clusterName,
-			CtrlClient:  r.Client,
-			Log:         logger,
-		}
-		awsClientGetter, err = awsclient.New(c)
-		if err != nil {
-			logger.Error(err, "failed to generate awsClientGetter")
-			return ctrl.Result{}, err
-		}
-	}
-
-	awsClientSession, err := awsClientGetter.GetAWSClientSession(ctx, awsMachineTemplate.GetNamespace())
+	awsClientSession, err := r.AWSClient.GetAWSClientSession(ctx, clusterName, awsMachineTemplate.GetNamespace())
 	if err != nil {
 		logger.Error(err, "Failed to get aws client session")
 		return ctrl.Result{}, err
@@ -325,13 +312,7 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 					return ctrl.Result{}, err
 				}
 
-				cluster, err := key.GetClusterByName(ctx, r.Client, clusterName, req.Namespace)
-				if err != nil {
-					logger.Error(err, "Could not get cluster")
-					return ctrl.Result{}, err
-				}
-
-				baseDomain, err := key.BaseDomain(*cluster)
+				baseDomain, err := key.GetBaseDomain(ctx, r.Client, clusterName, req.Namespace)
 				if err != nil {
 					logger.Error(err, "Could not get base domain")
 					return ctrl.Result{}, err

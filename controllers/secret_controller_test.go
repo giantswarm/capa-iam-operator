@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	awsclientupstream "github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"github.com/golang/mock/gomock"
@@ -28,11 +29,13 @@ var _ = Describe("SecretReconciler", func() {
 	var (
 		ctx           context.Context
 		mockCtrl      *gomock.Controller
+		mockAwsClient *mocks.MockAwsClientInterface
 		mockIAMClient *mocks.MockIAMAPI
 		reconcileErr  error
 		reconciler    *controllers.SecretReconciler
 		req           ctrl.Request
 		namespace     string
+		sess          *session.Session
 	)
 
 	SetupNamespaceBeforeAfterEach(&namespace)
@@ -45,19 +48,31 @@ var _ = Describe("SecretReconciler", func() {
 
 		ctx := context.TODO()
 
+		mockAwsClient = mocks.NewMockAwsClientInterface(mockCtrl)
 		mockIAMClient = mocks.NewMockIAMAPI(mockCtrl)
 
 		reconciler = &controllers.SecretReconciler{
 			Client:         k8sClient,
 			EnableIRSARole: true,
 			Log:            ctrl.Log,
-
+			AWSClient:      mockAwsClient,
 			IAMClientAndRegionFactory: func(session awsclientupstream.ConfigProvider) (iamiface.IAMAPI, string) {
 				return mockIAMClient, fakeRegion
 			},
 		}
 
-		err := k8sClient.Create(ctx, &corev1.Secret{
+		err := k8sClient.Create(ctx, &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-cluster-cluster-values",
+				Namespace: namespace,
+			},
+			Data: map[string]string{
+				"values": "baseDomain: test.gaws.gigantic.io\n",
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		err = k8sClient.Create(ctx, &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-cluster-irsa-cloudfront",
 				Namespace: namespace,
@@ -65,6 +80,17 @@ var _ = Describe("SecretReconciler", func() {
 			Data: map[string][]byte{
 				"arn":    []byte("arn:aws:cloudfront::123456789999:distribution/EABCDEGUGUGUG"),
 				"domain": []byte("foobar.cloudfront.net"),
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		err = k8sClient.Create(ctx, &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-awsc",
+				Namespace: namespace,
+			},
+			Data: map[string]string{
+				"baseDomain": "base.domain",
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -121,6 +147,12 @@ var _ = Describe("SecretReconciler", func() {
 				Namespace: namespace,
 			},
 		}
+
+		sess, err = session.NewSession(&aws.Config{
+			Region: aws.String("eu-west-1")},
+		)
+		Expect(err).NotTo(HaveOccurred())
+
 	})
 
 	AfterEach(func() {
@@ -138,9 +170,8 @@ var _ = Describe("SecretReconciler", func() {
 	certManagerRoleInfoCopy.ExpectedPolicyName = "irsa-role-test-cluster-policy"
 
 	expectedRoleStatusesOnSuccess := []RoleInfo{
-		externalDnsRoleInfoCopy,
-
 		certManagerRoleInfoCopy,
+		externalDnsRoleInfoCopy,
 	}
 
 	expectedIAMTags := []*iam.Tag{
@@ -156,6 +187,7 @@ var _ = Describe("SecretReconciler", func() {
 
 	When("KIAM role was already created by other controller", func() {
 		BeforeEach(func() {
+			mockAwsClient.EXPECT().GetAWSClientSession(ctx, "test-cluster", namespace).Return(sess, nil)
 			// Implementation detail: KIAM role gets looked up for each role, therefore `MinTimes(1)`
 			mockIAMClient.EXPECT().GetRole(&iam.GetRoleInput{
 				RoleName: aws.String("test-cluster-IAMManager-Role"),

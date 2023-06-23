@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	awsclientupstream "github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"github.com/golang/mock/gomock"
@@ -28,11 +29,13 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 	var (
 		ctx           context.Context
 		mockCtrl      *gomock.Controller
+		mockAwsClient *mocks.MockAwsClientInterface
 		mockIAMClient *mocks.MockIAMAPI
 		reconcileErr  error
 		reconciler    *controllers.AWSMachineTemplateReconciler
 		req           ctrl.Request
 		namespace     string
+		sess          *session.Session
 	)
 
 	SetupNamespaceBeforeAfterEach(&namespace)
@@ -45,6 +48,7 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 
 		ctx := context.TODO()
 
+		mockAwsClient = mocks.NewMockAwsClientInterface(mockCtrl)
 		mockIAMClient = mocks.NewMockIAMAPI(mockCtrl)
 
 		reconciler = &controllers.AWSMachineTemplateReconciler{
@@ -52,7 +56,7 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 			EnableKiamRole:    true,
 			EnableRoute53Role: true,
 			Log:               ctrl.Log,
-
+			AWSClient:         mockAwsClient,
 			IAMClientAndRegionFactory: func(session awsclientupstream.ConfigProvider) (iamiface.IAMAPI, string) {
 				return mockIAMClient, fakeRegion
 			},
@@ -124,6 +128,17 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 
+		err = k8sClient.Create(ctx, &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-cluster-cluster-values",
+				Namespace: namespace,
+			},
+			Data: map[string]string{
+				"values": "baseDomain: test.gaws.gigantic.io\n",
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
 		err = k8sClient.Create(ctx, &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-cluster-irsa-cloudfront",
@@ -136,6 +151,17 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 
+		err = k8sClient.Create(ctx, &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-awsc",
+				Namespace: namespace,
+			},
+			Data: map[string]string{
+				"baseDomain": "base.domain",
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
 		Expect(namespace).NotTo(BeEmpty())
 		req = ctrl.Request{
 			NamespacedName: client.ObjectKey{
@@ -143,6 +169,11 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 				Namespace: namespace,
 			},
 		}
+
+		sess, err = session.NewSession(&aws.Config{
+			Region: aws.String("eu-west-1")},
+		)
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -360,6 +391,7 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 
 	When("a role does not exist", func() {
 		BeforeEach(func() {
+			mockAwsClient.EXPECT().GetAWSClientSession(ctx, "test-cluster", namespace).Return(sess, nil)
 			for _, info := range expectedRoleStatusesOnSuccess {
 				mockIAMClient.EXPECT().GetRole(&iam.GetRoleInput{
 					RoleName: aws.String(info.ExpectedName),

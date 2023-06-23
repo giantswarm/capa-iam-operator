@@ -2,10 +2,10 @@ package key
 
 import "github.com/giantswarm/microerror"
 
-var unexpectedApiEndpointError = &microerror.Error{
-	Kind: "unexpectedApiEndpoint",
+var clusterValuesConfigMapNotFound = &microerror.Error{
+	Kind: "clusterValuesConfigMapNotFoundError",
 }
 
-var missingApiEndpointError = &microerror.Error{
-	Kind: "missingApiEndpoint",
+var baseDomainNotFound = &microerror.Error{
+	Kind: "baseDomainNotFoundError",
 }

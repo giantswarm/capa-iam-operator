@@ -22,6 +22,7 @@ import (
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
+
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	klogr "k8s.io/klog/v2/klogr"
 
@@ -38,6 +39,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"github.com/giantswarm/capa-iam-operator/controllers"
+	"github.com/giantswarm/capa-iam-operator/pkg/awsclient"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -94,6 +96,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	awsClient, err := awsclient.New(awsclient.AWSClientConfig{
+		CtrlClient: mgr.GetClient(),
+		Log:        ctrl.Log.WithName("controllers").WithName("AWSMachineTemplate"),
+	})
+	if err != nil {
+		setupLog.Error(err, "unable to create aws client for controller", "controller", "AWSMachineTemplate")
+		os.Exit(1)
+	}
+
 	iamClientAndRegionFactory := func(session awsclientgo.ConfigProvider) (iamiface.IAMAPI, string) {
 		client := awsiam.New(session)
 		return client, client.SigningRegion
@@ -106,10 +117,21 @@ func main() {
 		Log:                       ctrl.Log.WithName("controllers").WithName("AWSMachineTemplate"),
 		Scheme:                    mgr.GetScheme(),
 		IAMClientAndRegionFactory: iamClientAndRegionFactory,
+		AWSClient:                 awsClient,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AWSMachineTemplate")
 		os.Exit(1)
 	}
+
+	awsClient, err = awsclient.New(awsclient.AWSClientConfig{
+		CtrlClient: mgr.GetClient(),
+		Log:        ctrl.Log.WithName("controllers").WithName("AWSMachinePool"),
+	})
+	if err != nil {
+		setupLog.Error(err, "unable to create aws client for controller", "controller", "AWSMachinePool")
+		os.Exit(1)
+	}
+
 	if err = (&controllers.AWSMachinePoolReconciler{
 		Client:                    mgr.GetClient(),
 		Log:                       ctrl.Log.WithName("controllers").WithName("AWSMachinePool"),
@@ -117,6 +139,15 @@ func main() {
 		IAMClientAndRegionFactory: iamClientAndRegionFactory,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AWSMachinePool")
+		os.Exit(1)
+	}
+
+	awsClient, err = awsclient.New(awsclient.AWSClientConfig{
+		CtrlClient: mgr.GetClient(),
+		Log:        ctrl.Log.WithName("controllers").WithName("Secrets"),
+	})
+	if err != nil {
+		setupLog.Error(err, "unable to create aws client for controller", "controller", "Secrets")
 		os.Exit(1)
 	}
 	if err = (&controllers.SecretReconciler{

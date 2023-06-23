@@ -44,6 +44,7 @@ type AWSMachinePoolReconciler struct {
 	Log                       logr.Logger
 	Scheme                    *runtime.Scheme
 	IAMClientAndRegionFactory func(awsclientgo.ConfigProvider) (iamiface.IAMAPI, string)
+	AWSClient                 awsclient.AwsClientInterface
 }
 
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinepools,verbs=get;list;watch;create;update;patch;delete
@@ -80,21 +81,7 @@ func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, nil
 	}
 
-	var awsClientGetter *awsclient.AwsClient
-	{
-		c := awsclient.AWSClientConfig{
-			ClusterName: clusterName,
-			CtrlClient:  r.Client,
-			Log:         logger,
-		}
-		awsClientGetter, err = awsclient.New(c)
-		if err != nil {
-			logger.Error(err, "failed to generate awsClientGetter")
-			return ctrl.Result{}, err
-		}
-	}
-
-	awsClientSession, err := awsClientGetter.GetAWSClientSession(ctx, awsMachinePool.GetNamespace())
+	awsClientSession, err := r.AWSClient.GetAWSClientSession(ctx, clusterName, awsMachinePool.GetNamespace())
 	if err != nil {
 		logger.Error(err, "Failed to get aws client session")
 		return ctrl.Result{}, err

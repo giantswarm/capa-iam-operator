@@ -50,6 +50,7 @@ type SecretReconciler struct {
 	Log                       logr.Logger
 	Scheme                    *runtime.Scheme
 	IAMClientAndRegionFactory func(awsclientgo.ConfigProvider) (iamiface.IAMAPI, string)
+	AWSClient                 awsclient.AwsClientInterface
 }
 
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
@@ -127,13 +128,7 @@ func (r *SecretReconciler) reconcileNormal(ctx context.Context, logger logr.Logg
 		return ctrl.Result{}, err
 	}
 
-	cluster, err := key.GetClusterByName(ctx, r.Client, clusterName, secret.Namespace)
-	if err != nil {
-		logger.Error(err, "Could not get cluster")
-		return ctrl.Result{}, err
-	}
-
-	baseDomain, err := key.BaseDomain(*cluster)
+	baseDomain, err := key.GetBaseDomain(ctx, r.Client, clusterName, secret.Namespace)
 	if err != nil {
 		logger.Error(err, "Could not get base domain")
 		return ctrl.Result{}, err
@@ -141,21 +136,7 @@ func (r *SecretReconciler) reconcileNormal(ctx context.Context, logger logr.Logg
 
 	cloudFrontDomain := key.CloudFrontAlias(baseDomain)
 
-	var awsClientGetter *awsclient.AwsClient
-	{
-		c := awsclient.AWSClientConfig{
-			ClusterName: clusterName,
-			CtrlClient:  r.Client,
-			Log:         logger,
-		}
-		awsClientGetter, err = awsclient.New(c)
-		if err != nil {
-			logger.Error(err, "Failed to generate awsClientGetter")
-			return ctrl.Result{}, err
-		}
-	}
-
-	awsClientSession, err := awsClientGetter.GetAWSClientSession(ctx, secret.GetNamespace())
+	awsClientSession, err := r.AWSClient.GetAWSClientSession(ctx, clusterName, secret.GetNamespace())
 	if err != nil {
 		logger.Error(err, "Failed to get aws client session", "cluster_name", clusterName)
 		return ctrl.Result{}, err
@@ -190,21 +171,7 @@ func (r *SecretReconciler) reconcileDelete(ctx context.Context, logger logr.Logg
 	var err error
 	clusterName := strings.TrimSuffix(secret.Name, "-"+IRSASecretSuffix)
 
-	var awsClientGetter *awsclient.AwsClient
-	{
-		c := awsclient.AWSClientConfig{
-			ClusterName: clusterName,
-			CtrlClient:  r.Client,
-			Log:         logger,
-		}
-		awsClientGetter, err = awsclient.New(c)
-		if err != nil {
-			logger.Error(err, "Failed to generate awsClientGetter")
-			return ctrl.Result{}, err
-		}
-	}
-
-	awsClientSession, err := awsClientGetter.GetAWSClientSession(ctx, secret.GetNamespace())
+	awsClientSession, err := r.AWSClient.GetAWSClientSession(ctx, clusterName, secret.GetNamespace())
 	if err != nil {
 		logger.Error(err, "Failed to get aws client session")
 		return ctrl.Result{}, err
