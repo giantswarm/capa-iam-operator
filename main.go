@@ -96,7 +96,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	awsClient, err := awsclient.New(awsclient.AWSClientConfig{
+	awsClientAwsMachineTemplate, err := awsclient.New(awsclient.AWSClientConfig{
 		CtrlClient: mgr.GetClient(),
 		Log:        ctrl.Log.WithName("controllers").WithName("AWSMachineTemplate"),
 	})
@@ -117,13 +117,13 @@ func main() {
 		Log:                       ctrl.Log.WithName("controllers").WithName("AWSMachineTemplate"),
 		Scheme:                    mgr.GetScheme(),
 		IAMClientAndRegionFactory: iamClientAndRegionFactory,
-		AWSClient:                 awsClient,
+		AWSClient:                 awsClientAwsMachineTemplate,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AWSMachineTemplate")
 		os.Exit(1)
 	}
 
-	awsClient, err = awsclient.New(awsclient.AWSClientConfig{
+	awsClientAwsMachine, err := awsclient.New(awsclient.AWSClientConfig{
 		CtrlClient: mgr.GetClient(),
 		Log:        ctrl.Log.WithName("controllers").WithName("AWSMachinePool"),
 	})
@@ -137,13 +137,13 @@ func main() {
 		Log:                       ctrl.Log.WithName("controllers").WithName("AWSMachinePool"),
 		Scheme:                    mgr.GetScheme(),
 		IAMClientAndRegionFactory: iamClientAndRegionFactory,
-		AWSClient:                 awsClient,
+		AWSClient:                 awsClientAwsMachine,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AWSMachinePool")
 		os.Exit(1)
 	}
 
-	awsClient, err = awsclient.New(awsclient.AWSClientConfig{
+	awsClientSecret, err := awsclient.New(awsclient.AWSClientConfig{
 		CtrlClient: mgr.GetClient(),
 		Log:        ctrl.Log.WithName("controllers").WithName("Secrets"),
 	})
@@ -157,7 +157,7 @@ func main() {
 		Log:                       ctrl.Log.WithName("controllers").WithName("Secrets"),
 		Scheme:                    mgr.GetScheme(),
 		IAMClientAndRegionFactory: iamClientAndRegionFactory,
-		AWSClient:                 awsClient,
+		AWSClient:                 awsClientSecret,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Secret")
 		os.Exit(1)
