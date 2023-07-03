@@ -72,17 +72,6 @@ var _ = Describe("AWSClusterReconciler", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		err = k8sClient.Create(ctx, &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "my-awsc",
-				Namespace: namespace,
-			},
-			Data: map[string]string{
-				"baseDomain": "base.domain",
-			},
-		})
-		Expect(err).NotTo(HaveOccurred())
-
 		err = k8sClient.Create(ctx, &capa.AWSClusterRoleIdentity{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-2",
@@ -103,7 +92,7 @@ var _ = Describe("AWSClusterReconciler", func() {
 				Labels: map[string]string{
 					"cluster.x-k8s.io/cluster-name": "test-cluster",
 				},
-				Name:      "myawsc",
+				Name:      "test-cluster",
 				Namespace: namespace,
 			},
 			Spec: capa.AWSClusterSpec{
@@ -131,7 +120,7 @@ var _ = Describe("AWSClusterReconciler", func() {
 		Expect(namespace).NotTo(BeEmpty())
 		req = ctrl.Request{
 			NamespacedName: client.ObjectKey{
-				Name:      "myawsc",
+				Name:      "test-cluster",
 				Namespace: namespace,
 			},
 		}
