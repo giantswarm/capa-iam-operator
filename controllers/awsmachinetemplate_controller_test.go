@@ -139,18 +139,6 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		err = k8sClient.Create(ctx, &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-cluster-irsa-cloudfront",
-				Namespace: namespace,
-			},
-			Data: map[string][]byte{
-				"arn":    []byte("arn:aws:cloudfront::123456789999:distribution/EABCDEGUGUGUG"),
-				"domain": []byte("foobar.cloudfront.net"),
-			},
-		})
-		Expect(err).NotTo(HaveOccurred())
-
 		err = k8sClient.Create(ctx, &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "my-awsc",
