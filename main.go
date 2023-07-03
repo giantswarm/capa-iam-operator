@@ -151,7 +151,7 @@ func main() {
 		setupLog.Error(err, "unable to create aws client for controller", "controller", "Secrets")
 		os.Exit(1)
 	}
-	if err = (&controllers.SecretReconciler{
+	if err = (&controllers.AWSClusterReconciler{
 		Client:                    mgr.GetClient(),
 		EnableIRSARole:            enableIRSARole,
 		Log:                       ctrl.Log.WithName("controllers").WithName("Secrets"),

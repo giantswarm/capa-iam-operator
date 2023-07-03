@@ -25,14 +25,14 @@ import (
 	"github.com/giantswarm/capa-iam-operator/pkg/test/mocks"
 )
 
-var _ = Describe("SecretReconciler", func() {
+var _ = Describe("AWSClusterReconciler", func() {
 	var (
 		ctx           context.Context
 		mockCtrl      *gomock.Controller
 		mockAwsClient *mocks.MockAwsClientInterface
 		mockIAMClient *mocks.MockIAMAPI
 		reconcileErr  error
-		reconciler    *controllers.SecretReconciler
+		reconciler    *controllers.AWSClusterReconciler
 		req           ctrl.Request
 		namespace     string
 		sess          *session.Session
@@ -51,7 +51,7 @@ var _ = Describe("SecretReconciler", func() {
 		mockAwsClient = mocks.NewMockAwsClientInterface(mockCtrl)
 		mockIAMClient = mocks.NewMockIAMAPI(mockCtrl)
 
-		reconciler = &controllers.SecretReconciler{
+		reconciler = &controllers.AWSClusterReconciler{
 			Client:         k8sClient,
 			EnableIRSARole: true,
 			Log:            ctrl.Log,
@@ -68,18 +68,6 @@ var _ = Describe("SecretReconciler", func() {
 			},
 			Data: map[string]string{
 				"values": "baseDomain: test.gaws.gigantic.io\n",
-			},
-		})
-		Expect(err).NotTo(HaveOccurred())
-
-		err = k8sClient.Create(ctx, &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-cluster-irsa-cloudfront",
-				Namespace: namespace,
-			},
-			Data: map[string][]byte{
-				"arn":    []byte("arn:aws:cloudfront::123456789999:distribution/EABCDEGUGUGUG"),
-				"domain": []byte("foobar.cloudfront.net"),
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -143,7 +131,7 @@ var _ = Describe("SecretReconciler", func() {
 		Expect(namespace).NotTo(BeEmpty())
 		req = ctrl.Request{
 			NamespacedName: client.ObjectKey{
-				Name:      "test-cluster-irsa-cloudfront",
+				Name:      "myawsc",
 				Namespace: namespace,
 			},
 		}
