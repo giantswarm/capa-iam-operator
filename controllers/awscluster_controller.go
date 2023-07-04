@@ -23,8 +23,8 @@ import (
 	"strings"
 
 	awsclientgo "github.com/aws/aws-sdk-go/aws/client"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -49,7 +49,6 @@ type AWSClusterReconciler struct {
 	client.Client
 	EnableIRSARole            bool
 	Log                       logr.Logger
-	Scheme                    *runtime.Scheme
 	IAMClientAndRegionFactory func(awsclientgo.ConfigProvider) (iamiface.IAMAPI, string)
 	AWSClient                 awsclient.AwsClientInterface
 }
@@ -65,29 +64,23 @@ func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		logger.Info("IRSA is not enabled")
 		return ctrl.Result{}, nil
 	}
-	logger.Info("Reconciling IRSA Secrets")
+	logger.Info("Reconciling IRSA roles")
 
 	awsCluster := &capa.AWSCluster{}
 	err := r.Get(ctx, req.NamespacedName, awsCluster)
 	if err != nil {
-		logger.Error(err, "Failed to get the awsCLuster")
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.WithStack(client.IgnoreNotFound(err))
 	}
 
-	var result ctrl.Result
-
-	if awsCluster.DeletionTimestamp == nil {
-		logger.Info("IRSA Roles - reconcile normal")
-		result, err = r.reconcileNormal(ctx, logger, awsCluster)
-	} else {
-		logger.Info("IRSA Roles - reconcile delete")
-		result, err = r.reconcileDelete(ctx, logger, awsCluster)
+	if awsCluster.DeletionTimestamp != nil {
+		return r.reconcileDelete(ctx, logger, awsCluster)
 	}
 
-	return result, err
+	return r.reconcileNormal(ctx, logger, awsCluster)
 }
 
 func (r *AWSClusterReconciler) reconcileNormal(ctx context.Context, logger logr.Logger, awsCluster *capa.AWSCluster) (ctrl.Result, error) {
+	logger.Info("reconcile normal")
 	// add finalizer to AWSCluster
 	if !controllerutil.ContainsFinalizer(awsCluster, key.FinalizerName(iam.IRSARole)) {
 		patchHelper, err := patch.NewHelper(awsCluster, r.Client)
@@ -97,10 +90,10 @@ func (r *AWSClusterReconciler) reconcileNormal(ctx context.Context, logger logr.
 		controllerutil.AddFinalizer(awsCluster, key.FinalizerName(iam.IRSARole))
 		err = patchHelper.Patch(ctx, awsCluster)
 		if err != nil {
-			logger.Error(err, "failed to add finalizer on Secret")
+			logger.Error(err, "failed to add finalizer on AWSCluster")
 			return ctrl.Result{}, err
 		}
-		logger.Info("successfully added finalizer to Secret", "finalizer_name", key.FinalizerName(iam.IRSARole))
+		logger.Info("successfully added finalizer to AWSCluster", "finalizer_name", key.FinalizerName(iam.IRSARole))
 	}
 
 	cm := &corev1.ConfigMap{}
@@ -124,10 +117,10 @@ func (r *AWSClusterReconciler) reconcileNormal(ctx context.Context, logger logr.
 		controllerutil.AddFinalizer(cm, key.FinalizerName(iam.IRSARole))
 		err = patchHelper.Patch(ctx, cm)
 		if err != nil {
-			logger.Error(err, "failed to remove finalizer from configmap")
+			logger.Error(err, "failed to add finalizer to configmap", "configmap", fmt.Sprintf("%s-%s", awsCluster.Name, "cluster-values"))
 			return ctrl.Result{}, err
 		}
-		logger.Info("successfully removed finalizer from configmap", "finalizer_name", iam.IRSARole)
+		logger.Info("successfully added finalizer to configmap", "finalizer_name", iam.IRSARole, "configmap", fmt.Sprintf("%s-%s", awsCluster.Name, "cluster-values"))
 	}
 
 	awsClusterRoleIdentity, err := key.GetAWSClusterRoleIdentity(ctx, r.Client, awsCluster.Spec.IdentityRef.Name)
@@ -182,6 +175,7 @@ func (r *AWSClusterReconciler) reconcileNormal(ctx context.Context, logger logr.
 }
 
 func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, logger logr.Logger, awsCluster *capa.AWSCluster) (ctrl.Result, error) {
+	logger.Info("reconcile delete")
 	awsClientSession, err := r.AWSClient.GetAWSClientSession(ctx, awsCluster.Name, awsCluster.Namespace)
 	if err != nil {
 		logger.Error(err, "Failed to get aws client session")
@@ -218,10 +212,10 @@ func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, logger logr.
 		controllerutil.RemoveFinalizer(awsCluster, key.FinalizerName(iam.IRSARole))
 		err = patchHelper.Patch(ctx, awsCluster)
 		if err != nil {
-			logger.Error(err, "failed to remove finalizer on awsCluster")
+			logger.Error(err, "failed to remove finalizer from awsCluster", "finalizer_name", key.FinalizerName(iam.IRSARole), "cluster_name", awsCluster)
 			return ctrl.Result{}, err
 		}
-		logger.Info("successfully removed finalizer from awsCluster", "finalizer_name", key.FinalizerName(iam.IRSARole))
+		logger.Info("successfully removed finalizer from awsCluster", "finalizer_name", key.FinalizerName(iam.IRSARole), "cluster_name", awsCluster)
 	}
 
 	cm := &corev1.ConfigMap{}
