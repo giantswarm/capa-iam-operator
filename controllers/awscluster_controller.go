@@ -59,11 +59,6 @@ type AWSClusterReconciler struct {
 
 func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := r.Log.WithValues("namespace", req.Namespace, "AWSCluster", req.Name)
-
-	if !r.EnableIRSARole {
-		logger.Info("IRSA is not enabled")
-		return ctrl.Result{}, nil
-	}
 	logger.Info("Reconciling IRSA roles")
 
 	awsCluster := &capa.AWSCluster{}
