@@ -91,7 +91,7 @@ func (r *AWSClusterReconciler) reconcileNormal(ctx context.Context, logger logr.
 		err = patchHelper.Patch(ctx, awsCluster)
 		if err != nil {
 			logger.Error(err, "failed to add finalizer on AWSCluster")
-			return ctrl.Result{}, err
+			return ctrl.Result{}, errors.WithStack(err)
 		}
 		logger.Info("successfully added finalizer to AWSCluster", "finalizer_name", key.FinalizerName(iam.IRSARole))
 	}
@@ -106,19 +106,19 @@ func (r *AWSClusterReconciler) reconcileNormal(ctx context.Context, logger logr.
 		cm)
 	if err != nil {
 		logger.Error(err, "Failed to get the cluster-values configmap for cluster")
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.WithStack(err)
 	}
 
 	if !controllerutil.ContainsFinalizer(cm, key.FinalizerName(iam.IRSARole)) {
 		patchHelper, err := patch.NewHelper(cm, r.Client)
 		if err != nil {
-			return ctrl.Result{}, err
+			return ctrl.Result{}, errors.WithStack(err)
 		}
 		controllerutil.AddFinalizer(cm, key.FinalizerName(iam.IRSARole))
 		err = patchHelper.Patch(ctx, cm)
 		if err != nil {
 			logger.Error(err, "failed to add finalizer to configmap", "configmap", fmt.Sprintf("%s-%s", awsCluster.Name, "cluster-values"))
-			return ctrl.Result{}, err
+			return ctrl.Result{}, errors.WithStack(err)
 		}
 		logger.Info("successfully added finalizer to configmap", "finalizer_name", iam.IRSARole, "configmap", fmt.Sprintf("%s-%s", awsCluster.Name, "cluster-values"))
 	}
@@ -126,19 +126,19 @@ func (r *AWSClusterReconciler) reconcileNormal(ctx context.Context, logger logr.
 	awsClusterRoleIdentity, err := key.GetAWSClusterRoleIdentity(ctx, r.Client, awsCluster.Spec.IdentityRef.Name)
 	if err != nil {
 		logger.Error(err, "could not get AWSClusterRoleIdentity")
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.WithStack(err)
 	}
 
 	accountID, err := getAWSAccountID(awsClusterRoleIdentity)
 	if err != nil {
 		logger.Error(err, "Could not get account ID")
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.WithStack(err)
 	}
 
 	baseDomain, err := key.GetBaseDomain(ctx, r.Client, awsCluster.Name, awsCluster.Namespace)
 	if err != nil {
 		logger.Error(err, "Could not get base domain")
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.WithStack(err)
 	}
 
 	cloudFrontDomain := key.CloudFrontAlias(baseDomain)
@@ -146,7 +146,7 @@ func (r *AWSClusterReconciler) reconcileNormal(ctx context.Context, logger logr.
 	awsClientSession, err := r.AWSClient.GetAWSClientSession(ctx, awsCluster.Name, awsCluster.GetNamespace())
 	if err != nil {
 		logger.Error(err, "Failed to get aws client session", "cluster_name", awsCluster)
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.WithStack(err)
 	}
 
 	var iamService *iam.IAMService
@@ -168,7 +168,7 @@ func (r *AWSClusterReconciler) reconcileNormal(ctx context.Context, logger logr.
 	err = iamService.ReconcileRolesForIRSA(accountID, cloudFrontDomain)
 	if err != nil {
 		logger.Error(err, "Unable to reconcile role")
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.WithStack(err)
 	}
 
 	return ctrl.Result{}, nil
