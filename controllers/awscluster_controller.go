@@ -44,10 +44,9 @@ const (
 	IRSASecretSuffix = "irsa-cloudfront"
 )
 
-// AWSClusterReconciler reconciles a Secret object
+// AWSClusterReconciler reconciles a AWSCluster object
 type AWSClusterReconciler struct {
 	client.Client
-	EnableIRSARole            bool
 	Log                       logr.Logger
 	IAMClientAndRegionFactory func(awsclientgo.ConfigProvider) (iamiface.IAMAPI, string)
 	AWSClient                 awsclient.AwsClientInterface
@@ -80,7 +79,7 @@ func (r *AWSClusterReconciler) reconcileNormal(ctx context.Context, logger logr.
 	if !controllerutil.ContainsFinalizer(awsCluster, key.FinalizerName(iam.IRSARole)) {
 		patchHelper, err := patch.NewHelper(awsCluster, r.Client)
 		if err != nil {
-			return ctrl.Result{}, err
+			return ctrl.Result{}, errors.WithStack(err)
 		}
 		controllerutil.AddFinalizer(awsCluster, key.FinalizerName(iam.IRSARole))
 		err = patchHelper.Patch(ctx, awsCluster)
@@ -157,6 +156,7 @@ func (r *AWSClusterReconciler) reconcileNormal(ctx context.Context, logger logr.
 		iamService, err = iam.New(c)
 		if err != nil {
 			logger.Error(err, "Failed to generate IAM service")
+			return ctrl.Result{}, errors.WithStack(err)
 		}
 	}
 
@@ -174,7 +174,7 @@ func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, logger logr.
 	awsClientSession, err := r.AWSClient.GetAWSClientSession(ctx, awsCluster.Name, awsCluster.Namespace)
 	if err != nil {
 		logger.Error(err, "Failed to get aws client session")
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.WithStack(err)
 	}
 
 	var iamService *iam.IAMService

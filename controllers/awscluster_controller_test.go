@@ -52,10 +52,9 @@ var _ = Describe("AWSClusterReconciler", func() {
 		mockIAMClient = mocks.NewMockIAMAPI(mockCtrl)
 
 		reconciler = &controllers.AWSClusterReconciler{
-			Client:         k8sClient,
-			EnableIRSARole: true,
-			Log:            ctrl.Log,
-			AWSClient:      mockAwsClient,
+			Client:    k8sClient,
+			Log:       ctrl.Log,
+			AWSClient: mockAwsClient,
 			IAMClientAndRegionFactory: func(session awsclientupstream.ConfigProvider) (iamiface.IAMAPI, string) {
 				return mockIAMClient, fakeRegion
 			},

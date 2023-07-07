@@ -177,13 +177,13 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 		if controllerutil.ContainsFinalizer(awsMachineTemplate, key.FinalizerName(iam.ControlPlaneRole)) {
 			patchHelper, err := patch.NewHelper(awsMachineTemplate, r.Client)
 			if err != nil {
-				return ctrl.Result{}, err
+				return ctrl.Result{}, errors.WithStack(err)
 			}
 			controllerutil.RemoveFinalizer(awsMachineTemplate, key.FinalizerName(iam.ControlPlaneRole))
 			err = patchHelper.Patch(ctx, awsMachineTemplate)
 			if err != nil {
 				logger.Error(err, "failed to remove finalizer from AWSMachineTemplate")
-				return ctrl.Result{}, err
+				return ctrl.Result{}, errors.WithStack(err)
 			}
 			logger.Info("successfully removed finalizer from AWSMachineTemplate", "finalizer_name", iam.ControlPlaneRole)
 		}
@@ -198,19 +198,19 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 			cm)
 		if err != nil {
 			logger.Error(err, "Failed to get the cluster-values configmap for cluster")
-			return ctrl.Result{}, err
+			return ctrl.Result{}, errors.WithStack(err)
 		}
 
 		if controllerutil.ContainsFinalizer(cm, key.FinalizerName(iam.ControlPlaneRole)) {
 			patchHelper, err := patch.NewHelper(cm, r.Client)
 			if err != nil {
-				return ctrl.Result{}, err
+				return ctrl.Result{}, errors.WithStack(err)
 			}
 			controllerutil.RemoveFinalizer(cm, key.FinalizerName(iam.ControlPlaneRole))
 			err = patchHelper.Patch(ctx, cm)
 			if err != nil {
 				logger.Error(err, "failed to remove finalizer from configmap")
-				return ctrl.Result{}, err
+				return ctrl.Result{}, errors.WithStack(err)
 			}
 			logger.Info("successfully removed finalizer from configmap", "finalizer_name", iam.ControlPlaneRole)
 		}
@@ -219,13 +219,13 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 		if !controllerutil.ContainsFinalizer(awsMachineTemplate, key.FinalizerName(iam.ControlPlaneRole)) {
 			patchHelper, err := patch.NewHelper(awsMachineTemplate, r.Client)
 			if err != nil {
-				return ctrl.Result{}, err
+				return ctrl.Result{}, errors.WithStack(err)
 			}
 			controllerutil.AddFinalizer(awsMachineTemplate, key.FinalizerName(iam.ControlPlaneRole))
 			err = patchHelper.Patch(ctx, awsMachineTemplate)
 			if err != nil {
 				logger.Error(err, "failed to add finalizer on AWSMachineTemplate")
-				return ctrl.Result{}, err
+				return ctrl.Result{}, errors.WithStack(err)
 			}
 			logger.Info("successfully added finalizer to AWSMachineTemplate", "finalizer_name", iam.ControlPlaneRole)
 		}
@@ -235,18 +235,18 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 			awsCluster, err = key.GetAWSClusterByName(ctx, r.Client, clusterName, awsMachineTemplate.GetNamespace())
 			if err != nil {
 				logger.Error(err, "failed to get awsCluster")
-				return ctrl.Result{}, err
+				return ctrl.Result{}, errors.WithStack(err)
 			}
 			if !controllerutil.ContainsFinalizer(awsCluster, key.FinalizerName(iam.ControlPlaneRole)) {
 				patchHelper, err := patch.NewHelper(awsCluster, r.Client)
 				if err != nil {
-					return ctrl.Result{}, err
+					return ctrl.Result{}, errors.WithStack(err)
 				}
 				controllerutil.AddFinalizer(awsCluster, key.FinalizerName(iam.ControlPlaneRole))
 				err = patchHelper.Patch(ctx, awsCluster)
 				if err != nil {
 					logger.Error(err, "failed to add finalizer on AWSCluster")
-					return ctrl.Result{}, err
+					return ctrl.Result{}, errors.WithStack(err)
 				}
 				logger.Info("successfully added finalizer to AWSCluster", "finalizer_name", iam.ControlPlaneRole)
 			}
@@ -262,19 +262,19 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 			cm)
 		if err != nil {
 			logger.Error(err, "Failed to get the cluster-values configmap for cluster")
-			return ctrl.Result{}, err
+			return ctrl.Result{}, errors.WithStack(err)
 		}
 
 		if controllerutil.ContainsFinalizer(cm, key.FinalizerName(iam.ControlPlaneRole)) {
 			patchHelper, err := patch.NewHelper(cm, r.Client)
 			if err != nil {
-				return ctrl.Result{}, err
+				return ctrl.Result{}, errors.WithStack(err)
 			}
 			controllerutil.RemoveFinalizer(cm, key.FinalizerName(iam.ControlPlaneRole))
 			err = patchHelper.Patch(ctx, cm)
 			if err != nil {
 				logger.Error(err, "failed to remove finalizer from configmap")
-				return ctrl.Result{}, err
+				return ctrl.Result{}, errors.WithStack(err)
 			}
 			logger.Info("successfully removed finalizer from configmap", "finalizer_name", iam.ControlPlaneRole)
 		}
@@ -290,7 +290,7 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 					// IAM role for control plane may have been created already, but not known to IAM yet
 					// (returns `MalformedPolicyDocument: Invalid principal in policy: "AWS":"arn:aws:iam::[...]:role/control-plane-[...]"`).
 					// That will succeed after requeueing.
-					return ctrl.Result{}, err
+					return ctrl.Result{}, errors.WithStack(err)
 				}
 			}
 			// route53 role depends on KIAM role
@@ -298,26 +298,26 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 				awsClusterRoleIdentity, err := key.GetAWSClusterRoleIdentity(ctx, r.Client, awsCluster.Spec.IdentityRef.Name)
 				if err != nil {
 					logger.Error(err, "could not get AWSClusterRoleIdentity")
-					return ctrl.Result{}, err
+					return ctrl.Result{}, errors.WithStack(err)
 				}
 
 				accountID, err := getAWSAccountID(awsClusterRoleIdentity)
 				if err != nil {
 					logger.Error(err, "Could not get account ID")
-					return ctrl.Result{}, err
+					return ctrl.Result{}, errors.WithStack(err)
 				}
 
 				baseDomain, err := key.GetBaseDomain(ctx, r.Client, clusterName, req.Namespace)
 				if err != nil {
 					logger.Error(err, "Could not get base domain")
-					return ctrl.Result{}, err
+					return ctrl.Result{}, errors.WithStack(err)
 				}
 
 				cloudFrontDomain := key.CloudFrontAlias(baseDomain)
 
 				err = iamService.ReconcileRolesForIRSA(accountID, cloudFrontDomain)
 				if err != nil {
-					return ctrl.Result{}, err
+					return ctrl.Result{}, errors.WithStack(err)
 				}
 			}
 		}

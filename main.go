@@ -154,7 +154,6 @@ func main() {
 		}
 		if err = (&controllers.AWSClusterReconciler{
 			Client:                    mgr.GetClient(),
-			EnableIRSARole:            enableIRSARole,
 			Log:                       ctrl.Log.WithName("controllers").WithName("Secrets"),
 			IAMClientAndRegionFactory: iamClientAndRegionFactory,
 			AWSClient:                 awsClientAWSCluster,
