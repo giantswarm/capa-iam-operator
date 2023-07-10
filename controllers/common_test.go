@@ -26,12 +26,12 @@ var certManagerRoleInfo = RoleInfo{
     {
       "Effect": "Allow",
       "Principal": {
-        "Federated": "arn:aws:iam::123456789999:oidc-provider/foobar.cloudfront.net"
+        "Federated": "arn:aws:iam::012345678901:oidc-provider/irsa.test.gaws.gigantic.io"
       },
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
         "StringEquals": {
-          "foobar.cloudfront.net:sub": "system:serviceaccount:kube-system:cert-manager-controller"
+          "irsa.test.gaws.gigantic.io:sub": "system:serviceaccount:kube-system:cert-manager-controller"
         }
       }
     }
@@ -84,12 +84,12 @@ var externalDnsRoleInfo = RoleInfo{
     {
       "Effect": "Allow",
       "Principal": {
-        "Federated": "arn:aws:iam::123456789999:oidc-provider/foobar.cloudfront.net"
+        "Federated": "arn:aws:iam::012345678901:oidc-provider/irsa.test.gaws.gigantic.io"
       },
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
         "StringEquals": {
-          "foobar.cloudfront.net:sub": "system:serviceaccount:kube-system:external-dns"
+          "irsa.test.gaws.gigantic.io:sub": "system:serviceaccount:kube-system:external-dns"
         }
       }
     }

@@ -26,7 +26,6 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	expcapa "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -42,8 +41,8 @@ import (
 type AWSMachinePoolReconciler struct {
 	client.Client
 	Log                       logr.Logger
-	Scheme                    *runtime.Scheme
 	IAMClientAndRegionFactory func(awsclientgo.ConfigProvider) (iamiface.IAMAPI, string)
+	AWSClient                 awsclient.AwsClientInterface
 }
 
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinepools,verbs=get;list;watch;create;update;patch;delete
@@ -59,7 +58,7 @@ func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.WithStack(err)
 	}
 	// check if CR got CAPI watch-filter label
 	if !key.HasCapiWatchLabel(awsMachinePool.Labels) {
@@ -70,7 +69,8 @@ func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	clusterName, err := key.GetClusterIDFromLabels(awsMachinePool.ObjectMeta)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to get cluster name from AWSMachinePool")
+		logger.Error(err, "failed to get cluster name from AWSMachinePool")
+		return ctrl.Result{}, errors.WithStack(err)
 	}
 
 	logger = logger.WithValues("cluster", clusterName)
@@ -80,24 +80,10 @@ func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, nil
 	}
 
-	var awsClientGetter *awsclient.AwsClient
-	{
-		c := awsclient.AWSClientConfig{
-			ClusterName: clusterName,
-			CtrlClient:  r.Client,
-			Log:         logger,
-		}
-		awsClientGetter, err = awsclient.New(c)
-		if err != nil {
-			logger.Error(err, "failed to generate awsClientGetter")
-			return ctrl.Result{}, err
-		}
-	}
-
-	awsClientSession, err := awsClientGetter.GetAWSClientSession(ctx, awsMachinePool.GetNamespace())
+	awsClientSession, err := r.AWSClient.GetAWSClientSession(ctx, clusterName, awsMachinePool.GetNamespace())
 	if err != nil {
 		logger.Error(err, "Failed to get aws client session")
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.WithStack(err)
 	}
 
 	mainRoleName := awsMachinePool.Spec.AWSLaunchTemplate.IamInstanceProfile
@@ -115,20 +101,20 @@ func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		iamService, err = iam.New(c)
 		if err != nil {
 			logger.Error(err, "Failed to generate IAM service")
-			return ctrl.Result{}, err
+			return ctrl.Result{}, errors.WithStack(err)
 		}
 	}
 
 	if awsMachinePool.DeletionTimestamp != nil {
 		roleUsed, err := isRoleUsedElsewhere(ctx, r.Client, mainRoleName)
 		if err != nil {
-			return ctrl.Result{}, err
+			return ctrl.Result{}, errors.WithStack(err)
 		}
 
 		if !roleUsed {
 			err = iamService.DeleteRole()
 			if err != nil {
-				return ctrl.Result{}, err
+				return ctrl.Result{}, errors.WithStack(err)
 			}
 		}
 
@@ -137,18 +123,18 @@ func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			awsCluster, err := key.GetAWSClusterByName(ctx, r.Client, clusterName, awsMachinePool.GetNamespace())
 			if err != nil {
 				logger.Error(err, "failed to get awsCluster")
-				return ctrl.Result{}, err
+				return ctrl.Result{}, errors.WithStack(err)
 			}
 			if controllerutil.ContainsFinalizer(awsCluster, key.FinalizerName(iam.NodesRole)) {
 				patchHelper, err := patch.NewHelper(awsCluster, r.Client)
 				if err != nil {
-					return ctrl.Result{}, err
+					return ctrl.Result{}, errors.WithStack(err)
 				}
 				controllerutil.RemoveFinalizer(awsCluster, key.FinalizerName(iam.NodesRole))
 				err = patchHelper.Patch(ctx, awsCluster)
 				if err != nil {
 					logger.Error(err, "failed to remove finalizer on AWSCluster")
-					return ctrl.Result{}, err
+					return ctrl.Result{}, errors.WithStack(err)
 				}
 				logger.Info("successfully removed finalizer from AWSCluster", "finalizer_name", iam.NodesRole)
 			}
@@ -158,13 +144,13 @@ func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		if controllerutil.ContainsFinalizer(awsMachinePool, key.FinalizerName(iam.NodesRole)) {
 			patchHelper, err := patch.NewHelper(awsMachinePool, r.Client)
 			if err != nil {
-				return ctrl.Result{}, err
+				return ctrl.Result{}, errors.WithStack(err)
 			}
 			controllerutil.RemoveFinalizer(awsMachinePool, key.FinalizerName(iam.NodesRole))
 			err = patchHelper.Patch(ctx, awsMachinePool)
 			if err != nil {
 				logger.Error(err, "failed to remove finalizer from AWSMachinePool")
-				return ctrl.Result{}, err
+				return ctrl.Result{}, errors.WithStack(err)
 			}
 			logger.Info("successfully removed finalizer from AWSMachinePool", "finalizer_name", iam.NodesRole)
 		}
@@ -173,13 +159,13 @@ func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		if !controllerutil.ContainsFinalizer(awsMachinePool, key.FinalizerName(iam.NodesRole)) {
 			patchHelper, err := patch.NewHelper(awsMachinePool, r.Client)
 			if err != nil {
-				return ctrl.Result{}, err
+				return ctrl.Result{}, errors.WithStack(err)
 			}
 			controllerutil.AddFinalizer(awsMachinePool, key.FinalizerName(iam.NodesRole))
 			err = patchHelper.Patch(ctx, awsMachinePool)
 			if err != nil {
 				logger.Error(err, "failed to add finalizer on AWSMachinePool")
-				return ctrl.Result{}, err
+				return ctrl.Result{}, errors.WithStack(err)
 			}
 			logger.Info("successfully added finalizer to AWSMachinePool", "finalizer_name", iam.NodesRole)
 		}
@@ -189,18 +175,18 @@ func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			awsCluster, err := key.GetAWSClusterByName(ctx, r.Client, clusterName, awsMachinePool.GetNamespace())
 			if err != nil {
 				logger.Error(err, "failed to get awsCluster")
-				return ctrl.Result{}, err
+				return ctrl.Result{}, errors.WithStack(err)
 			}
 			if !controllerutil.ContainsFinalizer(awsCluster, key.FinalizerName(iam.NodesRole)) {
 				patchHelper, err := patch.NewHelper(awsCluster, r.Client)
 				if err != nil {
-					return ctrl.Result{}, err
+					return ctrl.Result{}, errors.WithStack(err)
 				}
 				controllerutil.AddFinalizer(awsCluster, key.FinalizerName(iam.NodesRole))
 				err = patchHelper.Patch(ctx, awsCluster)
 				if err != nil {
 					logger.Error(err, "failed to add finalizer on AWSCluster")
-					return ctrl.Result{}, err
+					return ctrl.Result{}, errors.WithStack(err)
 				}
 				logger.Info("successfully added finalizer to AWSCluster", "finalizer_name", iam.NodesRole)
 			}
@@ -208,7 +194,7 @@ func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 		err = iamService.ReconcileRole()
 		if err != nil {
-			return ctrl.Result{}, err
+			return ctrl.Result{}, errors.WithStack(err)
 		}
 	}
 

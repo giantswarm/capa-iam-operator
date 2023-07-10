@@ -4,9 +4,15 @@ import (
 	"context"
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/yaml"
 	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
+	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/giantswarm/microerror"
 
 	"github.com/giantswarm/capa-iam-operator/pkg/iam"
 )
@@ -29,6 +35,19 @@ func GetClusterIDFromLabels(t v1.ObjectMeta) (string, error) {
 	return value, nil
 }
 
+func GetClusterByName(ctx context.Context, ctrlClient client.Client, clusterName string, namespace string) (*capi.Cluster, error) {
+	cluster := &capi.Cluster{}
+
+	if err := ctrlClient.Get(ctx, types.NamespacedName{
+		Name:      clusterName,
+		Namespace: namespace,
+	}, cluster); err != nil {
+		return nil, err
+	}
+
+	return cluster, nil
+}
+
 func GetAWSClusterByName(ctx context.Context, ctrlClient client.Client, clusterName string, namespace string) (*capa.AWSCluster, error) {
 	awsClusterList := &capa.AWSClusterList{}
 
@@ -45,6 +64,19 @@ func GetAWSClusterByName(ctx context.Context, ctrlClient client.Client, clusterN
 	}
 
 	return &awsClusterList.Items[0], nil
+}
+
+func GetAWSClusterRoleIdentity(ctx context.Context, ctrlClient client.Client, awsClusterRoleIdentityName string) (*capa.AWSClusterRoleIdentity, error) {
+	awsClusterRoleIdentity := &capa.AWSClusterRoleIdentity{}
+
+	if err := ctrlClient.Get(ctx, types.NamespacedName{
+		Name:      awsClusterRoleIdentityName,
+		Namespace: "",
+	}, awsClusterRoleIdentity); err != nil {
+		return nil, err
+	}
+
+	return awsClusterRoleIdentity, nil
 }
 
 func HasCapiWatchLabel(labels map[string]string) bool {
@@ -75,4 +107,43 @@ func IsBastionAWSMachineTemplate(labels map[string]string) bool {
 		}
 	}
 	return false
+}
+
+func CloudFrontAlias(baseDomain string) string {
+	return fmt.Sprintf("irsa.%s", baseDomain)
+}
+
+func GetBaseDomain(ctx context.Context, ctrlClient client.Client, clusterName, namespace string) (string, error) {
+
+	cm := &corev1.ConfigMap{}
+	err := ctrlClient.Get(ctx, types.NamespacedName{
+		Name:      fmt.Sprintf("%s-cluster-values", clusterName),
+		Namespace: namespace,
+	}, cm)
+	if err != nil {
+		return "", err
+	}
+
+	jsonStr := cm.Data["values"]
+	if jsonStr == "" {
+		return "", microerror.Mask(clusterValuesConfigMapNotFound)
+	}
+
+	type clusterValues struct {
+		BaseDomain string `yaml:"baseDomain"`
+	}
+
+	cv := clusterValues{}
+
+	err = yaml.Unmarshal([]byte(jsonStr), &cv)
+	if err != nil {
+		return "", err
+	}
+
+	baseDomain := cv.BaseDomain
+	if baseDomain == "" {
+		return "", microerror.Mask(baseDomainNotFound)
+	}
+
+	return baseDomain, nil
 }

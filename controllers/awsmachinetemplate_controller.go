@@ -27,7 +27,6 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -46,14 +45,13 @@ type AWSMachineTemplateReconciler struct {
 	EnableKiamRole            bool
 	EnableRoute53Role         bool
 	Log                       logr.Logger
-	Scheme                    *runtime.Scheme
 	IAMClientAndRegionFactory func(awsclientgo.ConfigProvider) (iamiface.IAMAPI, string)
+	AWSClient                 awsclient.AwsClientInterface
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinetemplates,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinetemplates/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinetemplates/finalizers,verbs=update
-// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -100,21 +98,7 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, nil
 	}
 
-	var awsClientGetter *awsclient.AwsClient
-	{
-		c := awsclient.AWSClientConfig{
-			ClusterName: clusterName,
-			CtrlClient:  r.Client,
-			Log:         logger,
-		}
-		awsClientGetter, err = awsclient.New(c)
-		if err != nil {
-			logger.Error(err, "failed to generate awsClientGetter")
-			return ctrl.Result{}, err
-		}
-	}
-
-	awsClientSession, err := awsClientGetter.GetAWSClientSession(ctx, awsMachineTemplate.GetNamespace())
+	awsClientSession, err := r.AWSClient.GetAWSClientSession(ctx, clusterName, awsMachineTemplate.GetNamespace())
 	if err != nil {
 		logger.Error(err, "Failed to get aws client session")
 		return ctrl.Result{}, err
@@ -193,79 +177,106 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 		if controllerutil.ContainsFinalizer(awsMachineTemplate, key.FinalizerName(iam.ControlPlaneRole)) {
 			patchHelper, err := patch.NewHelper(awsMachineTemplate, r.Client)
 			if err != nil {
-				return ctrl.Result{}, err
+				return ctrl.Result{}, errors.WithStack(err)
 			}
 			controllerutil.RemoveFinalizer(awsMachineTemplate, key.FinalizerName(iam.ControlPlaneRole))
 			err = patchHelper.Patch(ctx, awsMachineTemplate)
 			if err != nil {
 				logger.Error(err, "failed to remove finalizer from AWSMachineTemplate")
-				return ctrl.Result{}, err
+				return ctrl.Result{}, errors.WithStack(err)
 			}
 			logger.Info("successfully removed finalizer from AWSMachineTemplate", "finalizer_name", iam.ControlPlaneRole)
 		}
 
-		secret := &corev1.Secret{}
+		cm := &corev1.ConfigMap{}
 		err = r.Get(
 			ctx,
 			types.NamespacedName{
 				Namespace: req.NamespacedName.Namespace,
-				Name:      fmt.Sprintf("%s-%s", clusterName, IRSASecretSuffix),
+				Name:      fmt.Sprintf("%s-%s", clusterName, "cluster-values"),
 			},
-			secret)
+			cm)
 		if err != nil {
-			logger.Error(err, "Failed to get the irsa-cloudfront secret for cluster")
-			return ctrl.Result{}, err
+			logger.Error(err, "Failed to get the cluster-values configmap for cluster")
+			return ctrl.Result{}, errors.WithStack(err)
 		}
 
-		if controllerutil.ContainsFinalizer(secret, key.FinalizerName(iam.ControlPlaneRole)) {
-			patchHelper, err := patch.NewHelper(secret, r.Client)
+		if controllerutil.ContainsFinalizer(cm, key.FinalizerName(iam.ControlPlaneRole)) {
+			patchHelper, err := patch.NewHelper(cm, r.Client)
 			if err != nil {
-				return ctrl.Result{}, err
+				return ctrl.Result{}, errors.WithStack(err)
 			}
-			controllerutil.RemoveFinalizer(secret, key.FinalizerName(iam.ControlPlaneRole))
-			err = patchHelper.Patch(ctx, secret)
+			controllerutil.RemoveFinalizer(cm, key.FinalizerName(iam.ControlPlaneRole))
+			err = patchHelper.Patch(ctx, cm)
 			if err != nil {
-				logger.Error(err, "failed to remove finalizer from secret")
-				return ctrl.Result{}, err
+				logger.Error(err, "failed to remove finalizer from configmap")
+				return ctrl.Result{}, errors.WithStack(err)
 			}
-			logger.Info("successfully removed finalizer from secret", "finalizer_name", iam.ControlPlaneRole)
+			logger.Info("successfully removed finalizer from configmap", "finalizer_name", iam.ControlPlaneRole)
 		}
 	} else {
 		// add finalizer to AWSMachineTemplate
 		if !controllerutil.ContainsFinalizer(awsMachineTemplate, key.FinalizerName(iam.ControlPlaneRole)) {
 			patchHelper, err := patch.NewHelper(awsMachineTemplate, r.Client)
 			if err != nil {
-				return ctrl.Result{}, err
+				return ctrl.Result{}, errors.WithStack(err)
 			}
 			controllerutil.AddFinalizer(awsMachineTemplate, key.FinalizerName(iam.ControlPlaneRole))
 			err = patchHelper.Patch(ctx, awsMachineTemplate)
 			if err != nil {
 				logger.Error(err, "failed to add finalizer on AWSMachineTemplate")
-				return ctrl.Result{}, err
+				return ctrl.Result{}, errors.WithStack(err)
 			}
 			logger.Info("successfully added finalizer to AWSMachineTemplate", "finalizer_name", iam.ControlPlaneRole)
 		}
-
+		var awsCluster *capa.AWSCluster
 		// add finalizer to AWSCluster
 		{
-			awsCluster, err := key.GetAWSClusterByName(ctx, r.Client, clusterName, awsMachineTemplate.GetNamespace())
+			awsCluster, err = key.GetAWSClusterByName(ctx, r.Client, clusterName, awsMachineTemplate.GetNamespace())
 			if err != nil {
 				logger.Error(err, "failed to get awsCluster")
-				return ctrl.Result{}, err
+				return ctrl.Result{}, errors.WithStack(err)
 			}
 			if !controllerutil.ContainsFinalizer(awsCluster, key.FinalizerName(iam.ControlPlaneRole)) {
 				patchHelper, err := patch.NewHelper(awsCluster, r.Client)
 				if err != nil {
-					return ctrl.Result{}, err
+					return ctrl.Result{}, errors.WithStack(err)
 				}
 				controllerutil.AddFinalizer(awsCluster, key.FinalizerName(iam.ControlPlaneRole))
 				err = patchHelper.Patch(ctx, awsCluster)
 				if err != nil {
 					logger.Error(err, "failed to add finalizer on AWSCluster")
-					return ctrl.Result{}, err
+					return ctrl.Result{}, errors.WithStack(err)
 				}
 				logger.Info("successfully added finalizer to AWSCluster", "finalizer_name", iam.ControlPlaneRole)
 			}
+		}
+
+		cm := &corev1.ConfigMap{}
+		err = r.Get(
+			ctx,
+			types.NamespacedName{
+				Namespace: req.NamespacedName.Namespace,
+				Name:      fmt.Sprintf("%s-%s", clusterName, "cluster-values"),
+			},
+			cm)
+		if err != nil {
+			logger.Error(err, "Failed to get the cluster-values configmap for cluster")
+			return ctrl.Result{}, errors.WithStack(err)
+		}
+
+		if controllerutil.ContainsFinalizer(cm, key.FinalizerName(iam.ControlPlaneRole)) {
+			patchHelper, err := patch.NewHelper(cm, r.Client)
+			if err != nil {
+				return ctrl.Result{}, errors.WithStack(err)
+			}
+			controllerutil.RemoveFinalizer(cm, key.FinalizerName(iam.ControlPlaneRole))
+			err = patchHelper.Patch(ctx, cm)
+			if err != nil {
+				logger.Error(err, "failed to remove finalizer from configmap")
+				return ctrl.Result{}, errors.WithStack(err)
+			}
+			logger.Info("successfully removed finalizer from configmap", "finalizer_name", iam.ControlPlaneRole)
 		}
 
 		err = iamService.ReconcileRole()
@@ -279,55 +290,34 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 					// IAM role for control plane may have been created already, but not known to IAM yet
 					// (returns `MalformedPolicyDocument: Invalid principal in policy: "AWS":"arn:aws:iam::[...]:role/control-plane-[...]"`).
 					// That will succeed after requeueing.
-					return ctrl.Result{}, err
+					return ctrl.Result{}, errors.WithStack(err)
 				}
 			}
 			// route53 role depends on KIAM role
 			if r.EnableKiamRole && r.EnableRoute53Role {
-				secret := &corev1.Secret{}
-				err = r.Get(
-					ctx,
-					types.NamespacedName{
-						Namespace: req.NamespacedName.Namespace,
-						Name:      fmt.Sprintf("%s-%s", clusterName, IRSASecretSuffix),
-					},
-					secret)
+				awsClusterRoleIdentity, err := key.GetAWSClusterRoleIdentity(ctx, r.Client, awsCluster.Spec.IdentityRef.Name)
 				if err != nil {
-					logger.Error(err, "Failed to get the irsa-cloudfront secret for cluster")
-
-					// irsa-operator may not have created the secret yet. If so, it will succeed after requeueing.
-					return ctrl.Result{}, err
+					logger.Error(err, "could not get AWSClusterRoleIdentity")
+					return ctrl.Result{}, errors.WithStack(err)
 				}
 
-				if !controllerutil.ContainsFinalizer(secret, key.FinalizerName(iam.ControlPlaneRole)) {
-					patchHelper, err := patch.NewHelper(secret, r.Client)
-					if err != nil {
-						return ctrl.Result{}, err
-					}
-					controllerutil.AddFinalizer(secret, key.FinalizerName(iam.ControlPlaneRole))
-					err = patchHelper.Patch(ctx, secret)
-					if err != nil {
-						logger.Error(err, "failed to add finalizer from secret")
-						return ctrl.Result{}, err
-					}
-					logger.Info("successfully added finalizer from secret", "finalizer_name", iam.ControlPlaneRole)
-				}
-
-				accountID, err := getAWSAccountID(secret)
+				accountID, err := getAWSAccountID(awsClusterRoleIdentity)
 				if err != nil {
 					logger.Error(err, "Could not get account ID")
-					return ctrl.Result{}, err
+					return ctrl.Result{}, errors.WithStack(err)
 				}
 
-				cloudFrontDomain, err := getCloudFrontDomain(secret)
+				baseDomain, err := key.GetBaseDomain(ctx, r.Client, clusterName, req.Namespace)
 				if err != nil {
-					logger.Error(err, "Could not get the cloudfront domain")
-					return ctrl.Result{}, err
+					logger.Error(err, "Could not get base domain")
+					return ctrl.Result{}, errors.WithStack(err)
 				}
+
+				cloudFrontDomain := key.CloudFrontAlias(baseDomain)
 
 				err = iamService.ReconcileRolesForIRSA(accountID, cloudFrontDomain)
 				if err != nil {
-					return ctrl.Result{}, err
+					return ctrl.Result{}, errors.WithStack(err)
 				}
 			}
 		}

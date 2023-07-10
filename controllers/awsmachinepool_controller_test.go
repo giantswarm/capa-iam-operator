@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	awsclientupstream "github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"github.com/golang/mock/gomock"
@@ -29,11 +30,13 @@ var _ = Describe("AWSMachinePoolReconciler", func() {
 	var (
 		ctx           context.Context
 		mockCtrl      *gomock.Controller
+		mockAwsClient *mocks.MockAwsClientInterface
 		mockIAMClient *mocks.MockIAMAPI
 		reconcileErr  error
 		reconciler    *controllers.AWSMachinePoolReconciler
 		req           ctrl.Request
 		namespace     string
+		sess          *session.Session
 	)
 
 	SetupNamespaceBeforeAfterEach(&namespace)
@@ -46,12 +49,13 @@ var _ = Describe("AWSMachinePoolReconciler", func() {
 
 		ctx := context.TODO()
 
+		mockAwsClient = mocks.NewMockAwsClientInterface(mockCtrl)
 		mockIAMClient = mocks.NewMockIAMAPI(mockCtrl)
 
 		reconciler = &controllers.AWSMachinePoolReconciler{
-			Client: k8sClient,
-			Log:    ctrl.Log,
-
+			Client:    k8sClient,
+			Log:       ctrl.Log,
+			AWSClient: mockAwsClient,
 			IAMClientAndRegionFactory: func(session awsclientupstream.ConfigProvider) (iamiface.IAMAPI, string) {
 				return mockIAMClient, fakeRegion
 			},
@@ -94,14 +98,13 @@ var _ = Describe("AWSMachinePoolReconciler", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		err = k8sClient.Create(ctx, &corev1.Secret{
+		err = k8sClient.Create(ctx, &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-cluster-irsa-cloudfront",
+				Name:      "test-cluster-cluster-values",
 				Namespace: namespace,
 			},
-			Data: map[string][]byte{
-				"arn":    []byte("arn:aws:cloudfront::123456789999:distribution/EABCDEGUGUGUG"),
-				"domain": []byte("foobar.cloudfront.net"),
+			Data: map[string]string{
+				"values": "baseDomain: test.gaws.gigantic.io\n",
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -113,6 +116,11 @@ var _ = Describe("AWSMachinePoolReconciler", func() {
 				Namespace: namespace,
 			},
 		}
+
+		sess, err = session.NewSession(&aws.Config{
+			Region: aws.String("eu-west-1")},
+		)
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -298,6 +306,7 @@ var _ = Describe("AWSMachinePoolReconciler", func() {
 
 	When("a role does not exist", func() {
 		BeforeEach(func() {
+			mockAwsClient.EXPECT().GetAWSClientSession(ctx, "test-cluster", namespace).Return(sess, nil)
 			for _, info := range expectedRoleStatusesOnSuccess {
 				mockIAMClient.EXPECT().GetRole(&iam.GetRoleInput{
 					RoleName: aws.String(info.ExpectedName),
