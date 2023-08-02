@@ -75,16 +75,10 @@ func New(config IAMServiceConfig) (*IAMService, error) {
 	if !(config.RoleType == ControlPlaneRole || config.RoleType == NodesRole || config.RoleType == BastionRole || config.RoleType == IRSARole) {
 		return nil, fmt.Errorf("cannot create IAMService with invalid RoleType '%s'", config.RoleType)
 	}
-	config.Log.Info("creating IAMCLIENT")
 	client, region := config.IAMClientAndRegionFactory(config.AWSSession)
 
 	l := config.Log.WithValues("clusterName", config.ClusterName, "iam-role", config.RoleType)
-
-	config.Log.Info("creating eKSclient")
 	eksClient := eks.New(config.AWSSession, aws.NewConfig().WithRegion(region))
-
-	config.Log.Info("created eKSclient")
-
 	s := &IAMService{
 		clusterName:      config.ClusterName,
 		iamClient:        client,
