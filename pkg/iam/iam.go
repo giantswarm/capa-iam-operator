@@ -615,6 +615,8 @@ func (s *IAMService) GetIRSAOpenIDURlForEKS(clusterName string) (string, error) 
 	if err != nil {
 		return "", microerror.Mask(err)
 	}
+	fmt.Printf("found EKS clusters %d\n", len(l.Clusters))
+
 	for _, c := range l.Clusters {
 		fmt.Printf("found EKS cluster %s\n", *c)
 	}

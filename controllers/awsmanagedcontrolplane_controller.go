@@ -100,7 +100,7 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 			return ctrl.Result{}, microerror.Mask(err)
 		}
 
-		logger.Info(fmt.Sprintf("assumed role %s", *o.Arn))
+		logger.Info(fmt.Sprintf("assumed role %s in region %s", *o.Arn, stsClient.SigningRegion))
 
 		c := iam.IAMServiceConfig{
 			AWSSession:                awsClientSession,
