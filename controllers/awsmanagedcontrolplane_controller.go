@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"time"
 
 	awsclientgo "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
@@ -68,9 +69,12 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 		return ctrl.Result{}, nil
 	}
 
-	if *eksCluster.Spec.RoleName == "" {
-		logger.Info("AWSManagedControlPlane has empty .spec.RoleName, not creating IAM role")
-		return ctrl.Result{}, nil
+	if eksCluster.Spec.RoleName == nil {
+		logger.Info("AWSManagedControlPlane has empty .spec.RoleName, waiting for role creation")
+		return ctrl.Result{
+			Requeue:      true,
+			RequeueAfter: time.Minute,
+		}, nil
 	}
 
 	awsClusterRoleIdentity, err := key.GetAWSClusterRoleIdentity(ctx, r.Client, eksCluster.Spec.IdentityRef.Name)
