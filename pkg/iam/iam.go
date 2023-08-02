@@ -6,8 +6,11 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	awsclientgo "github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go/service/eks"
+	"github.com/aws/aws-sdk-go/service/eks/eksiface"
 	awsiam "github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
+	"github.com/giantswarm/microerror"
 	"github.com/go-logr/logr"
 )
 
@@ -25,23 +28,26 @@ const (
 )
 
 type IAMServiceConfig struct {
-	AWSSession   awsclientgo.ConfigProvider
-	ClusterName  string
-	MainRoleName string
-	Log          logr.Logger
-	RoleType     string
+	AWSSession       awsclientgo.ConfigProvider
+	ClusterName      string
+	MainRoleName     string
+	Log              logr.Logger
+	RoleType         string
+	PrincipalRoleARN string
 
 	// This must return a client and the signing region
 	IAMClientAndRegionFactory func(awsclientgo.ConfigProvider) (iamiface.IAMAPI, string)
 }
 
 type IAMService struct {
-	clusterName  string
-	iamClient    iamiface.IAMAPI
-	mainRoleName string
-	log          logr.Logger
-	region       string
-	roleType     string
+	clusterName      string
+	iamClient        iamiface.IAMAPI
+	eksClient        eksiface.EKSAPI
+	mainRoleName     string
+	log              logr.Logger
+	region           string
+	roleType         string
+	principalRoleARN string
 }
 
 type Route53RoleParams struct {
@@ -50,7 +56,7 @@ type Route53RoleParams struct {
 	CloudFrontDomain string
 	Namespace        string
 	ServiceAccount   string
-	KIAMRoleARN      string
+	PrincipalRoleARN string
 }
 
 func New(config IAMServiceConfig) (*IAMService, error) {
@@ -74,12 +80,14 @@ func New(config IAMServiceConfig) (*IAMService, error) {
 	l := config.Log.WithValues("clusterName", config.ClusterName, "iam-role", config.RoleType)
 
 	s := &IAMService{
-		clusterName:  config.ClusterName,
-		iamClient:    client,
-		mainRoleName: config.MainRoleName,
-		log:          l,
-		roleType:     config.RoleType,
-		region:       region,
+		clusterName:      config.ClusterName,
+		iamClient:        client,
+		eksClient:        eks.New(config.AWSSession),
+		mainRoleName:     config.MainRoleName,
+		log:              l,
+		roleType:         config.RoleType,
+		region:           region,
+		principalRoleARN: config.PrincipalRoleARN,
 	}
 
 	return s, nil
@@ -170,8 +178,10 @@ func (s *IAMService) generateRoute53RoleParams(roleTypeToReconcile string, awsAc
 		return Route53RoleParams{}, err
 	}
 
-	var kiamRoleARN string
-	{
+	var principalRoleARN string
+	if s.principalRoleARN != "" {
+		principalRoleARN = s.principalRoleARN
+	} else {
 		i := &awsiam.GetRoleInput{
 			RoleName: aws.String(roleName(KIAMRole, s.clusterName)),
 		}
@@ -182,13 +192,13 @@ func (s *IAMService) generateRoute53RoleParams(roleTypeToReconcile string, awsAc
 			return Route53RoleParams{}, err
 		}
 
-		kiamRoleARN = *o.Role.Arn
+		principalRoleARN = *o.Role.Arn
 	}
 
 	if s.roleType == KIAMRole {
 		params := Route53RoleParams{
 			EC2ServiceDomain: ec2ServiceDomain(s.region),
-			KIAMRoleARN:      kiamRoleARN,
+			PrincipalRoleARN: principalRoleARN,
 		}
 
 		return params, nil
@@ -200,7 +210,7 @@ func (s *IAMService) generateRoute53RoleParams(roleTypeToReconcile string, awsAc
 		CloudFrontDomain: cloudFrontDomain,
 		Namespace:        namespace,
 		ServiceAccount:   serviceAccount,
-		KIAMRoleARN:      kiamRoleARN,
+		PrincipalRoleARN: principalRoleARN,
 	}
 
 	return params, nil
@@ -581,6 +591,32 @@ func (s *IAMService) cleanAttachedPolicies(roleName string) error {
 
 	l.Info("cleaned attached and inline policies from IAM Role")
 	return nil
+}
+
+func (s *IAMService) GetRoleARN(roleName string) (string, error) {
+	o, err := s.iamClient.GetRole(&awsiam.GetRoleInput{
+		RoleName: aws.String(roleName),
+	})
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+
+	return *o.Role.Arn, nil
+}
+
+func (s *IAMService) SetPrincipalRoleARN(arn string) {
+	s.principalRoleARN = arn
+}
+
+func (s *IAMService) GetIRSAOpenIDURlForEKS(clusterName string) (string, error) {
+	i := &eks.DescribeClusterInput{
+		Name: aws.String(clusterName),
+	}
+	cluster, err := s.eksClient.DescribeCluster(i)
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+	return *cluster.Cluster.Identity.Oidc.Issuer, nil
 }
 
 func isOwnedByIAMController(iamRoleName string, iamClient iamiface.IAMAPI) (bool, error) {

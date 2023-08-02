@@ -1,20 +1,20 @@
 package awsclient
 
 import (
-	"context"
 	"errors"
+	"sync"
 
+	"github.com/aws/aws-sdk-go/aws"
 	clientaws "github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/giantswarm/microerror"
 	"github.com/go-logr/logr"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	capiutil "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/giantswarm/capa-iam-operator/pkg/key"
 )
 
 type AwsClientInterface interface {
-	GetAWSClientSession(ctx context.Context, clusterName, namespace string) (clientaws.ConfigProvider, error)
+	GetAWSClientSession(awsRoleARN string, region string) (clientaws.ConfigProvider, error)
 }
 
 type AWSClientConfig struct {
@@ -40,29 +40,42 @@ func New(config AWSClientConfig) (*AwsClient, error) {
 	return a, nil
 }
 
-func (a *AwsClient) GetAWSClientSession(ctx context.Context, clusterName, namespace string) (clientaws.ConfigProvider, error) {
-	awsCluster, err := key.GetAWSClusterByName(ctx, a.ctrlClient, clusterName, namespace)
+func (a *AwsClient) GetAWSClientSession(awsRoleARN string, region string) (clientaws.ConfigProvider, error) {
+	s, err := sessionForRegion(region)
 	if err != nil {
-		a.log.Error(err, "failed to get AWSCluster")
-		return nil, err
+		return nil, microerror.Mask(err)
+	}
+	awsClientConfig := &aws.Config{Credentials: stscreds.NewCredentials(s, awsRoleARN)}
+
+	o, err := session.NewSession(awsClientConfig)
+	if err != nil {
+		return nil, microerror.Mask(err)
 	}
 
-	cluster, err := capiutil.GetClusterFromMetadata(ctx, a.ctrlClient, awsCluster.ObjectMeta)
-	if err != nil {
-		return nil, err
+	return o, nil
+}
+
+var sessionCache sync.Map
+
+type sessionCacheEntry struct {
+	session *session.Session
+}
+
+func sessionForRegion(region string) (*session.Session, error) {
+	if s, ok := sessionCache.Load(region); ok {
+		entry := s.(*sessionCacheEntry)
+		return entry.session, nil
 	}
 
-	// Create the cluster scope just to reuse logic of getting proper AWS session from cluster-api-provider-aws controller code
-	clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
-		Client:         a.ctrlClient,
-		Logger:         &a.log,
-		Cluster:        cluster,
-		AWSCluster:     awsCluster,
-		ControllerName: "capa-iam",
+	ns, err := session.NewSession(&aws.Config{
+		Region: aws.String(region),
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	return clusterScope.Session(), nil
+	sessionCache.Store(region, &sessionCacheEntry{
+		session: ns,
+	})
+	return ns, nil
 }

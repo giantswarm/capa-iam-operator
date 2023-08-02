@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Create `external-dns` and `cert-manager` IAM roles for IRSA for EKS clusters.
+
 ### Fixed
 
 - Remove cloudfront secret dependency from reconcilers.

@@ -6,7 +6,7 @@ const trustIdentityPolicyKIAMAndIRSA = `{
     {
       "Effect": "Allow",
       "Principal": {
-        "AWS": "{{.KIAMRoleARN}}"
+        "AWS": "{{.PrincipalRoleARN}}"
       },
       "Action": "sts:AssumeRole"
     },

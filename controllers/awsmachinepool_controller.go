@@ -23,6 +23,7 @@ import (
 
 	awsclientgo "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
+	"github.com/giantswarm/microerror"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -45,9 +46,9 @@ type AWSMachinePoolReconciler struct {
 	AWSClient                 awsclient.AwsClientInterface
 }
 
-//+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinepools,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinepools/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinepools/finalizers,verbs=update
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinepools,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinepools/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinepools/finalizers,verbs=update
 
 func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var err error
@@ -79,8 +80,17 @@ func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		logger.Info("AWSMachinePool has empty .Spec.AWSLaunchTemplate.IamInstanceProfile, not reconciling IAM role")
 		return ctrl.Result{}, nil
 	}
+	awsCluster, err := key.GetAWSClusterByName(ctx, r.Client, clusterName, req.Namespace)
+	if err != nil {
+		return ctrl.Result{}, microerror.Mask(err)
+	}
+	awsClusterRoleIdentity, err := key.GetAWSClusterRoleIdentity(ctx, r.Client, awsCluster.Spec.IdentityRef.Name)
+	if err != nil {
+		logger.Error(err, "could not get AWSClusterRoleIdentity")
+		return ctrl.Result{}, microerror.Mask(err)
+	}
 
-	awsClientSession, err := r.AWSClient.GetAWSClientSession(ctx, clusterName, awsMachinePool.GetNamespace())
+	awsClientSession, err := r.AWSClient.GetAWSClientSession(awsClusterRoleIdentity.Spec.RoleArn, awsCluster.Spec.Region)
 	if err != nil {
 		logger.Error(err, "Failed to get aws client session")
 		return ctrl.Result{}, errors.WithStack(err)

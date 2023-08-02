@@ -23,6 +23,7 @@ import (
 
 	awsclientgo "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
+	"github.com/giantswarm/microerror"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -98,7 +99,17 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, nil
 	}
 
-	awsClientSession, err := r.AWSClient.GetAWSClientSession(ctx, clusterName, awsMachineTemplate.GetNamespace())
+	awsCluster, err := key.GetAWSClusterByName(ctx, r.Client, clusterName, req.Namespace)
+	if err != nil {
+		return ctrl.Result{}, microerror.Mask(err)
+	}
+	awsClusterRoleIdentity, err := key.GetAWSClusterRoleIdentity(ctx, r.Client, awsCluster.Spec.IdentityRef.Name)
+	if err != nil {
+		logger.Error(err, "could not get AWSClusterRoleIdentity")
+		return ctrl.Result{}, microerror.Mask(err)
+	}
+
+	awsClientSession, err := r.AWSClient.GetAWSClientSession(awsClusterRoleIdentity.Spec.RoleArn, awsCluster.Spec.Region)
 	if err != nil {
 		logger.Error(err, "Failed to get aws client session")
 		return ctrl.Result{}, err
