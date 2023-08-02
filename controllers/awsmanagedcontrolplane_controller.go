@@ -89,8 +89,6 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 		return ctrl.Result{}, microerror.Mask(err)
 	}
 
-	logger.Info("creating IAMSERVICE")
-
 	var iamService *iam.IAMService
 	{
 		c := iam.IAMServiceConfig{
@@ -107,7 +105,6 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 			return ctrl.Result{}, microerror.Mask(err)
 		}
 	}
-	logger.Info("reconciling loop start")
 
 	if eksCluster.DeletionTimestamp != nil {
 		err = iamService.DeleteRolesForIRSA()
@@ -152,13 +149,16 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 			return ctrl.Result{}, microerror.Mask(err)
 		}
 
-		eksOpenIdDomain, err := iamService.GetIRSAOpenIDURlForEKS(eksCluster.Spec.EKSClusterName)
+		eksOpenIdDomain, err := iamService.GetIRSAOpenIDURlForEKS(eksCluster.Name)
 		if err != nil {
+			logger.Error(err, "failed to fetch EKS OpenConnectID URL")
 			return ctrl.Result{}, microerror.Mask(err)
 		}
 
 		eksRoleARN, err := iamService.GetRoleARN(*eksCluster.Spec.RoleName)
 		if err != nil {
+			logger.Error(err, "failed to fetch EKS role name ARN")
+
 			return ctrl.Result{}, microerror.Mask(err)
 		}
 
