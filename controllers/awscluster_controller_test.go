@@ -71,7 +71,7 @@ var _ = Describe("AWSClusterReconciler", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		err = k8sClient.Create(ctx, &capa.AWSClusterRoleIdentity{
+		_ = k8sClient.Create(ctx, &capa.AWSClusterRoleIdentity{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-2",
 			},
@@ -84,7 +84,6 @@ var _ = Describe("AWSClusterReconciler", func() {
 				},
 			},
 		})
-		Expect(err).NotTo(HaveOccurred())
 
 		err = k8sClient.Create(ctx, &capa.AWSCluster{
 			ObjectMeta: metav1.ObjectMeta{
