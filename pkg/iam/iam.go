@@ -10,7 +10,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/eks/eksiface"
 	awsiam "github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
-	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/giantswarm/microerror"
 	"github.com/go-logr/logr"
 )
@@ -79,14 +78,6 @@ func New(config IAMServiceConfig) (*IAMService, error) {
 	client, region := config.IAMClientAndRegionFactory(config.AWSSession)
 
 	eksClient := eks.New(config.AWSSession, aws.NewConfig().WithRegion(region))
-
-	stsClient := sts.New(config.AWSSession, aws.NewConfig().WithRegion(region))
-	o, err := stsClient.GetCallerIdentity(&sts.GetCallerIdentityInput{})
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
-	config.Log.Info(fmt.Sprintf("assumed role %s", *o.Arn))
 
 	l := config.Log.WithValues("clusterName", config.ClusterName, "iam-role", config.RoleType)
 	s := &IAMService{

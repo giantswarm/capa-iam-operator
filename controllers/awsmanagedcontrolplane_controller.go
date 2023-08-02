@@ -21,8 +21,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
 	awsclientgo "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
+	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/giantswarm/microerror"
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -91,6 +93,15 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 
 	var iamService *iam.IAMService
 	{
+
+		stsClient := sts.New(awsClientSession, aws.NewConfig().WithRegion(eksCluster.Spec.Region))
+		o, err := stsClient.GetCallerIdentity(&sts.GetCallerIdentityInput{})
+		if err != nil {
+			return ctrl.Result{}, microerror.Mask(err)
+		}
+
+		logger.Info(fmt.Sprintf("assumed role %s", *o.Arn))
+
 		c := iam.IAMServiceConfig{
 			AWSSession:                awsClientSession,
 			ClusterName:               clusterName,
