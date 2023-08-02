@@ -25,6 +25,7 @@ import (
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	klogr "k8s.io/klog/v2/klogr"
+	eks "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 
 	awsclientgo "github.com/aws/aws-sdk-go/aws/client"
 	awsiam "github.com/aws/aws-sdk-go/service/iam"
@@ -53,6 +54,7 @@ func init() {
 
 	_ = capi.AddToScheme(scheme)
 	_ = capa.AddToScheme(scheme)
+	_ = eks.AddToScheme(scheme)
 	_ = expcapa.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
