@@ -111,6 +111,7 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 					Name: "test-1",
 					Kind: "AWSClusterRoleIdentity",
 				},
+				Region: "eu-west-1",
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -379,7 +380,7 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 
 	When("a role does not exist", func() {
 		BeforeEach(func() {
-			mockAwsClient.EXPECT().GetAWSClientSession("arn-role", "eu-west-1").Return(sess, nil)
+			mockAwsClient.EXPECT().GetAWSClientSession("arn:aws:iam::012345678901:role/giantswarm-test-capa-controller", "eu-west-1").Return(sess, nil)
 			for _, info := range expectedRoleStatusesOnSuccess {
 				mockIAMClient.EXPECT().GetRole(&iam.GetRoleInput{
 					RoleName: aws.String(info.ExpectedName),
