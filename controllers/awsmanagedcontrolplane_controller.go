@@ -48,6 +48,8 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 	var err error
 	logger := r.Log.WithValues("namespace", req.Namespace, "AWSManagedControlPlane", req.Name)
 
+	logger.Info("fetching  AWSManagedControlPlane")
+
 	eksCluster := &eks.AWSManagedControlPlane{}
 	if err = r.Get(ctx, req.NamespacedName, eksCluster); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -55,10 +57,14 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 		}
 		return ctrl.Result{}, microerror.Mask(err)
 	}
+	logger.Info("fetching  cluster")
+
 	clusterName, err := key.GetClusterIDFromLabels(eksCluster.ObjectMeta)
 	if err != nil {
 		return ctrl.Result{}, microerror.Mask(err)
 	}
+
+	logger.Info("checking for watch label")
 
 	// check if CR got CAPI watch-filter label
 	if !key.HasCapiWatchLabel(eksCluster.Labels) {
@@ -71,18 +77,22 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 		logger.Info("AWSManagedControlPlane has empty .spec.RoleName, not creating IAM role")
 		return ctrl.Result{}, nil
 	}
+	logger.Info("fetching  GetAWSClusterRoleIdentity")
 
 	awsClusterRoleIdentity, err := key.GetAWSClusterRoleIdentity(ctx, r.Client, eksCluster.Spec.IdentityRef.Name)
 	if err != nil {
 		logger.Error(err, "could not get AWSClusterRoleIdentity")
 		return ctrl.Result{}, microerror.Mask(err)
 	}
+	logger.Info("fetching  GetAWSClientSession")
 
 	awsClientSession, err := r.AWSClient.GetAWSClientSession(awsClusterRoleIdentity.Spec.RoleArn, eksCluster.Spec.Region)
 	if err != nil {
 		logger.Error(err, "Failed to get aws client session")
 		return ctrl.Result{}, microerror.Mask(err)
 	}
+
+	logger.Info("creating IAMSERVICE")
 
 	var iamService *iam.IAMService
 	{
@@ -100,6 +110,7 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 			return ctrl.Result{}, microerror.Mask(err)
 		}
 	}
+	logger.Info("reconciling loop start")
 
 	if eksCluster.DeletionTimestamp != nil {
 		err = iamService.DeleteRolesForIRSA()
