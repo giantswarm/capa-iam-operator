@@ -379,7 +379,7 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 
 	When("a role does not exist", func() {
 		BeforeEach(func() {
-			mockAwsClient.EXPECT().GetAWSClientSession(ctx, "test-cluster", namespace).Return(sess, nil)
+			mockAwsClient.EXPECT().GetAWSClientSession("arn-role", "eu-west-1").Return(sess, nil)
 			for _, info := range expectedRoleStatusesOnSuccess {
 				mockIAMClient.EXPECT().GetRole(&iam.GetRoleInput{
 					RoleName: aws.String(info.ExpectedName),
