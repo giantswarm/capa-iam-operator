@@ -40,7 +40,7 @@ import (
 
 	"github.com/giantswarm/capa-iam-operator/controllers"
 	"github.com/giantswarm/capa-iam-operator/pkg/awsclient"
-	//+kubebuilder:scaffold:imports
+	// +kubebuilder:scaffold:imports
 )
 
 var (
@@ -54,7 +54,7 @@ func init() {
 	_ = capi.AddToScheme(scheme)
 	_ = capa.AddToScheme(scheme)
 	_ = expcapa.AddToScheme(scheme)
-	//+kubebuilder:scaffold:scheme
+	// +kubebuilder:scaffold:scheme
 }
 
 func main() {
@@ -163,7 +163,17 @@ func main() {
 		}
 	}
 
-	//+kubebuilder:scaffold:builder
+	if err = (&controllers.AWSManagedControlPlaneReconciler{
+		Client:                    mgr.GetClient(),
+		Log:                       ctrl.Log.WithName("controllers").WithName("AWSManagedControlPlane"),
+		IAMClientAndRegionFactory: iamClientAndRegionFactory,
+		AWSClient:                 awsClientAwsMachine,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "AWSManagedControlPlane")
+		os.Exit(1)
+	}
+
+	// +kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")
