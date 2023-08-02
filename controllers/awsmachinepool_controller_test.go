@@ -81,7 +81,7 @@ var _ = Describe("AWSMachinePoolReconciler", func() {
 
 		err = k8sClient.Create(ctx, &capa.AWSClusterRoleIdentity{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "test-2",
+				Name: "test-3",
 			},
 			Spec: capa.AWSClusterRoleIdentitySpec{
 				AWSRoleSpec: capa.AWSRoleSpec{
@@ -103,7 +103,7 @@ var _ = Describe("AWSMachinePoolReconciler", func() {
 			},
 			Spec: capa.AWSClusterSpec{
 				IdentityRef: &capa.AWSIdentityReference{
-					Name: "test-2",
+					Name: "test-3",
 					Kind: "AWSClusterRoleIdentity",
 				},
 				Region: "eu-west-1",
