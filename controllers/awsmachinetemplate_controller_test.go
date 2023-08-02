@@ -83,7 +83,7 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		err = k8sClient.Create(ctx, &capa.AWSClusterRoleIdentity{
+		_ = k8sClient.Create(ctx, &capa.AWSClusterRoleIdentity{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-1",
 			},
