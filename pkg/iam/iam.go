@@ -610,6 +610,15 @@ func (s *IAMService) SetPrincipalRoleARN(arn string) {
 }
 
 func (s *IAMService) GetIRSAOpenIDURlForEKS(clusterName string) (string, error) {
+	i2 := &eks.ListClustersInput{}
+	l, err := s.eksClient.ListClusters(i2)
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+	for _, c := range l.Clusters {
+		fmt.Printf("found EKS cluster %s\n", *c)
+	}
+
 	i := &eks.DescribeClusterInput{
 		Name: aws.String(clusterName),
 	}
