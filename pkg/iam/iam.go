@@ -78,11 +78,10 @@ func New(config IAMServiceConfig) (*IAMService, error) {
 	client, region := config.IAMClientAndRegionFactory(config.AWSSession)
 
 	l := config.Log.WithValues("clusterName", config.ClusterName, "iam-role", config.RoleType)
-	eksClient := eks.New(config.AWSSession, aws.NewConfig().WithRegion(region))
 	s := &IAMService{
 		clusterName:      config.ClusterName,
 		iamClient:        client,
-		eksClient:        eksClient,
+		eksClient:        eks.New(config.AWSSession, aws.NewConfig().WithRegion(region)),
 		mainRoleName:     config.MainRoleName,
 		log:              l,
 		roleType:         config.RoleType,
