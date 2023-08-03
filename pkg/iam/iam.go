@@ -77,7 +77,7 @@ func New(config IAMServiceConfig) (*IAMService, error) {
 	}
 	client, region := config.IAMClientAndRegionFactory(config.AWSSession)
 
-	config.Log.Info("creating a EKS client in region %s", region)
+	fmt.Printf("creating a EKS client in region %s", region)
 	eksClient := eks.New(config.AWSSession, &aws.Config{Region: aws.String(region)})
 
 	l := config.Log.WithValues("clusterName", config.ClusterName, "iam-role", config.RoleType)
