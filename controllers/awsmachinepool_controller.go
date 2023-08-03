@@ -41,9 +41,9 @@ import (
 // AWSMachinePoolReconciler reconciles a AWSMachinePool object
 type AWSMachinePoolReconciler struct {
 	client.Client
-	Log                       logr.Logger
-	IAMClientAndRegionFactory func(awsclientgo.ConfigProvider) (iamiface.IAMAPI, string)
-	AWSClient                 awsclient.AwsClientInterface
+	Log              logr.Logger
+	IAMClientFactory func(awsclientgo.ConfigProvider) iamiface.IAMAPI
+	AWSClient        awsclient.AwsClientInterface
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinepools,verbs=get;list;watch;create;update;patch;delete
@@ -101,12 +101,12 @@ func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	var iamService *iam.IAMService
 	{
 		c := iam.IAMServiceConfig{
-			AWSSession:                awsClientSession,
-			ClusterName:               clusterName,
-			MainRoleName:              mainRoleName,
-			Log:                       logger,
-			RoleType:                  iam.NodesRole,
-			IAMClientAndRegionFactory: r.IAMClientAndRegionFactory,
+			AWSSession:   awsClientSession,
+			ClusterName:  clusterName,
+			MainRoleName: mainRoleName,
+			Log:          logger,
+			RoleType:     iam.NodesRole,
+			Region:       awsCluster.Spec.Region,
 		}
 		iamService, err = iam.New(c)
 		if err != nil {

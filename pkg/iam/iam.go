@@ -33,10 +33,8 @@ type IAMServiceConfig struct {
 	MainRoleName     string
 	Log              logr.Logger
 	RoleType         string
+	Region           string
 	PrincipalRoleARN string
-
-	// This must return a client and the signing region
-	IAMClientAndRegionFactory func(awsclientgo.ConfigProvider) (iamiface.IAMAPI, string)
 }
 
 type IAMService struct {
@@ -63,9 +61,7 @@ func New(config IAMServiceConfig) (*IAMService, error) {
 	if config.AWSSession == nil {
 		return nil, errors.New("cannot create IAMService with AWSSession equal to nil")
 	}
-	if config.IAMClientAndRegionFactory == nil {
-		return nil, errors.New("cannot create IAMService with IAMClientAndRegionFactory equal to nil")
-	}
+
 	if config.ClusterName == "" {
 		return nil, errors.New("cannot create IAMService with empty ClusterName")
 	}
@@ -75,20 +71,18 @@ func New(config IAMServiceConfig) (*IAMService, error) {
 	if !(config.RoleType == ControlPlaneRole || config.RoleType == NodesRole || config.RoleType == BastionRole || config.RoleType == IRSARole) {
 		return nil, fmt.Errorf("cannot create IAMService with invalid RoleType '%s'", config.RoleType)
 	}
-	client, region := config.IAMClientAndRegionFactory(config.AWSSession)
-
-	fmt.Printf("creating a EKS client in region %s", region)
-	eksClient := eks.New(config.AWSSession, &aws.Config{Region: aws.String(region)})
+	iamClient := awsiam.New(config.AWSSession, &aws.Config{Region: aws.String(config.Region)})
+	eksClient := eks.New(config.AWSSession, &aws.Config{Region: aws.String(config.Region)})
 
 	l := config.Log.WithValues("clusterName", config.ClusterName, "iam-role", config.RoleType)
 	s := &IAMService{
 		clusterName:      config.ClusterName,
-		iamClient:        client,
+		iamClient:        iamClient,
 		eksClient:        eksClient,
 		mainRoleName:     config.MainRoleName,
 		log:              l,
 		roleType:         config.RoleType,
-		region:           region,
+		region:           config.Region,
 		principalRoleARN: config.PrincipalRoleARN,
 	}
 
@@ -611,17 +605,6 @@ func (s *IAMService) SetPrincipalRoleARN(arn string) {
 }
 
 func (s *IAMService) GetIRSAOpenIDURlForEKS(clusterName string) (string, error) {
-	i2 := &eks.ListClustersInput{}
-	l, err := s.eksClient.ListClusters(i2)
-	if err != nil {
-		return "", microerror.Mask(err)
-	}
-	fmt.Printf("found EKS clusters %d\n", len(l.Clusters))
-
-	for _, c := range l.Clusters {
-		fmt.Printf("found EKS cluster %s\n", *c)
-	}
-
 	i := &eks.DescribeClusterInput{
 		Name: aws.String(clusterName),
 	}

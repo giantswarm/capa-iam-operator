@@ -21,8 +21,6 @@ import (
 	"fmt"
 	"time"
 
-	awsclientgo "github.com/aws/aws-sdk-go/aws/client"
-	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"github.com/giantswarm/microerror"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -43,11 +41,10 @@ import (
 // AWSMachineTemplateReconciler reconciles a AWSMachineTemplate object
 type AWSMachineTemplateReconciler struct {
 	client.Client
-	EnableKiamRole            bool
-	EnableRoute53Role         bool
-	Log                       logr.Logger
-	IAMClientAndRegionFactory func(awsclientgo.ConfigProvider) (iamiface.IAMAPI, string)
-	AWSClient                 awsclient.AwsClientInterface
+	EnableKiamRole    bool
+	EnableRoute53Role bool
+	Log               logr.Logger
+	AWSClient         awsclient.AwsClientInterface
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinetemplates,verbs=get;list;watch;create;update;patch;delete
@@ -120,12 +117,12 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 	var iamService *iam.IAMService
 	{
 		c := iam.IAMServiceConfig{
-			AWSSession:                awsClientSession,
-			ClusterName:               clusterName,
-			MainRoleName:              mainRoleName,
-			Log:                       logger,
-			RoleType:                  role,
-			IAMClientAndRegionFactory: r.IAMClientAndRegionFactory,
+			AWSSession:   awsClientSession,
+			ClusterName:  clusterName,
+			MainRoleName: mainRoleName,
+			Log:          logger,
+			RoleType:     role,
+			Region:       awsCluster.Spec.Region,
 		}
 		iamService, err = iam.New(c)
 		if err != nil {

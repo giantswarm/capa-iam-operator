@@ -27,9 +27,6 @@ import (
 	klogr "k8s.io/klog/v2/klogr"
 	eks "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 
-	awsclientgo "github.com/aws/aws-sdk-go/aws/client"
-	awsiam "github.com/aws/aws-sdk-go/service/iam"
-	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
@@ -107,18 +104,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	iamClientAndRegionFactory := func(session awsclientgo.ConfigProvider) (iamiface.IAMAPI, string) {
-		client := awsiam.New(session)
-		return client, client.SigningRegion
-	}
-
 	if err = (&controllers.AWSMachineTemplateReconciler{
-		Client:                    mgr.GetClient(),
-		EnableKiamRole:            enableKiamRole,
-		EnableRoute53Role:         enableRoute53Role,
-		Log:                       ctrl.Log.WithName("controllers").WithName("AWSMachineTemplate"),
-		IAMClientAndRegionFactory: iamClientAndRegionFactory,
-		AWSClient:                 awsClientAwsMachineTemplate,
+		Client:            mgr.GetClient(),
+		EnableKiamRole:    enableKiamRole,
+		EnableRoute53Role: enableRoute53Role,
+		Log:               ctrl.Log.WithName("controllers").WithName("AWSMachineTemplate"),
+		AWSClient:         awsClientAwsMachineTemplate,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AWSMachineTemplate")
 		os.Exit(1)
@@ -134,10 +125,9 @@ func main() {
 	}
 
 	if err = (&controllers.AWSMachinePoolReconciler{
-		Client:                    mgr.GetClient(),
-		Log:                       ctrl.Log.WithName("controllers").WithName("AWSMachinePool"),
-		IAMClientAndRegionFactory: iamClientAndRegionFactory,
-		AWSClient:                 awsClientAwsMachine,
+		Client:    mgr.GetClient(),
+		Log:       ctrl.Log.WithName("controllers").WithName("AWSMachinePool"),
+		AWSClient: awsClientAwsMachine,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AWSMachinePool")
 		os.Exit(1)
@@ -155,10 +145,9 @@ func main() {
 			os.Exit(1)
 		}
 		if err = (&controllers.AWSClusterReconciler{
-			Client:                    mgr.GetClient(),
-			Log:                       ctrl.Log.WithName("controllers").WithName("Secrets"),
-			IAMClientAndRegionFactory: iamClientAndRegionFactory,
-			AWSClient:                 awsClientAWSCluster,
+			Client:    mgr.GetClient(),
+			Log:       ctrl.Log.WithName("controllers").WithName("Secrets"),
+			AWSClient: awsClientAWSCluster,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "Secret")
 			os.Exit(1)
@@ -166,10 +155,9 @@ func main() {
 	}
 
 	if err = (&controllers.AWSManagedControlPlaneReconciler{
-		Client:                    mgr.GetClient(),
-		Log:                       ctrl.Log.WithName("controllers").WithName("AWSManagedControlPlane"),
-		IAMClientAndRegionFactory: iamClientAndRegionFactory,
-		AWSClient:                 awsClientAwsMachine,
+		Client:    mgr.GetClient(),
+		Log:       ctrl.Log.WithName("controllers").WithName("AWSManagedControlPlane"),
+		AWSClient: awsClientAwsMachine,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AWSManagedControlPlane")
 		os.Exit(1)

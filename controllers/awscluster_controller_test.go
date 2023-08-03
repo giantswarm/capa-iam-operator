@@ -5,10 +5,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	awsclientupstream "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/iam"
-	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -55,9 +53,6 @@ var _ = Describe("AWSClusterReconciler", func() {
 			Client:    k8sClient,
 			Log:       ctrl.Log,
 			AWSClient: mockAwsClient,
-			IAMClientAndRegionFactory: func(session awsclientupstream.ConfigProvider) (iamiface.IAMAPI, string) {
-				return mockIAMClient, fakeRegion
-			},
 		}
 
 		err := k8sClient.Create(ctx, &corev1.ConfigMap{
