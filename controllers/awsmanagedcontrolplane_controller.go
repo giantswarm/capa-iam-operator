@@ -103,12 +103,13 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 		logger.Info(fmt.Sprintf("assumed role %s in region %s", *o.Arn, stsClient.SigningRegion))
 
 		c := iam.IAMServiceConfig{
-			AWSSession:   awsClientSession,
-			ClusterName:  clusterName,
-			MainRoleName: *eksCluster.Spec.RoleName,
-			Log:          logger,
-			RoleType:     iam.IRSARole,
-			Region:       eksCluster.Spec.Region,
+			AWSSession:       awsClientSession,
+			ClusterName:      clusterName,
+			MainRoleName:     *eksCluster.Spec.RoleName,
+			Log:              logger,
+			RoleType:         iam.IRSARole,
+			Region:           eksCluster.Spec.Region,
+			IAMClientFactory: r.IAMClientFactory,
 		}
 		iamService, err = iam.New(c)
 		if err != nil {
