@@ -3,6 +3,7 @@ package iam
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	awsclientgo "github.com/aws/aws-sdk-go/aws/client"
@@ -608,7 +609,7 @@ func (s *IAMService) SetPrincipalRoleARN(arn string) {
 	s.principalRoleARN = arn
 }
 
-func (s *IAMService) GetIRSAOpenIDURlForEKS(clusterName string) (string, error) {
+func (s *IAMService) GetIRSAOpenIDForEKS(clusterName string) (string, error) {
 	i := &eks.DescribeClusterInput{
 		Name: aws.String(clusterName),
 	}
@@ -616,7 +617,10 @@ func (s *IAMService) GetIRSAOpenIDURlForEKS(clusterName string) (string, error) 
 	if err != nil {
 		return "", microerror.Mask(err)
 	}
-	return *cluster.Cluster.Identity.Oidc.Issuer, nil
+
+	id := strings.TrimPrefix(*cluster.Cluster.Identity.Oidc.Issuer, "https://")
+
+	return id, nil
 }
 
 func isOwnedByIAMController(iamRoleName string, iamClient iamiface.IAMAPI) (bool, error) {
