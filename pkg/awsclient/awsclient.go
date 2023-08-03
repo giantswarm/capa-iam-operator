@@ -68,7 +68,7 @@ func sessionForRegion(region string) (*session.Session, error) {
 	}
 
 	ns, err := session.NewSession(&aws.Config{
-		Region: aws.String("us-east-1"),
+		Region: aws.String(region),
 	})
 	if err != nil {
 		return nil, err
