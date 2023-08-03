@@ -22,6 +22,8 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	awsclientgo "github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/giantswarm/microerror"
 	"github.com/go-logr/logr"
@@ -40,8 +42,9 @@ import (
 // AWSManagedControlPlaneReconciler reconciles a AWSManagedControlPlane object
 type AWSManagedControlPlaneReconciler struct {
 	client.Client
-	Log       logr.Logger
-	AWSClient awsclient.AwsClientInterface
+	Log              logr.Logger
+	AWSClient        awsclient.AwsClientInterface
+	IAMClientFactory func(awsclientgo.ConfigProvider) iamiface.IAMAPI
 }
 
 func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {

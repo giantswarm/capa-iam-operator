@@ -101,12 +101,13 @@ func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	var iamService *iam.IAMService
 	{
 		c := iam.IAMServiceConfig{
-			AWSSession:   awsClientSession,
-			ClusterName:  clusterName,
-			MainRoleName: mainRoleName,
-			Log:          logger,
-			RoleType:     iam.NodesRole,
-			Region:       awsCluster.Spec.Region,
+			AWSSession:       awsClientSession,
+			ClusterName:      clusterName,
+			MainRoleName:     mainRoleName,
+			Log:              logger,
+			RoleType:         iam.NodesRole,
+			Region:           awsCluster.Spec.Region,
+			IAMClientFactory: r.IAMClientFactory,
 		}
 		iamService, err = iam.New(c)
 		if err != nil {

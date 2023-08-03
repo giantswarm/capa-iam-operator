@@ -35,6 +35,8 @@ type IAMServiceConfig struct {
 	RoleType         string
 	Region           string
 	PrincipalRoleARN string
+
+	IAMClientFactory func(awsclientgo.ConfigProvider) iamiface.IAMAPI
 }
 
 type IAMService struct {
@@ -61,7 +63,9 @@ func New(config IAMServiceConfig) (*IAMService, error) {
 	if config.AWSSession == nil {
 		return nil, errors.New("cannot create IAMService with AWSSession equal to nil")
 	}
-
+	if config.IAMClientFactory == nil {
+		return nil, errors.New("cannot create IAMService with IAMClientFactory equal to nil")
+	}
 	if config.ClusterName == "" {
 		return nil, errors.New("cannot create IAMService with empty ClusterName")
 	}
@@ -71,7 +75,7 @@ func New(config IAMServiceConfig) (*IAMService, error) {
 	if !(config.RoleType == ControlPlaneRole || config.RoleType == NodesRole || config.RoleType == BastionRole || config.RoleType == IRSARole) {
 		return nil, fmt.Errorf("cannot create IAMService with invalid RoleType '%s'", config.RoleType)
 	}
-	iamClient := awsiam.New(config.AWSSession)
+	iamClient := config.IAMClientFactory(config.AWSSession)
 	eksClient := eks.New(config.AWSSession, &aws.Config{Region: aws.String(config.Region)})
 
 	l := config.Log.WithValues("clusterName", config.ClusterName, "iam-role", config.RoleType)

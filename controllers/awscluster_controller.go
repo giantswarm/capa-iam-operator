@@ -22,6 +22,7 @@ import (
 	"regexp"
 	"strings"
 
+	awsclientgo "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/giantswarm/microerror"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -32,6 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"github.com/go-logr/logr"
 
 	"github.com/giantswarm/capa-iam-operator/pkg/awsclient"
@@ -46,8 +48,9 @@ const (
 // AWSClusterReconciler reconciles a AWSCluster object
 type AWSClusterReconciler struct {
 	client.Client
-	Log       logr.Logger
-	AWSClient awsclient.AwsClientInterface
+	Log              logr.Logger
+	IAMClientFactory func(awsclientgo.ConfigProvider) iamiface.IAMAPI
+	AWSClient        awsclient.AwsClientInterface
 }
 
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
@@ -144,12 +147,13 @@ func (r *AWSClusterReconciler) reconcileNormal(ctx context.Context, logger logr.
 	var iamService *iam.IAMService
 	{
 		c := iam.IAMServiceConfig{
-			AWSSession:   awsClientSession,
-			ClusterName:  awsCluster.Name,
-			MainRoleName: "-",
-			RoleType:     iam.IRSARole,
-			Region:       awsCluster.Spec.Region,
-			Log:          logger,
+			AWSSession:       awsClientSession,
+			ClusterName:      awsCluster.Name,
+			MainRoleName:     "-",
+			RoleType:         iam.IRSARole,
+			Region:           awsCluster.Spec.Region,
+			Log:              logger,
+			IAMClientFactory: r.IAMClientFactory,
 		}
 		iamService, err = iam.New(c)
 		if err != nil {
@@ -183,12 +187,12 @@ func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, logger logr.
 	var iamService *iam.IAMService
 	{
 		c := iam.IAMServiceConfig{
-			AWSSession:   awsClientSession,
-			ClusterName:  awsCluster.Name,
-			MainRoleName: "-",
-			RoleType:     iam.IRSARole,
-			Region:       awsCluster.Spec.Region,
-			Log:          logger,
+			AWSSession:       awsClientSession,
+			ClusterName:      awsCluster.Name,
+			MainRoleName:     "-",
+			RoleType:         iam.IRSARole,
+			Log:              logger,
+			IAMClientFactory: r.IAMClientFactory,
 		}
 		iamService, err = iam.New(c)
 		if err != nil {
