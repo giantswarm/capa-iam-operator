@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
 	awsclientgo "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"github.com/aws/aws-sdk-go/service/sts"
@@ -93,7 +94,7 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 	var iamService *iam.IAMService
 	{
 
-		stsClient := sts.New(awsClientSession)
+		stsClient := sts.New(awsClientSession, &aws.Config{Region: aws.String(eksCluster.Spec.Region)})
 		o, err := stsClient.GetCallerIdentity(&sts.GetCallerIdentityInput{})
 		if err != nil {
 			return ctrl.Result{}, microerror.Mask(err)

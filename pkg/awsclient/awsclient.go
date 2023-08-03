@@ -2,7 +2,6 @@ package awsclient
 
 import (
 	"errors"
-	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
 	clientaws "github.com/aws/aws-sdk-go/aws/client"
@@ -55,18 +54,7 @@ func (a *AwsClient) GetAWSClientSession(awsRoleARN string, region string) (clien
 	return o, nil
 }
 
-var sessionCache sync.Map
-
-type sessionCacheEntry struct {
-	session *session.Session
-}
-
 func sessionForRegion(region string) (*session.Session, error) {
-	if s, ok := sessionCache.Load(region); ok {
-		entry := s.(*sessionCacheEntry)
-		return entry.session, nil
-	}
-
 	ns, err := session.NewSession(&aws.Config{
 		Region: aws.String(region),
 	})
@@ -74,8 +62,5 @@ func sessionForRegion(region string) (*session.Session, error) {
 		return nil, err
 	}
 
-	sessionCache.Store(region, &sessionCacheEntry{
-		session: ns,
-	})
 	return ns, nil
 }
