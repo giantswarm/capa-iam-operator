@@ -117,7 +117,7 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 					logger.Error(err, "failed to remove finalizer on AWSManagedControlPlane")
 					return ctrl.Result{}, microerror.Mask(err)
 				}
-				logger.Info("successfully removed finalizer from AWSManagedControlPlane", "finalizer_name", iam.IRSARole)
+				logger.Info("successfully removed finalizer from AWSManagedControlPlane", "finalizer_name", key.FinalizerName(iam.IRSARole))
 			}
 		}
 	} else {
@@ -133,7 +133,7 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 				logger.Error(err, "failed to add finalizer on AWSManagedControlPlane")
 				return ctrl.Result{}, microerror.Mask(err)
 			}
-			logger.Info("successfully added finalizer to AWSManagedControlPlane", "finalizer_name", iam.IRSARole)
+			logger.Info("successfully added finalizer to AWSManagedControlPlane", "finalizer_name", key.FinalizerName(iam.IRSARole))
 		}
 
 		accountID, err := getAWSAccountID(awsClusterRoleIdentity)
