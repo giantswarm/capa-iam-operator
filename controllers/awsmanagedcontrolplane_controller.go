@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	awsclientgo "github.com/aws/aws-sdk-go/aws/client"
@@ -60,13 +59,6 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 	clusterName, err := key.GetClusterIDFromLabels(eksCluster.ObjectMeta)
 	if err != nil {
 		return ctrl.Result{}, microerror.Mask(err)
-	}
-
-	// check if CR got CAPI watch-filter label
-	if !key.HasCapiWatchLabel(eksCluster.Labels) {
-		logger.Info(fmt.Sprintf("AWSManagedControlPlane do not have %s=%s label, ignoring CR", key.ClusterWatchFilterLabel, "capi"))
-		// ignoring this CR
-		return ctrl.Result{}, nil
 	}
 
 	if eksCluster.Spec.RoleName == nil {
