@@ -23,12 +23,13 @@ import (
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 
-	_ "k8s.io/client-go/plugin/pkg/client/auth"
-	klogr "k8s.io/klog/v2/klogr"
-
 	awsclientgo "github.com/aws/aws-sdk-go/aws/client"
 	awsiam "github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	klogr "k8s.io/klog/v2/klogr"
+	eks "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
@@ -40,7 +41,7 @@ import (
 
 	"github.com/giantswarm/capa-iam-operator/controllers"
 	"github.com/giantswarm/capa-iam-operator/pkg/awsclient"
-	//+kubebuilder:scaffold:imports
+	// +kubebuilder:scaffold:imports
 )
 
 var (
@@ -53,8 +54,9 @@ func init() {
 
 	_ = capi.AddToScheme(scheme)
 	_ = capa.AddToScheme(scheme)
+	_ = eks.AddToScheme(scheme)
 	_ = expcapa.AddToScheme(scheme)
-	//+kubebuilder:scaffold:scheme
+	// +kubebuilder:scaffold:scheme
 }
 
 func main() {
@@ -105,18 +107,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	iamClientAndRegionFactory := func(session awsclientgo.ConfigProvider) (iamiface.IAMAPI, string) {
-		client := awsiam.New(session)
-		return client, client.SigningRegion
+	iamClientFactory := func(session awsclientgo.ConfigProvider) iamiface.IAMAPI {
+		return awsiam.New(session)
 	}
 
 	if err = (&controllers.AWSMachineTemplateReconciler{
-		Client:                    mgr.GetClient(),
-		EnableKiamRole:            enableKiamRole,
-		EnableRoute53Role:         enableRoute53Role,
-		Log:                       ctrl.Log.WithName("controllers").WithName("AWSMachineTemplate"),
-		IAMClientAndRegionFactory: iamClientAndRegionFactory,
-		AWSClient:                 awsClientAwsMachineTemplate,
+		Client:            mgr.GetClient(),
+		EnableKiamRole:    enableKiamRole,
+		EnableRoute53Role: enableRoute53Role,
+		Log:               ctrl.Log.WithName("controllers").WithName("AWSMachineTemplate"),
+		AWSClient:         awsClientAwsMachineTemplate,
+		IAMClientFactory:  iamClientFactory,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AWSMachineTemplate")
 		os.Exit(1)
@@ -132,10 +133,10 @@ func main() {
 	}
 
 	if err = (&controllers.AWSMachinePoolReconciler{
-		Client:                    mgr.GetClient(),
-		Log:                       ctrl.Log.WithName("controllers").WithName("AWSMachinePool"),
-		IAMClientAndRegionFactory: iamClientAndRegionFactory,
-		AWSClient:                 awsClientAwsMachine,
+		Client:           mgr.GetClient(),
+		Log:              ctrl.Log.WithName("controllers").WithName("AWSMachinePool"),
+		AWSClient:        awsClientAwsMachine,
+		IAMClientFactory: iamClientFactory,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AWSMachinePool")
 		os.Exit(1)
@@ -153,17 +154,27 @@ func main() {
 			os.Exit(1)
 		}
 		if err = (&controllers.AWSClusterReconciler{
-			Client:                    mgr.GetClient(),
-			Log:                       ctrl.Log.WithName("controllers").WithName("Secrets"),
-			IAMClientAndRegionFactory: iamClientAndRegionFactory,
-			AWSClient:                 awsClientAWSCluster,
+			Client:           mgr.GetClient(),
+			Log:              ctrl.Log.WithName("controllers").WithName("Secrets"),
+			AWSClient:        awsClientAWSCluster,
+			IAMClientFactory: iamClientFactory,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "Secret")
 			os.Exit(1)
 		}
 	}
 
-	//+kubebuilder:scaffold:builder
+	if err = (&controllers.AWSManagedControlPlaneReconciler{
+		Client:           mgr.GetClient(),
+		Log:              ctrl.Log.WithName("controllers").WithName("AWSManagedControlPlane"),
+		AWSClient:        awsClientAwsMachine,
+		IAMClientFactory: iamClientFactory,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "AWSManagedControlPlane")
+		os.Exit(1)
+	}
+
+	// +kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")

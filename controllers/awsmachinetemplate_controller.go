@@ -23,6 +23,7 @@ import (
 
 	awsclientgo "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
+	"github.com/giantswarm/microerror"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -42,11 +43,11 @@ import (
 // AWSMachineTemplateReconciler reconciles a AWSMachineTemplate object
 type AWSMachineTemplateReconciler struct {
 	client.Client
-	EnableKiamRole            bool
-	EnableRoute53Role         bool
-	Log                       logr.Logger
-	IAMClientAndRegionFactory func(awsclientgo.ConfigProvider) (iamiface.IAMAPI, string)
-	AWSClient                 awsclient.AwsClientInterface
+	EnableKiamRole    bool
+	EnableRoute53Role bool
+	Log               logr.Logger
+	AWSClient         awsclient.AwsClientInterface
+	IAMClientFactory  func(awsclientgo.ConfigProvider) iamiface.IAMAPI
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinetemplates,verbs=get;list;watch;create;update;patch;delete
@@ -98,7 +99,17 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, nil
 	}
 
-	awsClientSession, err := r.AWSClient.GetAWSClientSession(ctx, clusterName, awsMachineTemplate.GetNamespace())
+	awsCluster, err := key.GetAWSClusterByName(ctx, r.Client, clusterName, req.Namespace)
+	if err != nil {
+		return ctrl.Result{}, microerror.Mask(err)
+	}
+	awsClusterRoleIdentity, err := key.GetAWSClusterRoleIdentity(ctx, r.Client, awsCluster.Spec.IdentityRef.Name)
+	if err != nil {
+		logger.Error(err, "could not get AWSClusterRoleIdentity")
+		return ctrl.Result{}, microerror.Mask(err)
+	}
+
+	awsClientSession, err := r.AWSClient.GetAWSClientSession(awsClusterRoleIdentity.Spec.RoleArn, awsCluster.Spec.Region)
 	if err != nil {
 		logger.Error(err, "Failed to get aws client session")
 		return ctrl.Result{}, err
@@ -109,12 +120,13 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 	var iamService *iam.IAMService
 	{
 		c := iam.IAMServiceConfig{
-			AWSSession:                awsClientSession,
-			ClusterName:               clusterName,
-			MainRoleName:              mainRoleName,
-			Log:                       logger,
-			RoleType:                  role,
-			IAMClientAndRegionFactory: r.IAMClientAndRegionFactory,
+			AWSSession:       awsClientSession,
+			ClusterName:      clusterName,
+			MainRoleName:     mainRoleName,
+			Log:              logger,
+			RoleType:         role,
+			Region:           awsCluster.Spec.Region,
+			IAMClientFactory: r.IAMClientFactory,
 		}
 		iamService, err = iam.New(c)
 		if err != nil {

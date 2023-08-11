@@ -55,8 +55,8 @@ var _ = Describe("AWSClusterReconciler", func() {
 			Client:    k8sClient,
 			Log:       ctrl.Log,
 			AWSClient: mockAwsClient,
-			IAMClientAndRegionFactory: func(session awsclientupstream.ConfigProvider) (iamiface.IAMAPI, string) {
-				return mockIAMClient, fakeRegion
+			IAMClientFactory: func(session awsclientupstream.ConfigProvider) iamiface.IAMAPI {
+				return mockIAMClient
 			},
 		}
 
@@ -71,7 +71,7 @@ var _ = Describe("AWSClusterReconciler", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		err = k8sClient.Create(ctx, &capa.AWSClusterRoleIdentity{
+		_ = k8sClient.Create(ctx, &capa.AWSClusterRoleIdentity{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-2",
 			},
@@ -84,7 +84,6 @@ var _ = Describe("AWSClusterReconciler", func() {
 				},
 			},
 		})
-		Expect(err).NotTo(HaveOccurred())
 
 		err = k8sClient.Create(ctx, &capa.AWSCluster{
 			ObjectMeta: metav1.ObjectMeta{
@@ -99,6 +98,7 @@ var _ = Describe("AWSClusterReconciler", func() {
 					Name: "test-2",
 					Kind: "AWSClusterRoleIdentity",
 				},
+				Region: "eu-west-1",
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -163,7 +163,7 @@ var _ = Describe("AWSClusterReconciler", func() {
 
 	When("KIAM role was already created by other controller", func() {
 		BeforeEach(func() {
-			mockAwsClient.EXPECT().GetAWSClientSession(ctx, "test-cluster", namespace).Return(sess, nil)
+			mockAwsClient.EXPECT().GetAWSClientSession("arn:aws:iam::012345678901:role/giantswarm-test-capa-controller", "eu-west-1").Return(sess, nil)
 			// Implementation detail: KIAM role gets looked up for each role, therefore `MinTimes(1)`
 			mockIAMClient.EXPECT().GetRole(&iam.GetRoleInput{
 				RoleName: aws.String("test-cluster-IAMManager-Role"),
