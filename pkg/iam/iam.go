@@ -680,6 +680,8 @@ func getServiceAccount(role string) (string, error) {
 		return "external-dns", nil
 	} else if role == Route53Role {
 		return "external-dns", nil
+	} else if role == ALBConrollerRole {
+		return "aws-load-balancer-controller", nil
 	}
 
 	return "", fmt.Errorf("Cannot get service account for specified role - %s", role)
