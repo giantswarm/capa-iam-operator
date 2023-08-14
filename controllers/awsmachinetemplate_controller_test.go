@@ -57,8 +57,8 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 			EnableRoute53Role: true,
 			Log:               ctrl.Log,
 			AWSClient:         mockAwsClient,
-			IAMClientAndRegionFactory: func(session awsclientupstream.ConfigProvider) (iamiface.IAMAPI, string) {
-				return mockIAMClient, fakeRegion
+			IAMClientFactory: func(session awsclientupstream.ConfigProvider) iamiface.IAMAPI {
+				return mockIAMClient
 			},
 		}
 
@@ -83,7 +83,7 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		err = k8sClient.Create(ctx, &capa.AWSClusterRoleIdentity{
+		_ = k8sClient.Create(ctx, &capa.AWSClusterRoleIdentity{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-1",
 			},
@@ -96,7 +96,6 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 				},
 			},
 		})
-		Expect(err).NotTo(HaveOccurred())
 
 		err = k8sClient.Create(ctx, &capa.AWSCluster{
 			ObjectMeta: metav1.ObjectMeta{
@@ -111,6 +110,7 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 					Name: "test-1",
 					Kind: "AWSClusterRoleIdentity",
 				},
+				Region: "eu-west-1",
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -379,7 +379,7 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 
 	When("a role does not exist", func() {
 		BeforeEach(func() {
-			mockAwsClient.EXPECT().GetAWSClientSession(ctx, "test-cluster", namespace).Return(sess, nil)
+			mockAwsClient.EXPECT().GetAWSClientSession("arn:aws:iam::012345678901:role/giantswarm-test-capa-controller", "eu-west-1").Return(sess, nil)
 			for _, info := range expectedRoleStatusesOnSuccess {
 				mockIAMClient.EXPECT().GetRole(&iam.GetRoleInput{
 					RoleName: aws.String(info.ExpectedName),
