@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add new role for AWS Load Balancer Controller.
+
 ### Fixed
 
 - Remove cloudfront secret dependency from reconcilers.

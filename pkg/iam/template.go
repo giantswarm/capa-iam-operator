@@ -51,6 +51,8 @@ func getInlinePolicyTemplate(roleType string) string {
 		return route53RolePolicyTemplate
 	case CertManagerRole:
 		return route53RolePolicyTemplateForCertManager
+	case ALBConrollerRole:
+		return ALBControllerPolicyTemplate
 	default:
 		return ""
 	}
@@ -71,6 +73,8 @@ func getTrustPolicyTemplate(roleType string) string {
 	case IRSARole:
 		return trustIdentityPolicyKIAMAndIRSA
 	case CertManagerRole:
+		return trustIdentityPolicyKIAMAndIRSA
+	case ALBConrollerRole:
 		return trustIdentityPolicyKIAMAndIRSA
 	default:
 		return ""

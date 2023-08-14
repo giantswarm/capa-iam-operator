@@ -19,6 +19,7 @@ const (
 	KIAMRole         = "kiam-role"
 	IRSARole         = "irsa-role"
 	CertManagerRole  = "cert-manager-role"
+	ALBConrollerRole = "ALBController-Role"
 
 	IAMControllerOwnedTag = "capi-iam-controller/owned"
 	ClusterIDTag          = "sigs.k8s.io/cluster-api-provider-aws/cluster/%s"
@@ -143,7 +144,7 @@ func (s *IAMService) ReconcileKiamRole() error {
 func (s *IAMService) ReconcileRolesForIRSA(awsAccountID string, cloudFrontDomain string) error {
 	s.log.Info("reconciling IAM roles for IRSA")
 
-	for _, roleTypeToReconcile := range []string{Route53Role, CertManagerRole} {
+	for _, roleTypeToReconcile := range []string{Route53Role, CertManagerRole, ALBConrollerRole} {
 		var params Route53RoleParams
 		params, err := s.generateRoute53RoleParams(roleTypeToReconcile, awsAccountID, cloudFrontDomain)
 		if err != nil {
@@ -452,6 +453,12 @@ func (s *IAMService) DeleteRolesForIRSA() error {
 
 	// delete route53 role
 	err = s.deleteRole(roleName(Route53Role, s.clusterName))
+	if err != nil {
+		return err
+	}
+
+	// delete AWS Load Balancer Controller role
+	err = s.deleteRole(roleName(ALBConrollerRole, s.clusterName))
 	if err != nil {
 		return err
 	}
