@@ -140,14 +140,18 @@ var _ = Describe("AWSClusterReconciler", func() {
 	//      the current, wrong behavior :(
 	externalDnsRoleInfoCopy := externalDnsRoleInfo
 	Expect(externalDnsRoleInfoCopy.ExpectedPolicyName).To(Equal("control-plane-test-cluster-policy"))
-	externalDnsRoleInfoCopy.ExpectedPolicyName = "irsa-role-test-cluster-policy"
+	externalDnsRoleInfoCopy.ExpectedPolicyName = irsaRoleName
 	certManagerRoleInfoCopy := certManagerRoleInfo
 	Expect(certManagerRoleInfoCopy.ExpectedPolicyName).To(Equal("control-plane-test-cluster-policy"))
-	certManagerRoleInfoCopy.ExpectedPolicyName = "irsa-role-test-cluster-policy"
+	certManagerRoleInfoCopy.ExpectedPolicyName = irsaRoleName
+	ALBControllerRoleInfoCopy := ALBControllerRoleInfo
+	Expect(ALBControllerRoleInfoCopy.ExpectedPolicyName).To(Equal("control-plane-test-cluster-policy"))
+	ALBControllerRoleInfoCopy.ExpectedPolicyName = irsaRoleName
 
 	expectedRoleStatusesOnSuccess := []RoleInfo{
 		certManagerRoleInfoCopy,
 		externalDnsRoleInfoCopy,
+		ALBControllerRoleInfoCopy,
 	}
 
 	expectedIAMTags := []*iam.Tag{

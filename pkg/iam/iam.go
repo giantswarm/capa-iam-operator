@@ -23,6 +23,7 @@ const (
 	KIAMRole         = "kiam-role"
 	IRSARole         = "irsa-role"
 	CertManagerRole  = "cert-manager-role"
+	ALBConrollerRole = "ALBController-Role"
 
 	IAMControllerOwnedTag = "capi-iam-controller/owned"
 	ClusterIDTag          = "sigs.k8s.io/cluster-api-provider-aws/cluster/%s"
@@ -152,7 +153,7 @@ func (s *IAMService) ReconcileKiamRole() error {
 func (s *IAMService) ReconcileRolesForIRSA(awsAccountID string, cloudFrontDomain string) error {
 	s.log.Info("reconciling IAM roles for IRSA")
 
-	for _, roleTypeToReconcile := range []string{Route53Role, CertManagerRole} {
+	for _, roleTypeToReconcile := range []string{Route53Role, CertManagerRole, ALBConrollerRole} {
 		var params Route53RoleParams
 		params, err := s.generateRoute53RoleParams(roleTypeToReconcile, awsAccountID, cloudFrontDomain)
 		if err != nil {
@@ -467,6 +468,12 @@ func (s *IAMService) DeleteRolesForIRSA() error {
 		return err
 	}
 
+	// delete AWS Load Balancer Controller role
+	err = s.deleteRole(roleName(ALBConrollerRole, s.clusterName))
+	if err != nil {
+		return err
+	}
+
 	s.log.Info("finished deleting IAM roles for IRSA")
 	return nil
 }
@@ -673,6 +680,8 @@ func getServiceAccount(role string) (string, error) {
 		return "external-dns", nil
 	} else if role == Route53Role {
 		return "external-dns", nil
+	} else if role == ALBConrollerRole {
+		return "aws-load-balancer-controller", nil
 	}
 
 	return "", fmt.Errorf("Cannot get service account for specified role - %s", role)
