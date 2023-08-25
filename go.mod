@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
-	github.com/aws/aws-sdk-go v1.44.330
+	github.com/aws/aws-sdk-go v1.44.332
 	github.com/benbjohnson/clock v1.3.0 // indirect
 	github.com/giantswarm/microerror v0.4.0
 	github.com/go-logr/logr v1.2.4
