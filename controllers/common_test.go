@@ -8,8 +8,6 @@ type RoleInfo struct {
 	ReturnRoleArn                    string
 }
 
-const irsaRoleName = "irsa-role-test-cluster-policy"
-
 var certManagerRoleInfo = RoleInfo{
 	ExpectedName: "test-cluster-CertManager-Role",
 

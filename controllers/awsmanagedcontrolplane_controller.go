@@ -136,7 +136,7 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 			logger.Info("successfully added finalizer to AWSManagedControlPlane", "finalizer_name", iam.IRSARole)
 		}
 
-		accountID, err := getAWSAccountID(awsClusterRoleIdentity)
+		accountID, err := key.GetAWSAccountID(awsClusterRoleIdentity)
 		if err != nil {
 			logger.Error(err, "Could not get account ID")
 			return ctrl.Result{}, microerror.Mask(err)
