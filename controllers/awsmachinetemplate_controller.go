@@ -151,13 +151,6 @@ func (r *AWSMachineTemplateReconciler) reconcileDelete(ctx context.Context, iamS
 			return ctrl.Result{}, err
 		}
 		if role == iam.ControlPlaneRole {
-			if r.EnableKiamRole {
-				err = iamService.DeleteKiamRole()
-				if err != nil {
-					return ctrl.Result{}, err
-				}
-			}
-
 			if r.EnableRoute53Role {
 				err = iamService.DeleteRoute53Role()
 				if err != nil {
@@ -305,17 +298,8 @@ func (r *AWSMachineTemplateReconciler) reconcileNormal(ctx context.Context, iamS
 		return ctrl.Result{}, err
 	}
 	if role == iam.ControlPlaneRole {
-		if r.EnableKiamRole {
-			err = iamService.ReconcileKiamRole()
-			if err != nil {
-				// IAM role for control plane may have been created already, but not known to IAM yet
-				// (returns `MalformedPolicyDocument: Invalid principal in policy: "AWS":"arn:aws:iam::[...]:role/control-plane-[...]"`).
-				// That will succeed after requeueing.
-				return ctrl.Result{}, errors.WithStack(err)
-			}
-		}
 		// route53 role depends on KIAM role
-		if r.EnableKiamRole && r.EnableRoute53Role {
+		if r.EnableRoute53Role {
 			logger.Info("reconciling IRSA roles")
 			identityRefName := awsCluster.Spec.IdentityRef.Name
 			awsClusterRoleIdentity, err := key.GetAWSClusterRoleIdentity(ctx, r.Client, identityRefName)
