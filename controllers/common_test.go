@@ -17,13 +17,6 @@ var certManagerRoleInfo = RoleInfo{
     {
       "Effect": "Allow",
       "Principal": {
-        "AWS": "arn:aws:iam::999666333:role/test-cluster-IAMManager-Role"
-      },
-      "Action": "sts:AssumeRole"
-    },
-    {
-      "Effect": "Allow",
-      "Principal": {
         "Federated": "arn:aws:iam::012345678901:oidc-provider/irsa.test.gaws.gigantic.io"
       },
       "Action": "sts:AssumeRoleWithWebIdentity",
@@ -75,13 +68,6 @@ var externalDnsRoleInfo = RoleInfo{
     {
       "Effect": "Allow",
       "Principal": {
-        "AWS": "arn:aws:iam::999666333:role/test-cluster-IAMManager-Role"
-      },
-      "Action": "sts:AssumeRole"
-    },
-    {
-      "Effect": "Allow",
-      "Principal": {
         "Federated": "arn:aws:iam::012345678901:oidc-provider/irsa.test.gaws.gigantic.io"
       },
       "Action": "sts:AssumeRoleWithWebIdentity",
@@ -127,13 +113,6 @@ var ALBControllerRoleInfo = RoleInfo{
 	ExpectedAssumeRolePolicyDocument: `{
   "Version": "2012-10-17",
   "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "AWS": "arn:aws:iam::999666333:role/test-cluster-IAMManager-Role"
-      },
-      "Action": "sts:AssumeRole"
-    },
     {
       "Effect": "Allow",
       "Principal": {

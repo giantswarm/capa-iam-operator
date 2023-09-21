@@ -6,13 +6,6 @@ const trustIdentityPolicyKIAMAndIRSA = `{
     {
       "Effect": "Allow",
       "Principal": {
-        "AWS": "{{.PrincipalRoleARN}}"
-      },
-      "Action": "sts:AssumeRole"
-    },
-    {
-      "Effect": "Allow",
-      "Principal": {
         "Federated": "arn:aws:iam::{{.AccountID}}:oidc-provider/{{.CloudFrontDomain}}"
       },
       "Action": "sts:AssumeRoleWithWebIdentity",

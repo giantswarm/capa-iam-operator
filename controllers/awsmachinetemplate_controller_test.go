@@ -328,41 +328,7 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 
 			ReturnRoleArn: "arn:aws:iam::12345678:role/the-profile",
 		},
-
-		// KIAM
-		{
-			ExpectedName: "test-cluster-IAMManager-Role",
-
-			ExpectedAssumeRolePolicyDocument: `{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "AWS": "arn:aws:iam::12345678:role/the-profile"
-      },
-      "Action": "sts:AssumeRole"
-    }
-  ]
-}
-`,
-
-			ExpectedPolicyName: "control-plane-test-cluster-policy",
-			ExpectedPolicyDocument: `{
-  "Version": "2012-10-17",
-  "Statement": {
-    "Action": "sts:AssumeRole",
-    "Resource": "*",
-    "Effect": "Allow"
-  }
-}
-`,
-
-			ReturnRoleArn: "arn:aws:iam::999666333:role/test-cluster-IAMManager-Role",
-		},
-
 		externalDnsRoleInfo,
-
 		certManagerRoleInfo,
 		ALBControllerRoleInfo,
 	}
