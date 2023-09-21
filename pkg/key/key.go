@@ -3,9 +3,8 @@ package key
 import (
 	"context"
 	"fmt"
-	"regexp"
-	"strings"
 
+	awsarn "github.com/aws/aws-sdk-go/aws/arn"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -152,18 +151,10 @@ func GetBaseDomain(ctx context.Context, ctrlClient client.Client, clusterName, n
 
 func GetAWSAccountID(awsClusterRoleIdentity *capa.AWSClusterRoleIdentity) (string, error) {
 	arn := awsClusterRoleIdentity.Spec.RoleArn
-	if arn == "" || len(strings.TrimSpace(arn)) < 1 {
-		err := fmt.Errorf("unable to extract ARN from AWSClusterRoleIdentity %s", awsClusterRoleIdentity.Name)
-		return "", err
+	a, err := awsarn.Parse(arn)
+	if err != nil {
+		return "", microerror.Mask(err)
 	}
 
-	re := regexp.MustCompile(`[-]?\d[\d,]*[\.]?[\d{2}]*`)
-	accountID := re.FindAllString(arn, 1)[0]
-
-	if accountID == "" || len(strings.TrimSpace(accountID)) < 1 {
-		err := fmt.Errorf("unable to extract AWS account ID from ARN %s", arn)
-		return "", err
-	}
-
-	return accountID, nil
+	return a.AccountID, nil
 }

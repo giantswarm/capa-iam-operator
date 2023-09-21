@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"time"
 
 	awsclientgo "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
@@ -232,10 +231,7 @@ func (r *AWSMachineTemplateReconciler) reconcileDelete(ctx context.Context, iamS
 		logger.Info("successfully removed finalizer from configmap", "finalizer_name", iam.ControlPlaneRole)
 	}
 
-	return ctrl.Result{
-		Requeue:      true,
-		RequeueAfter: time.Minute * 5,
-	}, nil
+	return ctrl.Result{}, nil
 }
 
 func (r *AWSMachineTemplateReconciler) reconcileNormal(ctx context.Context, iamService *iam.IAMService, awsMachineTemplate *capa.AWSMachineTemplate, logger logr.Logger, clusterName, namespace, role string) (ctrl.Result, error) {
@@ -349,10 +345,7 @@ func (r *AWSMachineTemplateReconciler) reconcileNormal(ctx context.Context, iamS
 		}
 	}
 
-	return ctrl.Result{
-		Requeue:      true,
-		RequeueAfter: time.Minute * 5,
-	}, nil
+	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

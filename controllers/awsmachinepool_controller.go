@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"time"
 
 	awsclientgo "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
@@ -148,10 +147,7 @@ func (r *AWSMachinePoolReconciler) reconcileDelete(ctx context.Context, awsMachi
 		logger.Info("successfully removed finalizer from AWSMachinePool", "finalizer_name", iam.NodesRole)
 	}
 
-	return ctrl.Result{
-		Requeue:      true,
-		RequeueAfter: time.Minute * 5,
-	}, nil
+	return ctrl.Result{}, nil
 }
 
 func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, awsMachinePool *expcapa.AWSMachinePool, iamService *iam.IAMService, logger logr.Logger) (ctrl.Result, error) {
@@ -175,10 +171,7 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, awsMachi
 		return ctrl.Result{}, errors.WithStack(err)
 	}
 
-	return ctrl.Result{
-		Requeue:      true,
-		RequeueAfter: time.Minute * 5,
-	}, nil
+	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
