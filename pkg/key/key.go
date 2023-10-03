@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	awsarn "github.com/aws/aws-sdk-go/aws/arn"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -146,4 +147,14 @@ func GetBaseDomain(ctx context.Context, ctrlClient client.Client, clusterName, n
 	}
 
 	return baseDomain, nil
+}
+
+func GetAWSAccountID(awsClusterRoleIdentity *capa.AWSClusterRoleIdentity) (string, error) {
+	arn := awsClusterRoleIdentity.Spec.RoleArn
+	a, err := awsarn.Parse(arn)
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+
+	return a.AccountID, nil
 }

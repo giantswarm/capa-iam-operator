@@ -142,28 +142,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	if enableIRSARole {
-		setupLog.Info("IRSA is enabled")
-
-		awsClientAWSCluster, err := awsclient.New(awsclient.AWSClientConfig{
-			CtrlClient: mgr.GetClient(),
-			Log:        ctrl.Log.WithName("controllers").WithName("Secrets"),
-		})
-		if err != nil {
-			setupLog.Error(err, "unable to create aws client for controller", "controller", "Secrets")
-			os.Exit(1)
-		}
-		if err = (&controllers.AWSClusterReconciler{
-			Client:           mgr.GetClient(),
-			Log:              ctrl.Log.WithName("controllers").WithName("Secrets"),
-			AWSClient:        awsClientAWSCluster,
-			IAMClientFactory: iamClientFactory,
-		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "Secret")
-			os.Exit(1)
-		}
-	}
-
 	if err = (&controllers.AWSManagedControlPlaneReconciler{
 		Client:           mgr.GetClient(),
 		Log:              ctrl.Log.WithName("controllers").WithName("AWSManagedControlPlane"),

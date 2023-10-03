@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"time"
 
 	awsclientgo "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
@@ -115,14 +114,12 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, err
 	}
 
-	mainRoleName := awsMachineTemplate.Spec.Template.Spec.IAMInstanceProfile
-
 	var iamService *iam.IAMService
 	{
 		c := iam.IAMServiceConfig{
 			AWSSession:       awsClientSession,
 			ClusterName:      clusterName,
-			MainRoleName:     mainRoleName,
+			MainRoleName:     awsMachineTemplate.Spec.Template.Spec.IAMInstanceProfile,
 			Log:              logger,
 			RoleType:         role,
 			Region:           awsCluster.Spec.Region,
@@ -136,209 +133,203 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 
 	if awsMachineTemplate.DeletionTimestamp != nil {
-		roleUsed, err := isRoleUsedElsewhere(ctx, r.Client, mainRoleName)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
+		return r.reconcileDelete(ctx, iamService, awsMachineTemplate, logger, clusterName, req.Namespace, role)
+	}
+	return r.reconcileNormal(ctx, iamService, awsMachineTemplate, logger, clusterName, req.Namespace, role)
 
-		if !roleUsed {
-			err = iamService.DeleteRole()
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-			if role == iam.ControlPlaneRole {
-				if r.EnableKiamRole {
-					err = iamService.DeleteKiamRole()
-					if err != nil {
-						return ctrl.Result{}, err
-					}
-				}
+}
 
-				if r.EnableRoute53Role {
-					err = iamService.DeleteRoute53Role()
-					if err != nil {
-						return ctrl.Result{}, err
-					}
-				}
-			}
-		}
-		// remove finalizer from AWSCluster
-		{
-			awsCluster, err := key.GetAWSClusterByName(ctx, r.Client, clusterName, awsMachineTemplate.GetNamespace())
-			if err != nil {
-				logger.Error(err, "failed to get awsCluster")
-				return ctrl.Result{}, err
-			}
+func (r *AWSMachineTemplateReconciler) reconcileDelete(ctx context.Context, iamService *iam.IAMService, awsMachineTemplate *capa.AWSMachineTemplate, logger logr.Logger, clusterName, namespace, role string) (ctrl.Result, error) {
+	roleUsed, err := isRoleUsedElsewhere(ctx, r.Client, awsMachineTemplate.Spec.Template.Spec.IAMInstanceProfile)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 
-			if controllerutil.ContainsFinalizer(awsCluster, key.FinalizerName(iam.ControlPlaneRole)) {
-				patchHelper, err := patch.NewHelper(awsCluster, r.Client)
-				if err != nil {
-					return ctrl.Result{}, err
-				}
-				controllerutil.RemoveFinalizer(awsCluster, key.FinalizerName(iam.ControlPlaneRole))
-				err = patchHelper.Patch(ctx, awsCluster)
-				if err != nil {
-					logger.Error(err, "failed to remove finalizer on AWSCluster")
-					return ctrl.Result{}, err
-				}
-				logger.Info("successfully removed finalizer from AWSCluster", "finalizer_name", iam.ControlPlaneRole)
-			}
-		}
-
-		// remove finalizer from AWSMachineTemplate
-		if controllerutil.ContainsFinalizer(awsMachineTemplate, key.FinalizerName(iam.ControlPlaneRole)) {
-			patchHelper, err := patch.NewHelper(awsMachineTemplate, r.Client)
-			if err != nil {
-				return ctrl.Result{}, errors.WithStack(err)
-			}
-			controllerutil.RemoveFinalizer(awsMachineTemplate, key.FinalizerName(iam.ControlPlaneRole))
-			err = patchHelper.Patch(ctx, awsMachineTemplate)
-			if err != nil {
-				logger.Error(err, "failed to remove finalizer from AWSMachineTemplate")
-				return ctrl.Result{}, errors.WithStack(err)
-			}
-			logger.Info("successfully removed finalizer from AWSMachineTemplate", "finalizer_name", iam.ControlPlaneRole)
-		}
-
-		cm := &corev1.ConfigMap{}
-		err = r.Get(
-			ctx,
-			types.NamespacedName{
-				Namespace: req.NamespacedName.Namespace,
-				Name:      fmt.Sprintf("%s-%s", clusterName, "cluster-values"),
-			},
-			cm)
-		if err != nil {
-			logger.Error(err, "Failed to get the cluster-values configmap for cluster")
-			return ctrl.Result{}, errors.WithStack(err)
-		}
-
-		if controllerutil.ContainsFinalizer(cm, key.FinalizerName(iam.ControlPlaneRole)) {
-			patchHelper, err := patch.NewHelper(cm, r.Client)
-			if err != nil {
-				return ctrl.Result{}, errors.WithStack(err)
-			}
-			controllerutil.RemoveFinalizer(cm, key.FinalizerName(iam.ControlPlaneRole))
-			err = patchHelper.Patch(ctx, cm)
-			if err != nil {
-				logger.Error(err, "failed to remove finalizer from configmap")
-				return ctrl.Result{}, errors.WithStack(err)
-			}
-			logger.Info("successfully removed finalizer from configmap", "finalizer_name", iam.ControlPlaneRole)
-		}
-	} else {
-		// add finalizer to AWSMachineTemplate
-		if !controllerutil.ContainsFinalizer(awsMachineTemplate, key.FinalizerName(iam.ControlPlaneRole)) {
-			patchHelper, err := patch.NewHelper(awsMachineTemplate, r.Client)
-			if err != nil {
-				return ctrl.Result{}, errors.WithStack(err)
-			}
-			controllerutil.AddFinalizer(awsMachineTemplate, key.FinalizerName(iam.ControlPlaneRole))
-			err = patchHelper.Patch(ctx, awsMachineTemplate)
-			if err != nil {
-				logger.Error(err, "failed to add finalizer on AWSMachineTemplate")
-				return ctrl.Result{}, errors.WithStack(err)
-			}
-			logger.Info("successfully added finalizer to AWSMachineTemplate", "finalizer_name", iam.ControlPlaneRole)
-		}
-		var awsCluster *capa.AWSCluster
-		// add finalizer to AWSCluster
-		{
-			awsCluster, err = key.GetAWSClusterByName(ctx, r.Client, clusterName, awsMachineTemplate.GetNamespace())
-			if err != nil {
-				logger.Error(err, "failed to get awsCluster")
-				return ctrl.Result{}, errors.WithStack(err)
-			}
-			if !controllerutil.ContainsFinalizer(awsCluster, key.FinalizerName(iam.ControlPlaneRole)) {
-				patchHelper, err := patch.NewHelper(awsCluster, r.Client)
-				if err != nil {
-					return ctrl.Result{}, errors.WithStack(err)
-				}
-				controllerutil.AddFinalizer(awsCluster, key.FinalizerName(iam.ControlPlaneRole))
-				err = patchHelper.Patch(ctx, awsCluster)
-				if err != nil {
-					logger.Error(err, "failed to add finalizer on AWSCluster")
-					return ctrl.Result{}, errors.WithStack(err)
-				}
-				logger.Info("successfully added finalizer to AWSCluster", "finalizer_name", iam.ControlPlaneRole)
-			}
-		}
-
-		cm := &corev1.ConfigMap{}
-		err = r.Get(
-			ctx,
-			types.NamespacedName{
-				Namespace: req.NamespacedName.Namespace,
-				Name:      fmt.Sprintf("%s-%s", clusterName, "cluster-values"),
-			},
-			cm)
-		if err != nil {
-			logger.Error(err, "Failed to get the cluster-values configmap for cluster")
-			return ctrl.Result{}, errors.WithStack(err)
-		}
-
-		if controllerutil.ContainsFinalizer(cm, key.FinalizerName(iam.ControlPlaneRole)) {
-			patchHelper, err := patch.NewHelper(cm, r.Client)
-			if err != nil {
-				return ctrl.Result{}, errors.WithStack(err)
-			}
-			controllerutil.RemoveFinalizer(cm, key.FinalizerName(iam.ControlPlaneRole))
-			err = patchHelper.Patch(ctx, cm)
-			if err != nil {
-				logger.Error(err, "failed to remove finalizer from configmap")
-				return ctrl.Result{}, errors.WithStack(err)
-			}
-			logger.Info("successfully removed finalizer from configmap", "finalizer_name", iam.ControlPlaneRole)
-		}
-
-		err = iamService.ReconcileRole()
+	if !roleUsed {
+		err = iamService.DeleteRole()
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 		if role == iam.ControlPlaneRole {
-			if r.EnableKiamRole {
-				err = iamService.ReconcileKiamRole()
+			if r.EnableRoute53Role {
+				err = iamService.DeleteRoute53Role()
 				if err != nil {
-					// IAM role for control plane may have been created already, but not known to IAM yet
-					// (returns `MalformedPolicyDocument: Invalid principal in policy: "AWS":"arn:aws:iam::[...]:role/control-plane-[...]"`).
-					// That will succeed after requeueing.
-					return ctrl.Result{}, errors.WithStack(err)
-				}
-			}
-			// route53 role depends on KIAM role
-			if r.EnableKiamRole && r.EnableRoute53Role {
-				awsClusterRoleIdentity, err := key.GetAWSClusterRoleIdentity(ctx, r.Client, awsCluster.Spec.IdentityRef.Name)
-				if err != nil {
-					logger.Error(err, "could not get AWSClusterRoleIdentity")
-					return ctrl.Result{}, errors.WithStack(err)
-				}
-
-				accountID, err := getAWSAccountID(awsClusterRoleIdentity)
-				if err != nil {
-					logger.Error(err, "Could not get account ID")
-					return ctrl.Result{}, errors.WithStack(err)
-				}
-
-				baseDomain, err := key.GetBaseDomain(ctx, r.Client, clusterName, req.Namespace)
-				if err != nil {
-					logger.Error(err, "Could not get base domain")
-					return ctrl.Result{}, errors.WithStack(err)
-				}
-
-				cloudFrontDomain := key.CloudFrontAlias(baseDomain)
-
-				err = iamService.ReconcileRolesForIRSA(accountID, cloudFrontDomain)
-				if err != nil {
-					return ctrl.Result{}, errors.WithStack(err)
+					return ctrl.Result{}, err
 				}
 			}
 		}
 	}
+	// remove finalizer from AWSCluster
+	{
+		awsCluster, err := key.GetAWSClusterByName(ctx, r.Client, clusterName, awsMachineTemplate.GetNamespace())
+		if err != nil {
+			logger.Error(err, "failed to get awsCluster")
+			return ctrl.Result{}, err
+		}
 
-	return ctrl.Result{
-		Requeue:      true,
-		RequeueAfter: time.Minute * 5,
-	}, nil
+		if controllerutil.ContainsFinalizer(awsCluster, key.FinalizerName(iam.ControlPlaneRole)) {
+			patchHelper, err := patch.NewHelper(awsCluster, r.Client)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			controllerutil.RemoveFinalizer(awsCluster, key.FinalizerName(iam.ControlPlaneRole))
+			err = patchHelper.Patch(ctx, awsCluster)
+			if err != nil {
+				logger.Error(err, "failed to remove finalizer on AWSCluster")
+				return ctrl.Result{}, err
+			}
+			logger.Info("successfully removed finalizer from AWSCluster", "finalizer_name", iam.ControlPlaneRole)
+		}
+	}
+
+	// remove finalizer from AWSMachineTemplate
+	if controllerutil.ContainsFinalizer(awsMachineTemplate, key.FinalizerName(iam.ControlPlaneRole)) {
+		patchHelper, err := patch.NewHelper(awsMachineTemplate, r.Client)
+		if err != nil {
+			return ctrl.Result{}, errors.WithStack(err)
+		}
+		controllerutil.RemoveFinalizer(awsMachineTemplate, key.FinalizerName(iam.ControlPlaneRole))
+		err = patchHelper.Patch(ctx, awsMachineTemplate)
+		if err != nil {
+			logger.Error(err, "failed to remove finalizer from AWSMachineTemplate")
+			return ctrl.Result{}, errors.WithStack(err)
+		}
+		logger.Info("successfully removed finalizer from AWSMachineTemplate", "finalizer_name", iam.ControlPlaneRole)
+	}
+
+	cm := &corev1.ConfigMap{}
+	err = r.Get(
+		ctx,
+		types.NamespacedName{
+			Namespace: namespace,
+			Name:      fmt.Sprintf("%s-%s", clusterName, "cluster-values"),
+		},
+		cm)
+	if err != nil {
+		logger.Error(err, "Failed to get the cluster-values configmap for cluster")
+		return ctrl.Result{}, errors.WithStack(err)
+	}
+
+	if controllerutil.ContainsFinalizer(cm, key.FinalizerName(iam.ControlPlaneRole)) {
+		patchHelper, err := patch.NewHelper(cm, r.Client)
+		if err != nil {
+			return ctrl.Result{}, errors.WithStack(err)
+		}
+		controllerutil.RemoveFinalizer(cm, key.FinalizerName(iam.ControlPlaneRole))
+		err = patchHelper.Patch(ctx, cm)
+		if err != nil {
+			logger.Error(err, "failed to remove finalizer from configmap")
+			return ctrl.Result{}, errors.WithStack(err)
+		}
+		logger.Info("successfully removed finalizer from configmap", "finalizer_name", iam.ControlPlaneRole)
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *AWSMachineTemplateReconciler) reconcileNormal(ctx context.Context, iamService *iam.IAMService, awsMachineTemplate *capa.AWSMachineTemplate, logger logr.Logger, clusterName, namespace, role string) (ctrl.Result, error) {
+	// add finalizer to AWSMachineTemplate
+	if !controllerutil.ContainsFinalizer(awsMachineTemplate, key.FinalizerName(iam.ControlPlaneRole)) {
+		patchHelper, err := patch.NewHelper(awsMachineTemplate, r.Client)
+		if err != nil {
+			return ctrl.Result{}, errors.WithStack(err)
+		}
+		controllerutil.AddFinalizer(awsMachineTemplate, key.FinalizerName(iam.ControlPlaneRole))
+		err = patchHelper.Patch(ctx, awsMachineTemplate)
+		if err != nil {
+			logger.Error(err, "failed to add finalizer on AWSMachineTemplate")
+			return ctrl.Result{}, errors.WithStack(err)
+		}
+		logger.Info("successfully added finalizer to AWSMachineTemplate", "finalizer_name", iam.ControlPlaneRole)
+	}
+	var awsCluster *capa.AWSCluster
+	var err error
+	// add finalizer to AWSCluster
+	{
+		awsCluster, err = key.GetAWSClusterByName(ctx, r.Client, clusterName, awsMachineTemplate.GetNamespace())
+		if err != nil {
+			logger.Error(err, "failed to get awsCluster")
+			return ctrl.Result{}, errors.WithStack(err)
+		}
+		if !controllerutil.ContainsFinalizer(awsCluster, key.FinalizerName(iam.ControlPlaneRole)) {
+			patchHelper, err := patch.NewHelper(awsCluster, r.Client)
+			if err != nil {
+				return ctrl.Result{}, errors.WithStack(err)
+			}
+			controllerutil.AddFinalizer(awsCluster, key.FinalizerName(iam.ControlPlaneRole))
+			err = patchHelper.Patch(ctx, awsCluster)
+			if err != nil {
+				logger.Error(err, "failed to add finalizer on AWSCluster")
+				return ctrl.Result{}, errors.WithStack(err)
+			}
+			logger.Info("successfully added finalizer to AWSCluster", "finalizer_name", iam.ControlPlaneRole)
+		}
+	}
+
+	cm := &corev1.ConfigMap{}
+	err = r.Get(
+		ctx,
+		types.NamespacedName{
+			Namespace: namespace,
+			Name:      fmt.Sprintf("%s-%s", clusterName, "cluster-values"),
+		},
+		cm)
+	if err != nil {
+		logger.Error(err, "Failed to get the cluster-values configmap for cluster")
+		return ctrl.Result{}, errors.WithStack(err)
+	}
+
+	if controllerutil.ContainsFinalizer(cm, key.FinalizerName(iam.ControlPlaneRole)) {
+		patchHelper, err := patch.NewHelper(cm, r.Client)
+		if err != nil {
+			return ctrl.Result{}, errors.WithStack(err)
+		}
+		controllerutil.RemoveFinalizer(cm, key.FinalizerName(iam.ControlPlaneRole))
+		err = patchHelper.Patch(ctx, cm)
+		if err != nil {
+			logger.Error(err, "failed to remove finalizer from configmap")
+			return ctrl.Result{}, errors.WithStack(err)
+		}
+		logger.Info("successfully removed finalizer from configmap", "finalizer_name", iam.ControlPlaneRole)
+	}
+
+	err = iamService.ReconcileRole()
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if role == iam.ControlPlaneRole {
+		// route53 role depends on KIAM role
+		if r.EnableRoute53Role {
+			logger.Info("reconciling IRSA roles")
+			identityRefName := awsCluster.Spec.IdentityRef.Name
+			awsClusterRoleIdentity, err := key.GetAWSClusterRoleIdentity(ctx, r.Client, identityRefName)
+			if err != nil {
+				logger.Error(err, "could not get AWSClusterRoleIdentity")
+				return ctrl.Result{}, errors.WithStack(err)
+			}
+
+			accountID, err := key.GetAWSAccountID(awsClusterRoleIdentity)
+			if err != nil {
+				logger.Error(err, "Could not get account ID")
+				return ctrl.Result{}, errors.WithStack(err)
+			}
+
+			baseDomain, err := key.GetBaseDomain(ctx, r.Client, clusterName, namespace)
+			if err != nil {
+				logger.Error(err, "Could not get base domain")
+				return ctrl.Result{}, errors.WithStack(err)
+			}
+
+			cloudFrontDomain := key.CloudFrontAlias(baseDomain)
+
+			err = iamService.ReconcileRolesForIRSA(accountID, cloudFrontDomain)
+			if err != nil {
+				return ctrl.Result{}, errors.WithStack(err)
+			}
+		}
+	}
+
+	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

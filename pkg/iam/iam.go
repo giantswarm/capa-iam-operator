@@ -180,39 +180,12 @@ func (s *IAMService) generateRoute53RoleParams(roleTypeToReconcile string, awsAc
 		return Route53RoleParams{}, err
 	}
 
-	var principalRoleARN string
-	if s.principalRoleARN != "" {
-		principalRoleARN = s.principalRoleARN
-	} else {
-		i := &awsiam.GetRoleInput{
-			RoleName: aws.String(roleName(KIAMRole, s.clusterName)),
-		}
-
-		o, err := s.iamClient.GetRole(i)
-		if err != nil {
-			s.log.Error(err, "failed to fetch KIAM role")
-			return Route53RoleParams{}, err
-		}
-
-		principalRoleARN = *o.Role.Arn
-	}
-
-	if s.roleType == KIAMRole {
-		params := Route53RoleParams{
-			EC2ServiceDomain: ec2ServiceDomain(s.region),
-			PrincipalRoleARN: principalRoleARN,
-		}
-
-		return params, nil
-	}
-
 	params := Route53RoleParams{
 		EC2ServiceDomain: ec2ServiceDomain(s.region),
 		AccountID:        awsAccountID,
 		CloudFrontDomain: cloudFrontDomain,
 		Namespace:        namespace,
 		ServiceAccount:   serviceAccount,
-		PrincipalRoleARN: principalRoleARN,
 	}
 
 	return params, nil
