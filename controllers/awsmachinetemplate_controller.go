@@ -124,6 +124,7 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 			RoleType:         role,
 			Region:           awsCluster.Spec.Region,
 			IAMClientFactory: r.IAMClientFactory,
+			CustomTags:       awsCluster.Spec.AdditionalTags,
 		}
 		iamService, err = iam.New(c)
 		if err != nil {

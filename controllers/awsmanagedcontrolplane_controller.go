@@ -91,6 +91,7 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 			RoleType:         iam.IRSARole,
 			Region:           eksCluster.Spec.Region,
 			IAMClientFactory: r.IAMClientFactory,
+			CustomTags:       eksCluster.Spec.AdditionalTags,
 		}
 		iamService, err = iam.New(c)
 		if err != nil {
