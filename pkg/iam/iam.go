@@ -597,6 +597,9 @@ func (s *IAMService) GetIRSAOpenIDForEKS(clusterName string) (string, error) {
 	if err != nil {
 		return "", microerror.Mask(err)
 	}
+	if cluster == nil || cluster.Cluster == nil || cluster.Cluster.Identity == nil || cluster.Cluster.Identity.Oidc == nil || cluster.Cluster.Identity.Oidc.Issuer == nil {
+		return "", microerror.Maskf(invalidClusterError, "cluster %s does not have OIDC identity", clusterName)
+	}
 
 	id := strings.TrimPrefix(*cluster.Cluster.Identity.Oidc.Issuer, "https://")
 

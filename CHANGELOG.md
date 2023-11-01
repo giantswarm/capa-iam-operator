@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Remove SecretReconciler.
 - Refactor Reconcilers.
+- Do not panic when OIDC setting is missing for EKS cluster.
 
 ### Added
 
