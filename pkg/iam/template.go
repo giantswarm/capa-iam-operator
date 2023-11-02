@@ -53,6 +53,8 @@ func getInlinePolicyTemplate(roleType string) string {
 		return route53RolePolicyTemplateForCertManager
 	case ALBConrollerRole:
 		return ALBControllerPolicyTemplate
+	case EBSCSIDriverRole:
+		return EBSCSIDriverPolicyTemplate
 	default:
 		return ""
 	}
@@ -76,6 +78,9 @@ func getTrustPolicyTemplate(roleType string) string {
 		return trustIdentityPolicyKIAMAndIRSA
 	case ALBConrollerRole:
 		return trustIdentityPolicyKIAMAndIRSA
+	case EBSCSIDriverRole:
+		return trustIdentityPolicyKIAMAndIRSA
+
 	default:
 		return ""
 	}
