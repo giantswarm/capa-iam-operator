@@ -105,6 +105,7 @@ func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			RoleType:         iam.NodesRole,
 			Region:           awsCluster.Spec.Region,
 			IAMClientFactory: r.IAMClientFactory,
+			CustomTags:       awsCluster.Spec.AdditionalTags,
 		}
 		iamService, err = iam.New(c)
 		if err != nil {
