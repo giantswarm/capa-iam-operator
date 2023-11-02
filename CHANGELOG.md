@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Add tags from `AWSCluster.Spec.AdditionalTags` and `AWSManagedControlPlane.Spec.AdditionalTags` to  all created resources.
+- Add IRSA role for EBS CSI driver.
 
 ## [0.11.0] - 2023-11-01
 
