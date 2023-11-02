@@ -37,6 +37,7 @@ type IAMServiceConfig struct {
 	RoleType         string
 	Region           string
 	PrincipalRoleARN string
+	CustomTags       map[string]string
 
 	IAMClientFactory func(awsclientgo.ConfigProvider) iamiface.IAMAPI
 }
@@ -50,6 +51,7 @@ type IAMService struct {
 	region           string
 	roleType         string
 	principalRoleARN string
+	customTags       map[string]string
 }
 
 type Route53RoleParams struct {
@@ -90,6 +92,7 @@ func New(config IAMServiceConfig) (*IAMService, error) {
 		roleType:         config.RoleType,
 		region:           config.Region,
 		principalRoleARN: config.PrincipalRoleARN,
+		customTags:       config.CustomTags,
 	}
 
 	return s, nil
@@ -258,6 +261,12 @@ func (s *IAMService) createRole(roleName string, roleType string, params interfa
 			Key:   aws.String(fmt.Sprintf(ClusterIDTag, s.clusterName)),
 			Value: aws.String("owned"),
 		},
+	}
+	for k, v := range s.customTags {
+		tags = append(tags, &awsiam.Tag{
+			Key:   aws.String(k),
+			Value: aws.String(v),
+		})
 	}
 
 	_, err = s.iamClient.CreateRole(&awsiam.CreateRoleInput{
