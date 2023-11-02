@@ -376,7 +376,7 @@ var ALBControllerRoleInfo = RoleInfo{
 }
 
 var ebsCsiDriverRoleInfo = RoleInfo{
-	ExpectedName: "test-cluster-ebs-csi-driver",
+	ExpectedName: "test-cluster-ebs-csi-driver-role",
 
 	ExpectedAssumeRolePolicyDocument: `{
   "Version": "2012-10-17",
