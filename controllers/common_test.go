@@ -389,7 +389,7 @@ var ebsCsiDriverRoleInfo = RoleInfo{
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
         "StringEquals": {
-          "irsa.test.gaws.gigantic.io:sub": "system:serviceaccount:kube-system:ebs-csi-driver-sa"
+          "irsa.test.gaws.gigantic.io:sub": "system:serviceaccount:kube-system:ebs-csi-controller-sa"
         }
       }
     }
