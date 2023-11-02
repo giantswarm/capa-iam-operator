@@ -132,5 +132,4 @@ const EBSCSIDriverPolicyTemplate = `{
       }
     }
   ]
-}
-`
+}`

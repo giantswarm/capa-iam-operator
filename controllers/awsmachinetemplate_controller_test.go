@@ -331,6 +331,7 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 		externalDnsRoleInfo,
 		certManagerRoleInfo,
 		ALBControllerRoleInfo,
+		ebsCsiDriverRoleInfo,
 	}
 
 	expectedIAMTags := []*iam.Tag{
