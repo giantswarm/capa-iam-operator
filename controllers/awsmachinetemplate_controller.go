@@ -160,6 +160,34 @@ func (r *AWSMachineTemplateReconciler) reconcileDelete(ctx context.Context, iamS
 			}
 		}
 	}
+
+	cm := &corev1.ConfigMap{}
+	err = r.Get(
+		ctx,
+		types.NamespacedName{
+			Namespace: namespace,
+			Name:      fmt.Sprintf("%s-%s", clusterName, "cluster-values"),
+		},
+		cm)
+	if err != nil {
+		logger.Error(err, "Failed to get the cluster-values configmap for cluster")
+		return ctrl.Result{}, errors.WithStack(err)
+	}
+
+	if controllerutil.ContainsFinalizer(cm, key.FinalizerName(iam.ControlPlaneRole)) {
+		patchHelper, err := patch.NewHelper(cm, r.Client)
+		if err != nil {
+			return ctrl.Result{}, errors.WithStack(err)
+		}
+		controllerutil.RemoveFinalizer(cm, key.FinalizerName(iam.ControlPlaneRole))
+		err = patchHelper.Patch(ctx, cm)
+		if err != nil {
+			logger.Error(err, "failed to remove finalizer from configmap")
+			return ctrl.Result{}, errors.WithStack(err)
+		}
+		logger.Info("successfully removed finalizer from configmap", "finalizer_name", iam.ControlPlaneRole)
+	}
+
 	// remove finalizer from AWSCluster
 	{
 		awsCluster, err := key.GetAWSClusterByName(ctx, r.Client, clusterName, awsMachineTemplate.GetNamespace())
@@ -196,33 +224,6 @@ func (r *AWSMachineTemplateReconciler) reconcileDelete(ctx context.Context, iamS
 			return ctrl.Result{}, errors.WithStack(err)
 		}
 		logger.Info("successfully removed finalizer from AWSMachineTemplate", "finalizer_name", iam.ControlPlaneRole)
-	}
-
-	cm := &corev1.ConfigMap{}
-	err = r.Get(
-		ctx,
-		types.NamespacedName{
-			Namespace: namespace,
-			Name:      fmt.Sprintf("%s-%s", clusterName, "cluster-values"),
-		},
-		cm)
-	if err != nil {
-		logger.Error(err, "Failed to get the cluster-values configmap for cluster")
-		return ctrl.Result{}, errors.WithStack(err)
-	}
-
-	if controllerutil.ContainsFinalizer(cm, key.FinalizerName(iam.ControlPlaneRole)) {
-		patchHelper, err := patch.NewHelper(cm, r.Client)
-		if err != nil {
-			return ctrl.Result{}, errors.WithStack(err)
-		}
-		controllerutil.RemoveFinalizer(cm, key.FinalizerName(iam.ControlPlaneRole))
-		err = patchHelper.Patch(ctx, cm)
-		if err != nil {
-			logger.Error(err, "failed to remove finalizer from configmap")
-			return ctrl.Result{}, errors.WithStack(err)
-		}
-		logger.Info("successfully removed finalizer from configmap", "finalizer_name", iam.ControlPlaneRole)
 	}
 
 	return ctrl.Result{}, nil
