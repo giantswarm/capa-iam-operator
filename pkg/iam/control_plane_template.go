@@ -28,7 +28,6 @@ const controlPlanePolicyTemplate = `{
         "autoscaling:DescribeAutoScalingInstances",
         "autoscaling:DescribeTags",
         "autoscaling:DescribeLaunchConfigurations",
-        "autoscaling:DescribeScalingActivities",
         "ec2:DescribeLaunchTemplateVersions"
       ],
       "Resource": "*",
