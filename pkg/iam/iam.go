@@ -458,12 +458,6 @@ func (s *IAMService) DeleteRolesForIRSA() error {
 		return err
 	}
 
-	// delete cluster-autoscaler role
-	err = s.deleteRole(roleName(ClusterAutoscalerRole, s.clusterName))
-	if err != nil {
-		return err
-	}
-
 	s.log.Info("finished deleting IAM roles for IRSA")
 	return nil
 }

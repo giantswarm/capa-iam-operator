@@ -4,6 +4,7 @@ const clusterAutoscalerPolicyTemplate = `{
   "Version": "2012-10-17",
   "Statement": [
      {
+      "Effect": "Allow",
       "Action": [
         "autoscaling:DescribeAutoScalingGroups",
         "autoscaling:DescribeAutoScalingInstances",
@@ -13,10 +14,10 @@ const clusterAutoscalerPolicyTemplate = `{
         "ec2:DescribeInstanceTypes",
         "ec2:DescribeLaunchTemplateVersions",
       ],
-      "Resource": "*",
-      "Effect": "Allow"
+      "Resource": "*"
     },
     {
+      "Effect": "Allow",
       "Action": [
         "autoscaling:SetDesiredCapacity",
         "autoscaling:TerminateInstanceInAutoScalingGroup",
@@ -24,8 +25,7 @@ const clusterAutoscalerPolicyTemplate = `{
         "ec2:GetInstanceTypesFromInstanceRequirements",
         "eks:DescribeNodegroup"
       ],
-      "Resource": "*",
-      "Effect": "Allow"
+      "Resource": "*"
     }
   ]
 }`

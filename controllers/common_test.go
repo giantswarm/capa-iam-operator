@@ -562,6 +562,7 @@ var clusterAutoscalerRoleInfo = RoleInfo{
   "Version": "2012-10-17",
   "Statement": [
     {
+      "Effect": "Allow",
       "Action": [
         "autoscaling:DescribeAutoScalingGroups",
         "autoscaling:DescribeAutoScalingInstances",
@@ -571,10 +572,10 @@ var clusterAutoscalerRoleInfo = RoleInfo{
         "ec2:DescribeInstanceTypes",
         "ec2:DescribeLaunchTemplateVersions",
       ],
-      "Resource": "*",
-      "Effect": "Allow"
+      "Resource": "*"
     },
     {
+      "Effect": "Allow",
       "Action": [
         "autoscaling:SetDesiredCapacity",
         "autoscaling:TerminateInstanceInAutoScalingGroup",
@@ -582,8 +583,7 @@ var clusterAutoscalerRoleInfo = RoleInfo{
         "ec2:GetInstanceTypesFromInstanceRequirements",
         "eks:DescribeNodegroup"
       ],
-      "Resource": "*",
-      "Effect": "Allow"
+      "Resource": "*"
     }
   ]
 }`,
