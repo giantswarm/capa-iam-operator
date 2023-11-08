@@ -534,3 +534,59 @@ var ebsCsiDriverRoleInfo = RoleInfo{
 
 	ReturnRoleArn: "arn:aws:iam::55554444:role/test-cluster-ebs-csi-driver",
 }
+
+var clusterAutoscalerRoleInfo = RoleInfo{
+	ExpectedName: "test-cluster-cluster-autoscaler-role",
+
+	ExpectedAssumeRolePolicyDocument: `{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::012345678901:oidc-provider/irsa.test.gaws.gigantic.io"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "irsa.test.gaws.gigantic.io:sub": "system:serviceaccount:kube-system:cluster-autoscaler"
+        }
+      }
+    }
+  ]
+}
+`,
+
+	ExpectedPolicyName: "control-plane-test-cluster-policy",
+	ExpectedPolicyDocument: `{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": [
+        "autoscaling:DescribeAutoScalingGroups",
+        "autoscaling:DescribeAutoScalingInstances",
+        "autoscaling:DescribeLaunchConfigurations",
+        "autoscaling:DescribeScalingActivities",
+        "autoscaling:DescribeTags",
+        "ec2:DescribeInstanceTypes",
+        "ec2:DescribeLaunchTemplateVersions",
+      ],
+      "Resource": "*",
+      "Effect": "Allow"
+    },
+    {
+      "Action": [
+        "autoscaling:SetDesiredCapacity",
+        "autoscaling:TerminateInstanceInAutoScalingGroup",
+        "ec2:DescribeImages",
+        "ec2:GetInstanceTypesFromInstanceRequirements",
+        "eks:DescribeNodegroup"
+      ],
+      "Resource": "*",
+      "Effect": "Allow"
+    }
+  ]
+}`,
+
+	ReturnRoleArn: "arn:aws:iam::55554444:role/test-cluster-cluster-autoscaler",
+}

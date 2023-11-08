@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Add addition IAM permission for cluster-autoscaler to describe scaling activities.
+- Add new IAM role for cluster-autoscaler.
 
 ## [0.12.0] - 2023-11-02
 

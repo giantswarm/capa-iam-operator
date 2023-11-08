@@ -18,7 +18,6 @@ const nodesTemplate = `{
         "autoscaling:DescribeAutoScalingGroups",
         "autoscaling:DescribeAutoScalingInstances",
         "autoscaling:DescribeTags",
-        "autoscaling:DescribeLaunchConfigurations",
         "autoscaling:DescribeScalingActivities",
         "ec2:DescribeLaunchTemplateVersions"
       ],
