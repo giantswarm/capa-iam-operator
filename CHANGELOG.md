@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Fix deletion bug due to incorrect finalizer removal order. 
+
 ## [0.12.0] - 2023-11-02
 
 ### Added
