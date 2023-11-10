@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Malformed cluser-autoscaler policy
+
 ## [0.13.0] - 2023-11-10
 
 ### Added
