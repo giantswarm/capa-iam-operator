@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Malformed cluser-autoscaler policy
+- Fix malformed cluster-autoscaler policy.
 
 ## [0.13.0] - 2023-11-10
 
