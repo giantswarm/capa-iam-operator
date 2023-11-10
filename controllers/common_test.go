@@ -570,7 +570,7 @@ var clusterAutoscalerRoleInfo = RoleInfo{
         "autoscaling:DescribeScalingActivities",
         "autoscaling:DescribeTags",
         "ec2:DescribeInstanceTypes",
-        "ec2:DescribeLaunchTemplateVersions",
+        "ec2:DescribeLaunchTemplateVersions"
       ],
       "Resource": "*"
     },
