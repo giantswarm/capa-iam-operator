@@ -55,6 +55,8 @@ func getInlinePolicyTemplate(roleType string) string {
 		return ALBControllerPolicyTemplate
 	case EBSCSIDriverRole:
 		return EBSCSIDriverPolicyTemplate
+	case ClusterAutoscalerRole:
+		return clusterAutoscalerPolicyTemplate
 	default:
 		return ""
 	}
@@ -79,6 +81,8 @@ func getTrustPolicyTemplate(roleType string) string {
 	case ALBConrollerRole:
 		return trustIdentityPolicyKIAMAndIRSA
 	case EBSCSIDriverRole:
+		return trustIdentityPolicyKIAMAndIRSA
+	case ClusterAutoscalerRole:
 		return trustIdentityPolicyKIAMAndIRSA
 
 	default:

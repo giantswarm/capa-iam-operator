@@ -16,15 +16,16 @@ import (
 )
 
 const (
-	BastionRole      = "bastion"
-	ControlPlaneRole = "control-plane" // also used as part of finalizer name
-	NodesRole        = "nodes"         // also used as part of finalizer name
-	Route53Role      = "route53-role"
-	KIAMRole         = "kiam-role"
-	IRSARole         = "irsa-role"
-	CertManagerRole  = "cert-manager-role"
-	ALBConrollerRole = "ALBController-Role"
-	EBSCSIDriverRole = "ebs-csi-driver-role"
+	BastionRole           = "bastion"
+	ControlPlaneRole      = "control-plane" // also used as part of finalizer name
+	NodesRole             = "nodes"         // also used as part of finalizer name
+	Route53Role           = "route53-role"
+	KIAMRole              = "kiam-role"
+	IRSARole              = "irsa-role"
+	CertManagerRole       = "cert-manager-role"
+	ALBConrollerRole      = "ALBController-Role"
+	EBSCSIDriverRole      = "ebs-csi-driver-role"
+	ClusterAutoscalerRole = "cluster-autoscaler-role"
 
 	IAMControllerOwnedTag = "capi-iam-controller/owned"
 	ClusterIDTag          = "sigs.k8s.io/cluster-api-provider-aws/cluster/%s"
@@ -157,7 +158,7 @@ func (s *IAMService) ReconcileKiamRole() error {
 func (s *IAMService) ReconcileRolesForIRSA(awsAccountID string, cloudFrontDomain string) error {
 	s.log.Info("reconciling IAM roles for IRSA")
 
-	for _, roleTypeToReconcile := range []string{Route53Role, CertManagerRole, ALBConrollerRole, EBSCSIDriverRole} {
+	for _, roleTypeToReconcile := range []string{Route53Role, CertManagerRole, ALBConrollerRole, EBSCSIDriverRole, ClusterAutoscalerRole} {
 		var params Route53RoleParams
 		params, err := s.generateRoute53RoleParams(roleTypeToReconcile, awsAccountID, cloudFrontDomain)
 		if err != nil {
@@ -670,6 +671,8 @@ func getServiceAccount(role string) (string, error) {
 		return "aws-load-balancer-controller", nil
 	} else if role == EBSCSIDriverRole {
 		return "ebs-csi-controller-sa", nil
+	} else if role == ClusterAutoscalerRole {
+		return "cluster-autoscaler", nil
 	}
 
 	return "", fmt.Errorf("cannot get service account for specified role - %s", role)

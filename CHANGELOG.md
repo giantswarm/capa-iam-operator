@@ -7,7 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
 - Fix deletion bug due to incorrect finalizer removal order. 
+
+## [0.13.1] - 2023-11-10
+
+### Fixed
+
+- Fix malformed cluster-autoscaler policy.
+
+## [0.13.0] - 2023-11-10
+
+### Added
+
+- Add new IAM role for cluster-autoscaler.
 
 ## [0.12.0] - 2023-11-02
 
@@ -152,7 +166,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implement `AWSMachineTemplate` reconciler.
 - Implement `AWSMachinePool` reconciler.
 
-[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v0.13.1...HEAD
+[0.13.1]: https://github.com/giantswarm/capa-iam-operator/compare/v0.13.0...v0.13.1
+[0.13.0]: https://github.com/giantswarm/capa-iam-operator/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/giantswarm/capa-iam-operator/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/giantswarm/capa-iam-operator/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/giantswarm/capa-iam-operator/compare/v0.9.0...v0.10.0
