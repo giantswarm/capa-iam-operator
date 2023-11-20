@@ -9,7 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Fix deletion bug due to incorrect finalizer removal order. 
+- Fix deletion bug due to leftover finalizer on `AWSCluster`. 
+
+## [0.13.2] - 2023-11-15
+
+### Fixed
+
+- Fix not deleting all IRSA roles.
 
 ## [0.13.1] - 2023-11-10
 
