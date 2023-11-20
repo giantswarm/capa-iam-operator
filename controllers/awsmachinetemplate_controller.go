@@ -151,7 +151,7 @@ func (r *AWSMachineTemplateReconciler) reconcileDelete(ctx context.Context, iamS
 		}
 		if role == iam.ControlPlaneRole {
 			if r.EnableRoute53Role {
-				err = iamService.DeleteRoute53Role()
+				err = iamService.DeleteRolesForIRSA()
 				if err != nil {
 					return ctrl.Result{}, err
 				}

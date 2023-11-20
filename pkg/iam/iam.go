@@ -158,7 +158,7 @@ func (s *IAMService) ReconcileKiamRole() error {
 func (s *IAMService) ReconcileRolesForIRSA(awsAccountID string, cloudFrontDomain string) error {
 	s.log.Info("reconciling IAM roles for IRSA")
 
-	for _, roleTypeToReconcile := range []string{Route53Role, CertManagerRole, ALBConrollerRole, EBSCSIDriverRole, ClusterAutoscalerRole} {
+	for _, roleTypeToReconcile := range getIRSARoles() {
 		var params Route53RoleParams
 		params, err := s.generateRoute53RoleParams(roleTypeToReconcile, awsAccountID, cloudFrontDomain)
 		if err != nil {
@@ -179,7 +179,6 @@ func (s *IAMService) ReconcileRolesForIRSA(awsAccountID string, cloudFrontDomain
 func (s *IAMService) generateRoute53RoleParams(roleTypeToReconcile string, awsAccountID string, cloudFrontDomain string) (Route53RoleParams, error) {
 	namespace := "kube-system"
 	serviceAccount, err := getServiceAccount(roleTypeToReconcile)
-
 	if err != nil {
 		s.log.Error(err, "failed to get service account for role")
 		return Route53RoleParams{}, err
@@ -439,26 +438,15 @@ func (s *IAMService) DeleteRoute53Role() error {
 
 func (s *IAMService) DeleteRolesForIRSA() error {
 	s.log.Info("deleting IAM roles for IRSA")
+	defer s.log.Info("finished deleting IAM roles for IRSA")
 
-	// delete cert-manager role
-	err := s.deleteRole(roleName(CertManagerRole, s.clusterName))
-	if err != nil {
-		return err
+	for _, roleTypeToReconcile := range getIRSARoles() {
+		err := s.deleteRole(roleName(roleTypeToReconcile, s.clusterName))
+		if err != nil {
+			return err
+		}
 	}
 
-	// delete route53 role
-	err = s.deleteRole(roleName(Route53Role, s.clusterName))
-	if err != nil {
-		return err
-	}
-
-	// delete AWS Load Balancer Controller role
-	err = s.deleteRole(roleName(ALBConrollerRole, s.clusterName))
-	if err != nil {
-		return err
-	}
-
-	s.log.Info("finished deleting IAM roles for IRSA")
 	return nil
 }
 
@@ -676,4 +664,14 @@ func getServiceAccount(role string) (string, error) {
 	}
 
 	return "", fmt.Errorf("cannot get service account for specified role - %s", role)
+}
+
+func getIRSARoles() []string {
+	return []string{
+		Route53Role,
+		CertManagerRole,
+		ALBConrollerRole,
+		EBSCSIDriverRole,
+		ClusterAutoscalerRole,
+	}
 }
