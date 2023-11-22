@@ -25,6 +25,7 @@ const (
 	CertManagerRole       = "cert-manager-role"
 	ALBConrollerRole      = "ALBController-Role"
 	EBSCSIDriverRole      = "ebs-csi-driver-role"
+	EFSCSIDriverRole      = "efs-csi-driver-role"
 	ClusterAutoscalerRole = "cluster-autoscaler-role"
 
 	IAMControllerOwnedTag = "capi-iam-controller/owned"
@@ -659,6 +660,8 @@ func getServiceAccount(role string) (string, error) {
 		return "aws-load-balancer-controller", nil
 	} else if role == EBSCSIDriverRole {
 		return "ebs-csi-controller-sa", nil
+	} else if role == EFSCSIDriverRole {
+		return "efs-csi-controller-sa", nil
 	} else if role == ClusterAutoscalerRole {
 		return "cluster-autoscaler", nil
 	}
@@ -672,6 +675,7 @@ func getIRSARoles() []string {
 		CertManagerRole,
 		ALBConrollerRole,
 		EBSCSIDriverRole,
+		EFSCSIDriverRole,
 		ClusterAutoscalerRole,
 	}
 }

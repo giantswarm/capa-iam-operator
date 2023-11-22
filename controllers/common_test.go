@@ -535,6 +535,82 @@ var ebsCsiDriverRoleInfo = RoleInfo{
 	ReturnRoleArn: "arn:aws:iam::55554444:role/test-cluster-ebs-csi-driver",
 }
 
+var efsCsiDriverRoleInfo = RoleInfo{
+	ExpectedName: "test-cluster-efs-csi-driver-role",
+
+	ExpectedAssumeRolePolicyDocument: `{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::012345678901:oidc-provider/irsa.test.gaws.gigantic.io"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "irsa.test.gaws.gigantic.io:sub": "system:serviceaccount:kube-system:efs-csi-controller-sa"
+        }
+      }
+    }
+  ]
+}
+`,
+
+	ExpectedPolicyName: "control-plane-test-cluster-policy",
+	ExpectedPolicyDocument: `{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "elasticfilesystem:DescribeAccessPoints",
+        "elasticfilesystem:DescribeFileSystems",
+        "elasticfilesystem:DescribeMountTargets",
+        "ec2:DescribeAvailabilityZones"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "elasticfilesystem:CreateAccessPoint"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "aws:RequestTag/efs.csi.aws.com/cluster": "true"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "elasticfilesystem:TagResource"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/efs.csi.aws.com/cluster": "true"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": "elasticfilesystem:DeleteAccessPoint",
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:ResourceTag/efs.csi.aws.com/cluster": "true"
+        }
+      }
+    }
+  ]
+}`,
+
+	ReturnRoleArn: "arn:aws:iam::55554444:role/test-cluster-efs-csi-driver",
+}
+
 var clusterAutoscalerRoleInfo = RoleInfo{
 	ExpectedName: "test-cluster-cluster-autoscaler-role",
 

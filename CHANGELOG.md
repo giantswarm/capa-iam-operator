@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add IRSA role for `aws-efs-csi-driver` app.
+
 ## [0.13.2] - 2023-11-15
 
 ### Fixed
