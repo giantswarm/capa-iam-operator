@@ -661,7 +661,7 @@ func getServiceAccount(role string) (string, error) {
 	} else if role == EBSCSIDriverRole {
 		return "ebs-csi-controller-sa", nil
 	} else if role == EFSCSIDriverRole {
-		return "efs-csi-controller-sa", nil
+		return "efs-csi-sa", nil
 	} else if role == ClusterAutoscalerRole {
 		return "cluster-autoscaler", nil
 	}

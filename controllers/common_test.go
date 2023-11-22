@@ -549,7 +549,7 @@ var efsCsiDriverRoleInfo = RoleInfo{
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
         "StringEquals": {
-          "irsa.test.gaws.gigantic.io:sub": "system:serviceaccount:kube-system:efs-csi-controller-sa"
+          "irsa.test.gaws.gigantic.io:sub": "system:serviceaccount:kube-system:efs-csi-sa"
         }
       }
     }
