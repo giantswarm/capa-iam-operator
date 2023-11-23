@@ -332,6 +332,7 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 		certManagerRoleInfo,
 		ALBControllerRoleInfo,
 		ebsCsiDriverRoleInfo,
+		efsCsiDriverRoleInfo,
 		clusterAutoscalerRoleInfo,
 	}
 
