@@ -160,7 +160,6 @@ func (r *AWSMachineTemplateReconciler) reconcileDelete(ctx context.Context, iamS
 			}
 		}
 	}
-
 	// remove finalizer from AWSCluster
 	{
 		awsCluster, err := key.GetAWSClusterByName(ctx, r.Client, clusterName, awsMachineTemplate.GetNamespace())

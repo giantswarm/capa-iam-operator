@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Fix deletion bug due to leftover finalizer on `AWSCluster`. 
+- Remove unnecessary finalizers from configmap and AWSCluster. 
 
 ## [0.14.0] - 2023-11-23
 
