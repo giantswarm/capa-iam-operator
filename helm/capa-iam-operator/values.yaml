@@ -13,7 +13,7 @@ image:
   name: "giantswarm/capa-iam-operator"
   tag: "[[ .Version ]]"
 registry:
-  domain: docker.io
+  domain: gsoci.azurecr.io
 
 pod:
   user:
@@ -37,7 +37,7 @@ securityContext:
     type: RuntimeDefault
   capabilities:
     drop:
-    - ALL
+      - ALL
 
 global:
   podSecurityStandards:
