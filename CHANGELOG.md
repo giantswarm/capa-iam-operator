@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Configure `gsoci.azurecr.io` as the default container image registry.
+
 ## [0.14.0] - 2023-11-23
 
 ### Added
@@ -73,7 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Add necessary values for PSS policy warnings. 
+- Add necessary values for PSS policy warnings.
 
 ## [0.8.0] - 2023-05-08
 
@@ -149,7 +153,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add VerticalPodAutoscaler CR.
 - Add IAM role creation for bastion node.
-
 
 ## [0.3.2] - 2022-03-03
 
