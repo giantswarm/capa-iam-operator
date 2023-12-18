@@ -158,3 +158,16 @@ func GetAWSAccountID(awsClusterRoleIdentity *capa.AWSClusterRoleIdentity) (strin
 
 	return a.AccountID, nil
 }
+
+func GetAdditionalIrsaDomain(o v1.Object) string {
+	return GetAnnotation(o, "aws.giantswarm.io/irsa-additional-domain")
+}
+
+// GetAnnotation returns the value of the specified annotation.
+func GetAnnotation(o v1.Object, annotation string) string {
+	annotations := o.GetAnnotations()
+	if annotations == nil {
+		return ""
+	}
+	return annotations[annotation]
+}

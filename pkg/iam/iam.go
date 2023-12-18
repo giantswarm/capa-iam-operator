@@ -64,6 +64,7 @@ type Route53RoleParams struct {
 	Namespace        string
 	ServiceAccount   string
 	PrincipalRoleARN string
+	IsMigrate        bool
 }
 
 func New(config IAMServiceConfig) (*IAMService, error) {
@@ -156,12 +157,12 @@ func (s *IAMService) ReconcileKiamRole() error {
 	return nil
 }
 
-func (s *IAMService) ReconcileRolesForIRSA(awsAccountID string, cloudFrontDomain string) error {
+func (s *IAMService) ReconcileRolesForIRSA(awsAccountID string, cloudFrontDomain string, oldCloudFrontDomain string) error {
 	s.log.Info("reconciling IAM roles for IRSA")
 
 	for _, roleTypeToReconcile := range getIRSARoles() {
 		var params Route53RoleParams
-		params, err := s.generateRoute53RoleParams(roleTypeToReconcile, awsAccountID, cloudFrontDomain)
+		params, err := s.generateRoute53RoleParams(roleTypeToReconcile, awsAccountID, cloudFrontDomain, oldCloudFrontDomain)
 		if err != nil {
 			s.log.Error(err, "failed to generate Route53 role parameters")
 			return err
@@ -177,7 +178,7 @@ func (s *IAMService) ReconcileRolesForIRSA(awsAccountID string, cloudFrontDomain
 	return nil
 }
 
-func (s *IAMService) generateRoute53RoleParams(roleTypeToReconcile string, awsAccountID string, cloudFrontDomain string) (Route53RoleParams, error) {
+func (s *IAMService) generateRoute53RoleParams(roleTypeToReconcile string, awsAccountID string, cloudFrontDomain string, oldCloudFrontDomain string) (Route53RoleParams, error) {
 	namespace := "kube-system"
 	serviceAccount, err := getServiceAccount(roleTypeToReconcile)
 	if err != nil {
@@ -191,6 +192,10 @@ func (s *IAMService) generateRoute53RoleParams(roleTypeToReconcile string, awsAc
 		CloudFrontDomain: cloudFrontDomain,
 		Namespace:        namespace,
 		ServiceAccount:   serviceAccount,
+	}
+
+	if oldCloudFrontDomain != "" {
+		params.CloudFrontDomain = oldCloudFrontDomain
 	}
 
 	return params, nil
