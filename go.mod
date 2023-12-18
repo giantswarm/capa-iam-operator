@@ -9,7 +9,7 @@ require (
 	github.com/giantswarm/microerror v0.4.1
 	github.com/go-logr/logr v1.3.0
 	github.com/golang/mock v1.6.0
-	github.com/google/uuid v1.4.0
+	github.com/google/uuid v1.5.0
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/onsi/ginkgo/v2 v2.13.2
 	github.com/onsi/gomega v1.30.0
@@ -35,7 +35,7 @@ replace (
 	github.com/dgrijalva/jwt-go => github.com/dgrijalva/jwt-go/v4 v4.0.0-preview1
 	github.com/gogo/protobuf v1.3.1 => github.com/gogo/protobuf v1.3.2
 	github.com/gorilla/websocket v1.4.0 => github.com/gorilla/websocket v1.4.2
-	github.com/hashicorp/consul => github.com/hashicorp/consul v1.17.0
+	github.com/hashicorp/consul => github.com/hashicorp/consul v1.17.1
 	github.com/miekg/dns v1.0.14 => github.com/miekg/dns v1.1.50
 	github.com/pkg/sftp v1.10.1 => github.com/pkg/sftp v1.13.5
 	github.com/prometheus/client_golang v1.11.0 => github.com/prometheus/client_golang v1.12.2

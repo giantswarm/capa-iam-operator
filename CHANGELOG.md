@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Configure `gsoci.azurecr.io` as the default container image registry.
 
+### Fixed
+
+- Remove unnecessary finalizers from configmap and AWSCluster. 
+
 ## [0.14.0] - 2023-11-23
 
 ### Added
@@ -21,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Fix not deleting all IRSA rolles.
+- Fix not deleting all IRSA roles.
 
 ## [0.13.1] - 2023-11-10
 
