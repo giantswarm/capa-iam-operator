@@ -258,6 +258,7 @@ func (s *IAMService) createRole(roleName string, roleType string, params interfa
 		l.Error(err, "failed to generate assume policy document from template for IAM role")
 		return err
 	}
+	l.Info("generated policyDocument", "assumeRolePolicyDocument", assumeRolePolicyDocument)
 
 	tags := []*awsiam.Tag{
 		{
@@ -343,6 +344,7 @@ func (s *IAMService) applyAssumePolicyRole(roleName string, roleType string, par
 		log.Error(err, "failed to generate assume policy document from template for IAM role")
 		return err
 	}
+	log.Info("generated policy document", "assumeRolePolicyDocument", assumeRolePolicyDocument)
 
 	updateInput := &awsiam.UpdateAssumeRolePolicyInput{
 		RoleName:       aws.String(roleName),
@@ -383,6 +385,7 @@ func (s *IAMService) attachInlinePolicy(roleName string, roleType string, params
 			l.Error(err, "failed to generate inline policy document from template for IAM role")
 			return err
 		}
+		l.Info("generated policy document", "policyDocument", policyDocument)
 
 		i := &awsiam.PutRolePolicyInput{
 			PolicyName:     aws.String(policyName(s.roleType, s.clusterName)),
