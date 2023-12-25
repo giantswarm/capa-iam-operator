@@ -195,6 +195,7 @@ func (s *IAMService) generateRoute53RoleParams(roleTypeToReconcile string, awsAc
 	}
 
 	if oldCloudFrontDomain != "" {
+		params.IsMigrate = true
 		params.CloudFrontDomain = oldCloudFrontDomain
 	}
 
