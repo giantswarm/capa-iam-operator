@@ -14,16 +14,16 @@ const trustIdentityPolicyIRSA = `{
           "{{.CloudFrontDomain}}:sub": "system:serviceaccount:{{.Namespace}}:{{.ServiceAccount}}"
         }
       }
-    }{{if .IsMigrate}},
+    }{{if .AdditionalCloudFrontDomain}},
     {
       "Effect": "Allow",
       "Principal": {
-        "Federated": "arn:aws:iam::{{.AccountID}}:oidc-provider/{{.OldCloudFrontDomain}}"
+        "Federated": "arn:aws:iam::{{.AccountID}}:oidc-provider/{{.AdditionalCloudFrontDomain}}"
       },
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
         "StringEquals": {
-          "{{.OldCloudFrontDomain}}:sub": "system:serviceaccount:{{.Namespace}}:{{.ServiceAccount}}"
+          "{{.AdditionalCloudFrontDomain}}:sub": "system:serviceaccount:{{.Namespace}}:{{.ServiceAccount}}"
         }
       }
     }

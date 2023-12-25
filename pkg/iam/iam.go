@@ -58,13 +58,13 @@ type IAMService struct {
 }
 
 type Route53RoleParams struct {
-	EC2ServiceDomain string
-	AccountID        string
-	CloudFrontDomain string
-	Namespace        string
-	ServiceAccount   string
-	PrincipalRoleARN string
-	IsMigrate        bool
+	EC2ServiceDomain           string
+	AccountID                  string
+	CloudFrontDomain           string
+	AdditionalCloudFrontDomain string
+	Namespace                  string
+	ServiceAccount             string
+	PrincipalRoleARN           string
 }
 
 func New(config IAMServiceConfig) (*IAMService, error) {
@@ -178,7 +178,7 @@ func (s *IAMService) ReconcileRolesForIRSA(awsAccountID string, cloudFrontDomain
 	return nil
 }
 
-func (s *IAMService) generateRoute53RoleParams(roleTypeToReconcile string, awsAccountID string, cloudFrontDomain string, oldCloudFrontDomain string) (Route53RoleParams, error) {
+func (s *IAMService) generateRoute53RoleParams(roleTypeToReconcile string, awsAccountID string, cloudFrontDomain string, additionalCloudFrontDomain string) (Route53RoleParams, error) {
 	namespace := "kube-system"
 	serviceAccount, err := getServiceAccount(roleTypeToReconcile)
 	if err != nil {
@@ -194,9 +194,8 @@ func (s *IAMService) generateRoute53RoleParams(roleTypeToReconcile string, awsAc
 		ServiceAccount:   serviceAccount,
 	}
 
-	if oldCloudFrontDomain != "" {
-		params.IsMigrate = true
-		params.CloudFrontDomain = oldCloudFrontDomain
+	if additionalCloudFrontDomain != "" {
+		params.AdditionalCloudFrontDomain = additionalCloudFrontDomain
 	}
 
 	return params, nil
@@ -259,7 +258,6 @@ func (s *IAMService) createRole(roleName string, roleType string, params interfa
 		l.Error(err, "failed to generate assume policy document from template for IAM role")
 		return err
 	}
-	l.Info("generated policyDocument", "assumeRolePolicyDocument", assumeRolePolicyDocument)
 
 	tags := []*awsiam.Tag{
 		{
@@ -345,7 +343,6 @@ func (s *IAMService) applyAssumePolicyRole(roleName string, roleType string, par
 		log.Error(err, "failed to generate assume policy document from template for IAM role")
 		return err
 	}
-	log.Info("generated policy document", "assumeRolePolicyDocument", assumeRolePolicyDocument)
 
 	updateInput := &awsiam.UpdateAssumeRolePolicyInput{
 		RoleName:       aws.String(roleName),
@@ -386,7 +383,6 @@ func (s *IAMService) attachInlinePolicy(roleName string, roleType string, params
 			l.Error(err, "failed to generate inline policy document from template for IAM role")
 			return err
 		}
-		l.Info("generated policy document", "policyDocument", policyDocument)
 
 		i := &awsiam.PutRolePolicyInput{
 			PolicyName:     aws.String(policyName(s.roleType, s.clusterName)),
