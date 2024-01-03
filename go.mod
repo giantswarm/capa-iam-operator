@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
-	github.com/aws/aws-sdk-go v1.48.7
+	github.com/aws/aws-sdk-go v1.49.13
 	github.com/benbjohnson/clock v1.3.0 // indirect
 	github.com/giantswarm/microerror v0.4.1
 	github.com/go-logr/logr v1.3.0
@@ -17,6 +17,7 @@ require (
 	github.com/rogpeppe/go-internal v1.8.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
+	golang.org/x/crypto v0.17.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20221014153046-6fdb5e3db783 // indirect
 	google.golang.org/genproto v0.0.0-20221014173430-6e2ab493f96b // indirect
 	k8s.io/api v0.25.0
