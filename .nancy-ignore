@@ -1,20 +1,6 @@
-CVE-2019-10743 until=2023-12-31
-CVE-2022-29153 until=2023-12-31
-CVE-2019-19355 until=2023-12-31
 CVE-2023-3978
 CVE-2023-39325
 
 # pkg:golang/github.com/hashicorp/consul/sdk@v0.13.0
-CVE-2021-41803 until=2023-12-31
 CVE-2022-24687
 CVE-2022-24687
-
-# pkg:golang/k8s.io/apiserver@v0.25.0
-CVE-2020-8561 until=2023-12-31
-sonatype-2022-6522 until=2023-12-31
-
-# pkg:golang/google.golang.org/grpc@v1.50.0
-CVE-2023-32731 until=2023-12-30
-
-
-
