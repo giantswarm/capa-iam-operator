@@ -74,7 +74,6 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 			},
 			Spec: capa.AWSMachineTemplateSpec{
 				Template: capa.AWSMachineTemplateResource{
-				Template: capa.AWSMachineTemplateResource{
 					Spec: capa.AWSMachineSpec{
 						IAMInstanceProfile: "the-profile",
 						InstanceType:       "unittest.4xlarge",
