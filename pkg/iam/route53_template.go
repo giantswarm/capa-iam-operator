@@ -6,7 +6,7 @@ const trustIdentityPolicyIRSA = `{
     {
       "Effect": "Allow",
       "Principal": {
-        "Federated": "arn:*:iam::{{.AccountID}}:oidc-provider/{{.CloudFrontDomain}}"
+        "Federated": "arn:{{.AWSDomain}}:iam::{{.AccountID}}:oidc-provider/{{.CloudFrontDomain}}"
       },
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
@@ -18,7 +18,7 @@ const trustIdentityPolicyIRSA = `{
     {
       "Effect": "Allow",
       "Principal": {
-        "Federated": "arn:*:iam::{{.AccountID}}:oidc-provider/{{.AdditionalCloudFrontDomain}}"
+        "Federated": "arn:{{.AWSDomain}}:iam::{{.AccountID}}:oidc-provider/{{.AdditionalCloudFrontDomain}}"
       },
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {

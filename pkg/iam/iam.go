@@ -58,6 +58,7 @@ type IAMService struct {
 }
 
 type Route53RoleParams struct {
+	AWSDomain                  string
 	EC2ServiceDomain           string
 	AccountID                  string
 	CloudFrontDomain           string
@@ -141,9 +142,11 @@ func (s *IAMService) ReconcileKiamRole() error {
 	}
 
 	params := struct {
+		AWSDomain           string
 		ControlPlaneRoleARN string
 		EC2ServiceDomain    string
 	}{
+		AWSDomain:           awsDomain(s.region),
 		ControlPlaneRoleARN: controlPlaneRoleARN,
 		EC2ServiceDomain:    ec2ServiceDomain(s.region),
 	}
@@ -187,6 +190,7 @@ func (s *IAMService) generateRoute53RoleParams(roleTypeToReconcile string, awsAc
 	}
 
 	params := Route53RoleParams{
+		AWSDomain:        awsDomain(s.region),
 		EC2ServiceDomain: ec2ServiceDomain(s.region),
 		AccountID:        awsAccountID,
 		CloudFrontDomain: cloudFrontDomain,

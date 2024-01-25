@@ -31,6 +31,16 @@ func ec2ServiceDomain(region string) string {
 	return domain
 }
 
+func awsDomain(region string) string {
+	domain := "aws"
+
+	if isChinaRegion(region) {
+		domain = "aws-cn"
+	}
+
+	return domain
+}
+
 func isChinaRegion(region string) bool {
 	return strings.Contains(region, "cn-")
 }
