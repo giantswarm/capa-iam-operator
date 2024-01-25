@@ -18,6 +18,7 @@ package main
 
 import (
 	"flag"
+	"github.com/aws/aws-sdk-go/aws"
 	"os"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -107,8 +108,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	iamClientFactory := func(session awsclientgo.ConfigProvider) iamiface.IAMAPI {
-		return awsiam.New(session)
+	iamClientFactory := func(session awsclientgo.ConfigProvider, region string) iamiface.IAMAPI {
+		return awsiam.New(session, &aws.Config{Region: aws.String(region)})
 	}
 
 	if err = (&controllers.AWSMachineTemplateReconciler{

@@ -41,7 +41,7 @@ type AWSManagedControlPlaneReconciler struct {
 	client.Client
 	Log              logr.Logger
 	AWSClient        awsclient.AwsClientInterface
-	IAMClientFactory func(awsclientgo.ConfigProvider) iamiface.IAMAPI
+	IAMClientFactory func(awsclientgo.ConfigProvider, string) iamiface.IAMAPI
 }
 
 func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {

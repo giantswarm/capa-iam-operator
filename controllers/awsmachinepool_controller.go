@@ -41,7 +41,7 @@ import (
 type AWSMachinePoolReconciler struct {
 	client.Client
 	Log              logr.Logger
-	IAMClientFactory func(awsclientgo.ConfigProvider) iamiface.IAMAPI
+	IAMClientFactory func(awsclientgo.ConfigProvider, string) iamiface.IAMAPI
 	AWSClient        awsclient.AwsClientInterface
 }
 

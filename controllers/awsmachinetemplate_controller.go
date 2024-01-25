@@ -46,7 +46,7 @@ type AWSMachineTemplateReconciler struct {
 	EnableRoute53Role bool
 	Log               logr.Logger
 	AWSClient         awsclient.AwsClientInterface
-	IAMClientFactory  func(awsclientgo.ConfigProvider) iamiface.IAMAPI
+	IAMClientFactory  func(awsclientgo.ConfigProvider, string) iamiface.IAMAPI
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinetemplates,verbs=get;list;watch;create;update;patch;delete
