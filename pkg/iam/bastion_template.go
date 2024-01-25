@@ -13,7 +13,7 @@ const bastionPolicyTemplate = `{
         "s3:GetObjectVersion"
       ],
       "Resource": [
-        "arn:aws:s3:::*-capa-*"
+        "arn:*:s3:::*-capa-*"
       ],
       "Effect": "Allow"
     }

@@ -155,9 +155,9 @@ const ALBControllerPolicyTemplate = `{
                 "elasticloadbalancing:RemoveTags"
             ],
             "Resource": [
-                "arn:aws:elasticloadbalancing:*:*:targetgroup/*/*",
-                "arn:aws:elasticloadbalancing:*:*:loadbalancer/net/*/*",
-                "arn:aws:elasticloadbalancing:*:*:loadbalancer/app/*/*"
+                "arn:*:elasticloadbalancing:*:*:targetgroup/*/*",
+                "arn:*:elasticloadbalancing:*:*:loadbalancer/net/*/*",
+                "arn:*:elasticloadbalancing:*:*:loadbalancer/app/*/*"
             ],
             "Condition": {
                 "Null": {
@@ -173,10 +173,10 @@ const ALBControllerPolicyTemplate = `{
                 "elasticloadbalancing:RemoveTags"
             ],
             "Resource": [
-                "arn:aws:elasticloadbalancing:*:*:listener/net/*/*/*",
-                "arn:aws:elasticloadbalancing:*:*:listener/app/*/*/*",
-                "arn:aws:elasticloadbalancing:*:*:listener-rule/net/*/*/*",
-                "arn:aws:elasticloadbalancing:*:*:listener-rule/app/*/*/*"
+                "arn:*:elasticloadbalancing:*:*:listener/net/*/*/*",
+                "arn:*:elasticloadbalancing:*:*:listener/app/*/*/*",
+                "arn:*:elasticloadbalancing:*:*:listener-rule/net/*/*/*",
+                "arn:*:elasticloadbalancing:*:*:listener-rule/app/*/*/*"
             ]
         },
         {
@@ -204,9 +204,9 @@ const ALBControllerPolicyTemplate = `{
                 "elasticloadbalancing:AddTags"
             ],
             "Resource": [
-                "arn:aws:elasticloadbalancing:*:*:targetgroup/*/*",
-                "arn:aws:elasticloadbalancing:*:*:loadbalancer/net/*/*",
-                "arn:aws:elasticloadbalancing:*:*:loadbalancer/app/*/*"
+                "arn:*:elasticloadbalancing:*:*:targetgroup/*/*",
+                "arn:*:elasticloadbalancing:*:*:loadbalancer/net/*/*",
+                "arn:*:elasticloadbalancing:*:*:loadbalancer/app/*/*"
             ],
             "Condition": {
                 "StringEquals": {
@@ -226,7 +226,7 @@ const ALBControllerPolicyTemplate = `{
                 "elasticloadbalancing:RegisterTargets",
                 "elasticloadbalancing:DeregisterTargets"
             ],
-            "Resource": "arn:aws:elasticloadbalancing:*:*:targetgroup/*/*"
+            "Resource": "arn:*:elasticloadbalancing:*:*:targetgroup/*/*"
         },
         {
             "Effect": "Allow",

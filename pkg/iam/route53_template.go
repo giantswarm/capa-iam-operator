@@ -6,7 +6,7 @@ const trustIdentityPolicyIRSA = `{
     {
       "Effect": "Allow",
       "Principal": {
-        "Federated": "arn:aws:iam::{{.AccountID}}:oidc-provider/{{.CloudFrontDomain}}"
+        "Federated": "arn:*:iam::{{.AccountID}}:oidc-provider/{{.CloudFrontDomain}}"
       },
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
@@ -18,7 +18,7 @@ const trustIdentityPolicyIRSA = `{
     {
       "Effect": "Allow",
       "Principal": {
-        "Federated": "arn:aws:iam::{{.AccountID}}:oidc-provider/{{.AdditionalCloudFrontDomain}}"
+        "Federated": "arn:*:iam::{{.AccountID}}:oidc-provider/{{.AdditionalCloudFrontDomain}}"
       },
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
@@ -38,7 +38,7 @@ const route53RolePolicyTemplate = `{
     {
       "Action": "route53:ChangeResourceRecordSets",
       "Resource": [
-        "arn:aws:route53:::hostedzone/*"
+        "arn:*:route53:::hostedzone/*"
       ],
       "Effect": "Allow"
     },
@@ -60,7 +60,7 @@ const route53RolePolicyTemplateForCertManager = `{
     {
       "Effect": "Allow",
       "Action": "route53:GetChange",
-      "Resource": "arn:aws:route53:::change/*"
+      "Resource": "arn:*:route53:::change/*"
     },
     {
       "Effect": "Allow",
@@ -68,7 +68,7 @@ const route53RolePolicyTemplateForCertManager = `{
         "route53:ChangeResourceRecordSets",
         "route53:ListResourceRecordSets"
       ],
-      "Resource": "arn:aws:route53:::hostedzone/*"
+      "Resource": "arn:*:route53:::hostedzone/*"
     },
     {
       "Effect": "Allow",

@@ -2,8 +2,6 @@ package awsclient
 
 import (
 	"errors"
-	"fmt"
-
 	"github.com/aws/aws-sdk-go/aws"
 	clientaws "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
@@ -53,13 +51,6 @@ func (a *AwsClient) GetAWSClientSession(awsRoleARN string, region string) (clien
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
-
-	v, err := o.Config.Credentials.Get()
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
-	fmt.Printf("generated new session: %#v\n", v)
 
 	return o, nil
 }
