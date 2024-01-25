@@ -2,6 +2,7 @@ package awsclient
 
 import (
 	"errors"
+
 	"github.com/aws/aws-sdk-go/aws"
 	clientaws "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
