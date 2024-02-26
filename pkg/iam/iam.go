@@ -361,44 +361,45 @@ func (s *IAMService) attachInlinePolicy(roleName string, roleType string, params
 		RoleName: aws.String(roleName),
 	}
 
-	alreadyExists := false
-
 	// check if the inline policy already exists
 	o, err := s.iamClient.ListRolePolicies(i)
 	if err == nil {
 		for _, p := range o.PolicyNames {
 			if *p == policyName(s.roleType, s.clusterName) {
-				alreadyExists = true
+				_, err := s.iamClient.DeleteRolePolicy(&awsiam.DeleteRolePolicyInput{
+					RoleName:   aws.String(roleName),
+					PolicyName: aws.String(policyName(s.roleType, s.clusterName)),
+				})
+				if err != nil {
+					l.Error(err, "failed to delete inline policy")
+					return err
+				}
 				break
 			}
+
 		}
 	}
 
-	// add inline policy to the main IAM role if it do not exist yet
-	if !alreadyExists {
-		tmpl := getInlinePolicyTemplate(roleType)
+	tmpl := getInlinePolicyTemplate(roleType)
 
-		policyDocument, err := generatePolicyDocument(tmpl, params)
-		if err != nil {
-			l.Error(err, "failed to generate inline policy document from template for IAM role")
-			return err
-		}
-
-		i := &awsiam.PutRolePolicyInput{
-			PolicyName:     aws.String(policyName(s.roleType, s.clusterName)),
-			PolicyDocument: aws.String(policyDocument),
-			RoleName:       aws.String(roleName),
-		}
-
-		_, err = s.iamClient.PutRolePolicy(i)
-		if err != nil {
-			l.Error(err, "failed to add inline policy to IAM Role")
-			return err
-		}
-		l.Info("successfully added inline policy to IAM role")
-	} else {
-		l.Info("inline policy for IAM role already added, skipping")
+	policyDocument, err := generatePolicyDocument(tmpl, params)
+	if err != nil {
+		l.Error(err, "failed to generate inline policy document from template for IAM role")
+		return err
 	}
+
+	input := &awsiam.PutRolePolicyInput{
+		PolicyName:     aws.String(policyName(s.roleType, s.clusterName)),
+		PolicyDocument: aws.String(policyDocument),
+		RoleName:       aws.String(roleName),
+	}
+
+	_, err = s.iamClient.PutRolePolicy(input)
+	if err != nil {
+		l.Error(err, "failed to add inline policy to IAM Role")
+		return err
+	}
+	l.Info("successfully added inline policy to IAM role")
 
 	return nil
 }

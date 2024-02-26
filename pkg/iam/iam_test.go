@@ -63,6 +63,8 @@ var _ = Describe("ReconcileRole", func() {
 		When("inline policy is already attached", func() {
 			BeforeEach(func() {
 				mockIAMClient.EXPECT().ListRolePolicies(gomock.Any()).Return(&awsIAM.ListRolePoliciesOutput{PolicyNames: aws.StringSlice([]string{"control-plane-test-cluster-policy"})}, nil)
+				mockIAMClient.EXPECT().DeleteRolePolicy(gomock.Any()).Return(&awsIAM.DeleteRolePolicyOutput{}, nil)
+				mockIAMClient.EXPECT().PutRolePolicy(gomock.Any()).Return(&awsIAM.PutRolePolicyOutput{}, nil).AnyTimes()
 			})
 			It("should return nil", func() {
 				err := iamService.ReconcileRole()
