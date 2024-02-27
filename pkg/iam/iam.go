@@ -1,8 +1,10 @@
 package iam
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -215,6 +217,7 @@ func (s *IAMService) reconcileRole(roleName string, roleType string, params inte
 		}
 	}
 
+	// we only attach the inline policy to a role that is owned (and was created) by iam controller
 	err = s.attachInlinePolicy(roleName, roleType, params)
 	if err != nil {
 		return err
@@ -347,29 +350,6 @@ func (s *IAMService) applyAssumePolicyRole(roleName string, roleType string, par
 // attachInlinePolicy  will attach inline policy to the main IAM role
 func (s *IAMService) attachInlinePolicy(roleName string, roleType string, params interface{}) error {
 	l := s.log.WithValues("role_name", roleName)
-	i := &awsiam.ListRolePoliciesInput{
-		RoleName: aws.String(roleName),
-	}
-
-	// check if the inline policy already exists
-	o, err := s.iamClient.ListRolePolicies(i)
-	if err == nil {
-		for _, p := range o.PolicyNames {
-			if *p == policyName(s.roleType, s.clusterName) {
-				_, err := s.iamClient.DeleteRolePolicy(&awsiam.DeleteRolePolicyInput{
-					RoleName:   aws.String(roleName),
-					PolicyName: aws.String(policyName(s.roleType, s.clusterName)),
-				})
-				if err != nil {
-					l.Error(err, "failed to delete inline policy")
-					return err
-				}
-				break
-			}
-
-		}
-	}
-
 	tmpl := getInlinePolicyTemplate(roleType)
 
 	policyDocument, err := generatePolicyDocument(tmpl, params)
@@ -378,13 +358,46 @@ func (s *IAMService) attachInlinePolicy(roleName string, roleType string, params
 		return err
 	}
 
-	input := &awsiam.PutRolePolicyInput{
+	// check if the inline policy already exists
+	output, err := s.iamClient.GetRolePolicy(&awsiam.GetRolePolicyInput{
+		RoleName:   aws.String(roleName),
+		PolicyName: aws.String(policyName(s.roleType, s.clusterName)),
+	})
+	if err != nil && !IsNotFound(err) {
+		l.Error(err, "failed to fetch inline policy for IAM role")
+		return err
+	}
+
+	if err == nil {
+		l.Info("output policy document", "policy_document", *output.PolicyDocument)
+		l.Info("new policy document", "policy_document", policyDocument)
+		isEqual, err := areEqualJSON(*output.PolicyDocument, policyDocument)
+		if err != nil {
+			l.Error(err, "failed to compare inline policy documents")
+			return err
+		}
+		if isEqual {
+			l.Info("inline policy for IAM role already exists, skipping")
+			return nil
+		}
+
+		_, err = s.iamClient.DeleteRolePolicy(&awsiam.DeleteRolePolicyInput{
+			PolicyName: aws.String(policyName(s.roleType, s.clusterName)),
+			RoleName:   aws.String(roleName),
+		})
+		if err != nil {
+			l.Error(err, "failed to delete inline policy from IAM Role")
+			return err
+		}
+	}
+
+	i := &awsiam.PutRolePolicyInput{
 		PolicyName:     aws.String(policyName(s.roleType, s.clusterName)),
 		PolicyDocument: aws.String(policyDocument),
 		RoleName:       aws.String(roleName),
 	}
 
-	_, err = s.iamClient.PutRolePolicy(input)
+	_, err = s.iamClient.PutRolePolicy(i)
 	if err != nil {
 		l.Error(err, "failed to add inline policy to IAM Role")
 		return err
@@ -633,4 +646,21 @@ func getIRSARoles() []string {
 		EFSCSIDriverRole,
 		ClusterAutoscalerRole,
 	}
+}
+
+func areEqualJSON(s1, s2 string) (bool, error) {
+	var o1 interface{}
+	var o2 interface{}
+
+	var err error
+	err = json.Unmarshal([]byte(s1), &o1)
+	if err != nil {
+		return false, err
+	}
+	err = json.Unmarshal([]byte(s2), &o2)
+	if err != nil {
+		return false, err
+	}
+
+	return reflect.DeepEqual(o1, o2), nil
 }

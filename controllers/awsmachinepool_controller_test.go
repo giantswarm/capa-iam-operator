@@ -352,21 +352,12 @@ var _ = Describe("AWSMachinePoolReconciler", func() {
 					RoleName:            aws.String(info.ExpectedName),
 				}).Return(&iam.AddRoleToInstanceProfileOutput{}, nil)
 
-				// Implementation detail: instead of storing the ARN, the controller calls `GetRole` multiple times
-				// from different places. Remove once we don't do this anymore (hence the `MinTimes` call so we
-				// would notice).
-				mockIAMClient.EXPECT().GetRole(&iam.GetRoleInput{
-					RoleName: aws.String(info.ExpectedName),
-				}).MinTimes(1).Return(&iam.GetRoleOutput{
-					Role: &iam.Role{
-						Arn:  aws.String(info.ReturnRoleArn),
-						Tags: expectedIAMTags,
+				mockIAMClient.EXPECT().GetRolePolicy(
+					&iam.GetRolePolicyInput{
+						PolicyName: aws.String(info.ExpectedPolicyName),
+						RoleName:   aws.String(info.ExpectedName),
 					},
-				}, nil)
-
-				mockIAMClient.EXPECT().ListRolePolicies(&iam.ListRolePoliciesInput{
-					RoleName: aws.String(info.ExpectedName),
-				}).Return(&iam.ListRolePoliciesOutput{}, nil)
+				).Return(&iam.GetRolePolicyOutput{}, awserr.New(iam.ErrCodeNoSuchEntityException, "unit test", nil))
 
 				mockIAMClient.EXPECT().PutRolePolicy(&iam.PutRolePolicyInput{
 					PolicyName:     aws.String(info.ExpectedPolicyName),
