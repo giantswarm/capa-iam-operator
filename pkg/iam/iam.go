@@ -215,21 +215,11 @@ func (s *IAMService) reconcileRole(roleName string, roleType string, params inte
 		}
 	}
 
-	// we only attach the inline policy to a role that is owned (and was created) by iam controller
-	owned, err := isOwnedByIAMController(roleName, s.iamClient)
+	err = s.attachInlinePolicy(roleName, roleType, params)
 	if err != nil {
-		l.Error(err, "Failed to fetch IAM Role")
 		return err
 	}
-	// check if the policy is created by this controller, if its not than we skip adding inline policy
-	if !owned {
-		l.Info("IAM role is not owned by IAM controller, skipping adding inline policy", "role_name", roleName)
-	} else {
-		err = s.attachInlinePolicy(roleName, roleType, params)
-		if err != nil {
-			return err
-		}
-	}
+
 	return nil
 }
 
@@ -460,22 +450,8 @@ func (s *IAMService) DeleteRolesForIRSA() error {
 func (s *IAMService) deleteRole(roleName string) error {
 	l := s.log.WithValues("role_name", roleName)
 
-	owned, err := isOwnedByIAMController(roleName, s.iamClient)
-	if IsNotFound(err) {
-		// role do not exists, nothing to delete, lets just finish
-		return nil
-	} else if err != nil {
-		l.Error(err, "Failed to fetch IAM Role")
-		return err
-	}
-	// check if the policy is created by this controller, if its not than we skip deletion
-	if !owned {
-		l.Info("IAM role is not owned by IAM controller, skipping deletion")
-		return nil
-	}
-
 	// clean any attached policies, otherwise deletion of role will not work
-	err = s.cleanAttachedPolicies(roleName)
+	err := s.cleanAttachedPolicies(roleName)
 	if err != nil {
 		return err
 	}
@@ -610,33 +586,6 @@ func (s *IAMService) GetIRSAOpenIDForEKS(clusterName string) (string, error) {
 	id := strings.TrimPrefix(*cluster.Cluster.Identity.Oidc.Issuer, "https://")
 
 	return id, nil
-}
-
-func isOwnedByIAMController(iamRoleName string, iamClient iamiface.IAMAPI) (bool, error) {
-	i := &awsiam.GetRoleInput{
-		RoleName: aws.String(iamRoleName),
-	}
-
-	o, err := iamClient.GetRole(i)
-	if err != nil {
-		return false, err
-	}
-
-	if hasIAMControllerTag(o.Role.Tags) {
-		return true, nil
-	} else {
-		return false, nil
-	}
-}
-
-func hasIAMControllerTag(tags []*awsiam.Tag) bool {
-	for _, tag := range tags {
-		if *tag.Key == IAMControllerOwnedTag {
-			return true
-		}
-	}
-
-	return false
 }
 
 func roleName(role string, clusterID string) string {
