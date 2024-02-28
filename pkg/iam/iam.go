@@ -656,7 +656,7 @@ func policyName(role string, clusterID string) string {
 
 func getServiceAccount(role string) (string, error) {
 	if role == CertManagerRole {
-		return "cert-manager-controller", nil
+		return "cert-manager-app", nil
 	} else if role == IRSARole {
 		return "external-dns", nil
 	} else if role == Route53Role {
