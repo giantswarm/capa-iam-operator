@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Use `cert-manager-app` as service account name for Cert Manager (changed in recent version of cert-manager-app).
 
+### Fixed
+
+- Use `/aws/` as `AWS_SHARED_CREDENTIALS_FILE` to overcome changes in base images.
+
 ## [0.15.0] - 2024-01-10
 
 ### Changed
