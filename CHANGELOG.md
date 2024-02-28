@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.0] - 2024-02-28
+
 ### Changed
 
 - Use `cert-manager-app` as service account name for Cert Manager (changed in recent version of cert-manager-app).
@@ -191,7 +193,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implement `AWSMachineTemplate` reconciler.
 - Implement `AWSMachinePool` reconciler.
 
-[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v0.15.0...HEAD
+[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v0.16.0...HEAD
+[0.16.0]: https://github.com/giantswarm/capa-iam-operator/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/giantswarm/capa-iam-operator/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/giantswarm/capa-iam-operator/compare/v0.13.2...v0.14.0
 [0.13.2]: https://github.com/giantswarm/capa-iam-operator/compare/v0.13.1...v0.13.2
