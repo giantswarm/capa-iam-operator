@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Use `cert-manager-app` as service account name for Cert Manager (changed in recent version of cert-manager app).
+
 ## [0.15.0] - 2024-01-10
 
 ### Changed
