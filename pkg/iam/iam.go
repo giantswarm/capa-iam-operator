@@ -369,8 +369,6 @@ func (s *IAMService) attachInlinePolicy(roleName string, roleType string, params
 	}
 
 	if err == nil {
-		l.Info("output policy document", "policy_document", *output.PolicyDocument)
-		l.Info("new policy document", "policy_document", policyDocument)
 		isEqual, err := areEqualJSON(*output.PolicyDocument, policyDocument)
 		if err != nil {
 			l.Error(err, "failed to compare inline policy documents")
