@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"reflect"
 	"strings"
 
@@ -369,7 +370,7 @@ func (s *IAMService) attachInlinePolicy(roleName string, roleType string, params
 	}
 
 	if err == nil {
-		isEqual, err := areEqualJSON(*output.PolicyDocument, policyDocument)
+		isEqual, err := areEqualPolicy(*output.PolicyDocument, policyDocument)
 		if err != nil {
 			l.Error(err, "failed to compare inline policy documents")
 			return err
@@ -646,6 +647,14 @@ func getIRSARoles() []string {
 	}
 }
 
+func areEqualPolicy(encodedPolicy, expectedPolicy string) (bool, error) {
+	decodedPolicy, err := urlDecode(encodedPolicy)
+	if err != nil {
+		return false, err
+	}
+	return areEqualJSON(decodedPolicy, expectedPolicy)
+}
+
 func areEqualJSON(s1, s2 string) (bool, error) {
 	var o1 interface{}
 	var o2 interface{}
@@ -661,4 +670,13 @@ func areEqualJSON(s1, s2 string) (bool, error) {
 	}
 
 	return reflect.DeepEqual(o1, o2), nil
+}
+
+func urlDecode(encodedValue string) (string, error) {
+	decodedValue, err := url.QueryUnescape(encodedValue)
+	if err != nil {
+		return "", err
+	}
+
+	return decodedValue, nil
 }
