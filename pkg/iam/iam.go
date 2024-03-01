@@ -1,8 +1,11 @@
 package iam
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
+	"reflect"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -216,20 +219,11 @@ func (s *IAMService) reconcileRole(roleName string, roleType string, params inte
 	}
 
 	// we only attach the inline policy to a role that is owned (and was created) by iam controller
-	owned, err := isOwnedByIAMController(roleName, s.iamClient)
+	err = s.attachInlinePolicy(roleName, roleType, params)
 	if err != nil {
-		l.Error(err, "Failed to fetch IAM Role")
 		return err
 	}
-	// check if the policy is created by this controller, if its not than we skip adding inline policy
-	if !owned {
-		l.Info("IAM role is not owned by IAM controller, skipping adding inline policy", "role_name", roleName)
-	} else {
-		err = s.attachInlinePolicy(roleName, roleType, params)
-		if err != nil {
-			return err
-		}
-	}
+
 	return nil
 }
 
@@ -357,48 +351,57 @@ func (s *IAMService) applyAssumePolicyRole(roleName string, roleType string, par
 // attachInlinePolicy  will attach inline policy to the main IAM role
 func (s *IAMService) attachInlinePolicy(roleName string, roleType string, params interface{}) error {
 	l := s.log.WithValues("role_name", roleName)
-	i := &awsiam.ListRolePoliciesInput{
-		RoleName: aws.String(roleName),
-	}
+	tmpl := getInlinePolicyTemplate(roleType)
 
-	alreadyExists := false
+	policyDocument, err := generatePolicyDocument(tmpl, params)
+	if err != nil {
+		l.Error(err, "failed to generate inline policy document from template for IAM role")
+		return err
+	}
 
 	// check if the inline policy already exists
-	o, err := s.iamClient.ListRolePolicies(i)
+	output, err := s.iamClient.GetRolePolicy(&awsiam.GetRolePolicyInput{
+		RoleName:   aws.String(roleName),
+		PolicyName: aws.String(policyName(s.roleType, s.clusterName)),
+	})
+	if err != nil && !IsNotFound(err) {
+		l.Error(err, "failed to fetch inline policy for IAM role")
+		return err
+	}
+
 	if err == nil {
-		for _, p := range o.PolicyNames {
-			if *p == policyName(s.roleType, s.clusterName) {
-				alreadyExists = true
-				break
-			}
+		isEqual, err := areEqualPolicy(*output.PolicyDocument, policyDocument)
+		if err != nil {
+			l.Error(err, "failed to compare inline policy documents")
+			return err
+		}
+		if isEqual {
+			l.Info("inline policy for IAM role already exists, skipping")
+			return nil
+		}
+
+		_, err = s.iamClient.DeleteRolePolicy(&awsiam.DeleteRolePolicyInput{
+			PolicyName: aws.String(policyName(s.roleType, s.clusterName)),
+			RoleName:   aws.String(roleName),
+		})
+		if err != nil {
+			l.Error(err, "failed to delete inline policy from IAM Role")
+			return err
 		}
 	}
 
-	// add inline policy to the main IAM role if it do not exist yet
-	if !alreadyExists {
-		tmpl := getInlinePolicyTemplate(roleType)
-
-		policyDocument, err := generatePolicyDocument(tmpl, params)
-		if err != nil {
-			l.Error(err, "failed to generate inline policy document from template for IAM role")
-			return err
-		}
-
-		i := &awsiam.PutRolePolicyInput{
-			PolicyName:     aws.String(policyName(s.roleType, s.clusterName)),
-			PolicyDocument: aws.String(policyDocument),
-			RoleName:       aws.String(roleName),
-		}
-
-		_, err = s.iamClient.PutRolePolicy(i)
-		if err != nil {
-			l.Error(err, "failed to add inline policy to IAM Role")
-			return err
-		}
-		l.Info("successfully added inline policy to IAM role")
-	} else {
-		l.Info("inline policy for IAM role already added, skipping")
+	i := &awsiam.PutRolePolicyInput{
+		PolicyName:     aws.String(policyName(s.roleType, s.clusterName)),
+		PolicyDocument: aws.String(policyDocument),
+		RoleName:       aws.String(roleName),
 	}
+
+	_, err = s.iamClient.PutRolePolicy(i)
+	if err != nil {
+		l.Error(err, "failed to add inline policy to IAM Role")
+		return err
+	}
+	l.Info("successfully added inline policy to IAM role")
 
 	return nil
 }
@@ -459,22 +462,8 @@ func (s *IAMService) DeleteRolesForIRSA() error {
 func (s *IAMService) deleteRole(roleName string) error {
 	l := s.log.WithValues("role_name", roleName)
 
-	owned, err := isOwnedByIAMController(roleName, s.iamClient)
-	if IsNotFound(err) {
-		// role do not exists, nothing to delete, lets just finish
-		return nil
-	} else if err != nil {
-		l.Error(err, "Failed to fetch IAM Role")
-		return err
-	}
-	// check if the policy is created by this controller, if its not than we skip deletion
-	if !owned {
-		l.Info("IAM role is not owned by IAM controller, skipping deletion")
-		return nil
-	}
-
 	// clean any attached policies, otherwise deletion of role will not work
-	err = s.cleanAttachedPolicies(roleName)
+	err := s.cleanAttachedPolicies(roleName)
 	if err != nil {
 		return err
 	}
@@ -611,33 +600,6 @@ func (s *IAMService) GetIRSAOpenIDForEKS(clusterName string) (string, error) {
 	return id, nil
 }
 
-func isOwnedByIAMController(iamRoleName string, iamClient iamiface.IAMAPI) (bool, error) {
-	i := &awsiam.GetRoleInput{
-		RoleName: aws.String(iamRoleName),
-	}
-
-	o, err := iamClient.GetRole(i)
-	if err != nil {
-		return false, err
-	}
-
-	if hasIAMControllerTag(o.Role.Tags) {
-		return true, nil
-	} else {
-		return false, nil
-	}
-}
-
-func hasIAMControllerTag(tags []*awsiam.Tag) bool {
-	for _, tag := range tags {
-		if *tag.Key == IAMControllerOwnedTag {
-			return true
-		}
-	}
-
-	return false
-}
-
 func roleName(role string, clusterID string) string {
 	if role == Route53Role {
 		return fmt.Sprintf("%s-Route53Manager-Role", clusterID)
@@ -683,4 +645,38 @@ func getIRSARoles() []string {
 		EFSCSIDriverRole,
 		ClusterAutoscalerRole,
 	}
+}
+
+func areEqualPolicy(encodedPolicy, expectedPolicy string) (bool, error) {
+	decodedPolicy, err := urlDecode(encodedPolicy)
+	if err != nil {
+		return false, err
+	}
+	return areEqualJSON(decodedPolicy, expectedPolicy)
+}
+
+func areEqualJSON(s1, s2 string) (bool, error) {
+	var o1 interface{}
+	var o2 interface{}
+
+	var err error
+	err = json.Unmarshal([]byte(s1), &o1)
+	if err != nil {
+		return false, err
+	}
+	err = json.Unmarshal([]byte(s2), &o2)
+	if err != nil {
+		return false, err
+	}
+
+	return reflect.DeepEqual(o1, o2), nil
+}
+
+func urlDecode(encodedValue string) (string, error) {
+	decodedValue, err := url.QueryUnescape(encodedValue)
+	if err != nil {
+		return "", err
+	}
+
+	return decodedValue, nil
 }
