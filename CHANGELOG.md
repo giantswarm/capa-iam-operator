@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Create a IAM client with specific Region in order to work with AWS China partition.
 - Adjust all IAM policies to include all AWS partitions.
-
+- Change inline policy document attach logic to recreate it if it's already attached to the role.
 
 ## [0.16.0] - 2024-02-28
 
