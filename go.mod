@@ -20,6 +20,7 @@ require (
 	golang.org/x/crypto v0.17.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20221014153046-6fdb5e3db783 // indirect
 	google.golang.org/genproto v0.0.0-20221014173430-6e2ab493f96b // indirect
+	google.golang.org/protobuf v1.33.0 // indirect
 	k8s.io/api v0.25.0
 	k8s.io/apimachinery v0.25.0
 	k8s.io/client-go v0.25.0
