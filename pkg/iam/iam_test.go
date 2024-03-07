@@ -48,7 +48,7 @@ var _ = Describe("ReconcileRole", func() {
 			PrincipalRoleARN: "test-principal-role-arn",
 			Log:              ctrl.Log,
 			AWSSession:       sess,
-			IAMClientFactory: func(session awsclientgo.ConfigProvider) iamiface.IAMAPI {
+			IAMClientFactory: func(session awsclientgo.ConfigProvider, region string) iamiface.IAMAPI {
 				return mockIAMClient
 			},
 		}

@@ -37,7 +37,7 @@ var certManagerRoleInfo = RoleInfo{
     {
       "Effect": "Allow",
       "Action": "route53:GetChange",
-      "Resource": "arn:aws:route53:::change/*"
+      "Resource": "arn:*:route53:::change/*"
     },
     {
       "Effect": "Allow",
@@ -45,7 +45,7 @@ var certManagerRoleInfo = RoleInfo{
         "route53:ChangeResourceRecordSets",
         "route53:ListResourceRecordSets"
       ],
-      "Resource": "arn:aws:route53:::hostedzone/*"
+      "Resource": "arn:*:route53:::hostedzone/*"
     },
     {
       "Effect": "Allow",
@@ -88,7 +88,7 @@ var externalDnsRoleInfo = RoleInfo{
     {
       "Action": "route53:ChangeResourceRecordSets",
       "Resource": [
-        "arn:aws:route53:::hostedzone/*"
+        "arn:*:route53:::hostedzone/*"
       ],
       "Effect": "Allow"
     },
@@ -217,7 +217,7 @@ var ALBControllerRoleInfo = RoleInfo{
             "Action": [
                 "ec2:CreateTags"
             ],
-            "Resource": "arn:aws:ec2:*:*:security-group/*",
+            "Resource": "arn:*:ec2:*:*:security-group/*",
             "Condition": {
                 "StringEquals": {
                     "ec2:CreateAction": "CreateSecurityGroup"
@@ -233,7 +233,7 @@ var ALBControllerRoleInfo = RoleInfo{
                 "ec2:CreateTags",
                 "ec2:DeleteTags"
             ],
-            "Resource": "arn:aws:ec2:*:*:security-group/*",
+            "Resource": "arn:*:ec2:*:*:security-group/*",
             "Condition": {
                 "Null": {
                     "aws:RequestTag/elbv2.k8s.aws/cluster": "true",
@@ -285,9 +285,9 @@ var ALBControllerRoleInfo = RoleInfo{
                 "elasticloadbalancing:RemoveTags"
             ],
             "Resource": [
-                "arn:aws:elasticloadbalancing:*:*:targetgroup/*/*",
-                "arn:aws:elasticloadbalancing:*:*:loadbalancer/net/*/*",
-                "arn:aws:elasticloadbalancing:*:*:loadbalancer/app/*/*"
+                "arn:*:elasticloadbalancing:*:*:targetgroup/*/*",
+                "arn:*:elasticloadbalancing:*:*:loadbalancer/net/*/*",
+                "arn:*:elasticloadbalancing:*:*:loadbalancer/app/*/*"
             ],
             "Condition": {
                 "Null": {
@@ -303,10 +303,10 @@ var ALBControllerRoleInfo = RoleInfo{
                 "elasticloadbalancing:RemoveTags"
             ],
             "Resource": [
-                "arn:aws:elasticloadbalancing:*:*:listener/net/*/*/*",
-                "arn:aws:elasticloadbalancing:*:*:listener/app/*/*/*",
-                "arn:aws:elasticloadbalancing:*:*:listener-rule/net/*/*/*",
-                "arn:aws:elasticloadbalancing:*:*:listener-rule/app/*/*/*"
+                "arn:*:elasticloadbalancing:*:*:listener/net/*/*/*",
+                "arn:*:elasticloadbalancing:*:*:listener/app/*/*/*",
+                "arn:*:elasticloadbalancing:*:*:listener-rule/net/*/*/*",
+                "arn:*:elasticloadbalancing:*:*:listener-rule/app/*/*/*"
             ]
         },
         {
@@ -334,9 +334,9 @@ var ALBControllerRoleInfo = RoleInfo{
                 "elasticloadbalancing:AddTags"
             ],
             "Resource": [
-                "arn:aws:elasticloadbalancing:*:*:targetgroup/*/*",
-                "arn:aws:elasticloadbalancing:*:*:loadbalancer/net/*/*",
-                "arn:aws:elasticloadbalancing:*:*:loadbalancer/app/*/*"
+                "arn:*:elasticloadbalancing:*:*:targetgroup/*/*",
+                "arn:*:elasticloadbalancing:*:*:loadbalancer/net/*/*",
+                "arn:*:elasticloadbalancing:*:*:loadbalancer/app/*/*"
             ],
             "Condition": {
                 "StringEquals": {
@@ -356,7 +356,7 @@ var ALBControllerRoleInfo = RoleInfo{
                 "elasticloadbalancing:RegisterTargets",
                 "elasticloadbalancing:DeregisterTargets"
             ],
-            "Resource": "arn:aws:elasticloadbalancing:*:*:targetgroup/*/*"
+            "Resource": "arn:*:elasticloadbalancing:*:*:targetgroup/*/*"
         },
         {
             "Effect": "Allow",
@@ -423,8 +423,8 @@ var ebsCsiDriverRoleInfo = RoleInfo{
         "ec2:CreateTags"
       ],
       "Resource": [
-        "arn:aws:ec2:*:*:volume/*",
-        "arn:aws:ec2:*:*:snapshot/*"
+        "arn:*:ec2:*:*:volume/*",
+        "arn:*:ec2:*:*:snapshot/*"
       ],
       "Condition": {
         "StringEquals": {
@@ -441,8 +441,8 @@ var ebsCsiDriverRoleInfo = RoleInfo{
         "ec2:DeleteTags"
       ],
       "Resource": [
-        "arn:aws:ec2:*:*:volume/*",
-        "arn:aws:ec2:*:*:snapshot/*"
+        "arn:*:ec2:*:*:volume/*",
+        "arn:*:ec2:*:*:snapshot/*"
       ]
     },
     {

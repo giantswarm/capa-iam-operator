@@ -23,6 +23,7 @@ import (
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 
+	"github.com/aws/aws-sdk-go/aws"
 	awsclientgo "github.com/aws/aws-sdk-go/aws/client"
 	awsiam "github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
@@ -107,8 +108,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	iamClientFactory := func(session awsclientgo.ConfigProvider) iamiface.IAMAPI {
-		return awsiam.New(session)
+	iamClientFactory := func(session awsclientgo.ConfigProvider, region string) iamiface.IAMAPI {
+		return awsiam.New(session, &aws.Config{Region: aws.String(region)})
 	}
 
 	if err = (&controllers.AWSMachineTemplateReconciler{

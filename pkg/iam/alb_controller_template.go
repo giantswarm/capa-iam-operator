@@ -87,7 +87,7 @@ const ALBControllerPolicyTemplate = `{
             "Action": [
                 "ec2:CreateTags"
             ],
-            "Resource": "arn:aws:ec2:*:*:security-group/*",
+            "Resource": "arn:*:ec2:*:*:security-group/*",
             "Condition": {
                 "StringEquals": {
                     "ec2:CreateAction": "CreateSecurityGroup"
@@ -103,7 +103,7 @@ const ALBControllerPolicyTemplate = `{
                 "ec2:CreateTags",
                 "ec2:DeleteTags"
             ],
-            "Resource": "arn:aws:ec2:*:*:security-group/*",
+            "Resource": "arn:*:ec2:*:*:security-group/*",
             "Condition": {
                 "Null": {
                     "aws:RequestTag/elbv2.k8s.aws/cluster": "true",
@@ -155,9 +155,9 @@ const ALBControllerPolicyTemplate = `{
                 "elasticloadbalancing:RemoveTags"
             ],
             "Resource": [
-                "arn:aws:elasticloadbalancing:*:*:targetgroup/*/*",
-                "arn:aws:elasticloadbalancing:*:*:loadbalancer/net/*/*",
-                "arn:aws:elasticloadbalancing:*:*:loadbalancer/app/*/*"
+                "arn:*:elasticloadbalancing:*:*:targetgroup/*/*",
+                "arn:*:elasticloadbalancing:*:*:loadbalancer/net/*/*",
+                "arn:*:elasticloadbalancing:*:*:loadbalancer/app/*/*"
             ],
             "Condition": {
                 "Null": {
@@ -173,10 +173,10 @@ const ALBControllerPolicyTemplate = `{
                 "elasticloadbalancing:RemoveTags"
             ],
             "Resource": [
-                "arn:aws:elasticloadbalancing:*:*:listener/net/*/*/*",
-                "arn:aws:elasticloadbalancing:*:*:listener/app/*/*/*",
-                "arn:aws:elasticloadbalancing:*:*:listener-rule/net/*/*/*",
-                "arn:aws:elasticloadbalancing:*:*:listener-rule/app/*/*/*"
+                "arn:*:elasticloadbalancing:*:*:listener/net/*/*/*",
+                "arn:*:elasticloadbalancing:*:*:listener/app/*/*/*",
+                "arn:*:elasticloadbalancing:*:*:listener-rule/net/*/*/*",
+                "arn:*:elasticloadbalancing:*:*:listener-rule/app/*/*/*"
             ]
         },
         {
@@ -204,9 +204,9 @@ const ALBControllerPolicyTemplate = `{
                 "elasticloadbalancing:AddTags"
             ],
             "Resource": [
-                "arn:aws:elasticloadbalancing:*:*:targetgroup/*/*",
-                "arn:aws:elasticloadbalancing:*:*:loadbalancer/net/*/*",
-                "arn:aws:elasticloadbalancing:*:*:loadbalancer/app/*/*"
+                "arn:*:elasticloadbalancing:*:*:targetgroup/*/*",
+                "arn:*:elasticloadbalancing:*:*:loadbalancer/net/*/*",
+                "arn:*:elasticloadbalancing:*:*:loadbalancer/app/*/*"
             ],
             "Condition": {
                 "StringEquals": {
@@ -226,7 +226,7 @@ const ALBControllerPolicyTemplate = `{
                 "elasticloadbalancing:RegisterTargets",
                 "elasticloadbalancing:DeregisterTargets"
             ],
-            "Resource": "arn:aws:elasticloadbalancing:*:*:targetgroup/*/*"
+            "Resource": "arn:*:elasticloadbalancing:*:*:targetgroup/*/*"
         },
         {
             "Effect": "Allow",

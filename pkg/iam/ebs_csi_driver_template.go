@@ -25,8 +25,8 @@ const EBSCSIDriverPolicyTemplate = `{
         "ec2:CreateTags"
       ],
       "Resource": [
-        "arn:aws:ec2:*:*:volume/*",
-        "arn:aws:ec2:*:*:snapshot/*"
+        "arn:*:ec2:*:*:volume/*",
+        "arn:*:ec2:*:*:snapshot/*"
       ],
       "Condition": {
         "StringEquals": {
@@ -43,8 +43,8 @@ const EBSCSIDriverPolicyTemplate = `{
         "ec2:DeleteTags"
       ],
       "Resource": [
-        "arn:aws:ec2:*:*:volume/*",
-        "arn:aws:ec2:*:*:snapshot/*"
+        "arn:*:ec2:*:*:volume/*",
+        "arn:*:ec2:*:*:snapshot/*"
       ]
     },
     {
