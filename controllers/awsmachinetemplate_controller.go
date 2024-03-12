@@ -27,6 +27,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -38,6 +39,8 @@ import (
 	"github.com/giantswarm/capa-iam-operator/pkg/iam"
 	"github.com/giantswarm/capa-iam-operator/pkg/key"
 )
+
+const maxPatchRetries = 5
 
 // AWSMachineTemplateReconciler reconciles a AWSMachineTemplate object
 type AWSMachineTemplateReconciler struct {
@@ -137,7 +140,6 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return r.reconcileDelete(ctx, iamService, awsMachineTemplate, logger, clusterName, req.Namespace, role)
 	}
 	return r.reconcileNormal(ctx, iamService, awsMachineTemplate, logger, clusterName, req.Namespace, role)
-
 }
 
 func (r *AWSMachineTemplateReconciler) reconcileDelete(ctx context.Context, iamService *iam.IAMService, awsMachineTemplate *capa.AWSMachineTemplate, logger logr.Logger, clusterName, namespace, role string) (ctrl.Result, error) {
@@ -161,41 +163,22 @@ func (r *AWSMachineTemplateReconciler) reconcileDelete(ctx context.Context, iamS
 		}
 	}
 	// remove finalizer from AWSCluster
-	{
-		awsCluster, err := key.GetAWSClusterByName(ctx, r.Client, clusterName, awsMachineTemplate.GetNamespace())
-		if err != nil {
-			logger.Error(err, "failed to get awsCluster")
-			return ctrl.Result{}, err
-		}
-
-		if controllerutil.ContainsFinalizer(awsCluster, key.FinalizerName(iam.ControlPlaneRole)) {
-			patchHelper, err := patch.NewHelper(awsCluster, r.Client)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-			controllerutil.RemoveFinalizer(awsCluster, key.FinalizerName(iam.ControlPlaneRole))
-			err = patchHelper.Patch(ctx, awsCluster)
-			if err != nil {
-				logger.Error(err, "failed to remove finalizer on AWSCluster")
-				return ctrl.Result{}, err
-			}
-			logger.Info("successfully removed finalizer from AWSCluster", "finalizer_name", iam.ControlPlaneRole)
-		}
+	awsCluster, err := key.GetAWSClusterByName(ctx, r.Client, clusterName, awsMachineTemplate.GetNamespace())
+	if err != nil {
+		logger.Error(err, "failed to get awsCluster")
+		return ctrl.Result{}, err
+	}
+	err = r.removeFinalizer(ctx, logger, awsCluster)
+	if err != nil {
+		logger.Error(err, "Failed to remove finalizer from AWSCluster")
+		return ctrl.Result{}, err
 	}
 
 	// remove finalizer from AWSMachineTemplate
-	if controllerutil.ContainsFinalizer(awsMachineTemplate, key.FinalizerName(iam.ControlPlaneRole)) {
-		patchHelper, err := patch.NewHelper(awsMachineTemplate, r.Client)
-		if err != nil {
-			return ctrl.Result{}, errors.WithStack(err)
-		}
-		controllerutil.RemoveFinalizer(awsMachineTemplate, key.FinalizerName(iam.ControlPlaneRole))
-		err = patchHelper.Patch(ctx, awsMachineTemplate)
-		if err != nil {
-			logger.Error(err, "failed to remove finalizer from AWSMachineTemplate")
-			return ctrl.Result{}, errors.WithStack(err)
-		}
-		logger.Info("successfully removed finalizer from AWSMachineTemplate", "finalizer_name", iam.ControlPlaneRole)
+	err = r.removeFinalizer(ctx, logger, awsMachineTemplate)
+	if err != nil {
+		logger.Error(err, "Failed to remove finalizer from AWSMachineTemplate")
+		return ctrl.Result{}, err
 	}
 
 	cm := &corev1.ConfigMap{}
@@ -210,18 +193,11 @@ func (r *AWSMachineTemplateReconciler) reconcileDelete(ctx context.Context, iamS
 		logger.Error(err, "Failed to get the cluster-values configmap for cluster")
 		return ctrl.Result{}, errors.WithStack(client.IgnoreNotFound(err))
 	}
-	if controllerutil.ContainsFinalizer(cm, key.FinalizerName(iam.ControlPlaneRole)) {
-		patchHelper, err := patch.NewHelper(cm, r.Client)
-		if err != nil {
-			return ctrl.Result{}, errors.WithStack(err)
-		}
-		controllerutil.RemoveFinalizer(cm, key.FinalizerName(iam.ControlPlaneRole))
-		err = patchHelper.Patch(ctx, cm)
-		if err != nil {
-			logger.Error(err, "failed to remove finalizer from configmap")
-			return ctrl.Result{}, errors.WithStack(err)
-		}
-		logger.Info("successfully removed finalizer from configmap", "finalizer_name", iam.ControlPlaneRole)
+
+	err = r.removeFinalizer(ctx, logger, cm)
+	if err != nil {
+		logger.Error(err, "Failed to remove finalizer from ConfigMap")
+		return ctrl.Result{}, err
 	}
 
 	return ctrl.Result{}, nil
@@ -295,4 +271,45 @@ func (r *AWSMachineTemplateReconciler) SetupWithManager(mgr ctrl.Manager) error 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&capa.AWSMachineTemplate{}).
 		Complete(r)
+}
+
+func (r *AWSMachineTemplateReconciler) removeFinalizer(ctx context.Context, logger logr.Logger, object client.Object) error {
+	if !controllerutil.ContainsFinalizer(object, key.FinalizerName(iam.ControlPlaneRole)) {
+		logger.Info("finalizer already removed")
+		return nil
+	}
+
+	for i := 1; i <= maxPatchRetries; i++ {
+		patchHelper, err := patch.NewHelper(object, r.Client)
+		if err != nil {
+			logger.Error(err, "failed to create patch helper")
+			return errors.WithStack(err)
+		}
+		controllerutil.RemoveFinalizer(object, key.FinalizerName(iam.ControlPlaneRole))
+		err = patchHelper.Patch(ctx, object)
+		if err != nil {
+			logger.Error(err, "failed to remove finalizer")
+			return errors.WithStack(err)
+		}
+
+		// If another controller has removed its finalizer while we're
+		// reconciling this will fail with "Forbidden: no new finalizers can be
+		// added if the object is being deleted". The actual response code is
+		// 422 Unprocessable entity, which maps to StatusReasonInvalid in the
+		// k8serrors package. We have to get the cluster again with the now
+		// removed finalizer(s) and try again.
+		if k8serrors.IsInvalid(err) && i < maxPatchRetries {
+			logger.Info("patching object failed, trying again: %s", err.Error())
+			if err := r.Get(ctx, client.ObjectKeyFromObject(object), object); err != nil {
+				return microerror.Mask(err)
+			}
+			continue
+		}
+		if err != nil {
+			logger.Error(err, "failed to remove finalizers")
+			return microerror.Mask(err)
+		}
+	}
+	logger.Info("successfully removed finalizer")
+	return nil
 }
