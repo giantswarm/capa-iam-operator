@@ -26,8 +26,9 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	errutils "k8s.io/apimachinery/pkg/util/errors"
+
 	"k8s.io/apimachinery/pkg/types"
 	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -66,7 +67,7 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	awsMachineTemplate := &capa.AWSMachineTemplate{}
 	if err := r.Get(ctx, req.NamespacedName, awsMachineTemplate); err != nil {
-		if apierrors.IsNotFound(err) {
+		if k8serrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, err
@@ -294,7 +295,8 @@ func (r *AWSMachineTemplateReconciler) removeFinalizer(ctx context.Context, logg
 		// 422 Unprocessable entity, which maps to StatusReasonInvalid in the
 		// k8serrors package. We have to get the cluster again with the now
 		// removed finalizer(s) and try again.
-		if k8serrors.IsInvalid(err) && i < maxPatchRetries {
+		invalidErr := errutils.FilterOut(err, k8serrors.IsInvalid)
+		if invalidErr != nil && i < maxPatchRetries {
 			logger.Info("patching object failed, trying again: %s", err.Error())
 			if err := r.Get(ctx, client.ObjectKeyFromObject(object), object); err != nil {
 				return microerror.Mask(err)
