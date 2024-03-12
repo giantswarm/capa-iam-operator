@@ -287,10 +287,6 @@ func (r *AWSMachineTemplateReconciler) removeFinalizer(ctx context.Context, logg
 		}
 		controllerutil.RemoveFinalizer(object, key.FinalizerName(iam.ControlPlaneRole))
 		err = patchHelper.Patch(ctx, object)
-		if err != nil {
-			logger.Error(err, "failed to remove finalizer")
-			return errors.WithStack(err)
-		}
 
 		// If another controller has removed its finalizer while we're
 		// reconciling this will fail with "Forbidden: no new finalizers can be
