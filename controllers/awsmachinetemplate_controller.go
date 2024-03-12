@@ -295,9 +295,12 @@ func (r *AWSMachineTemplateReconciler) removeFinalizer(ctx context.Context, logg
 		// 422 Unprocessable entity, which maps to StatusReasonInvalid in the
 		// k8serrors package. We have to get the cluster again with the now
 		// removed finalizer(s) and try again.
-		invalidErr := errutils.FilterOut(err, k8serrors.IsInvalid)
+		invalidErr := errutils.FilterOut(err, func(err error) bool {
+			return !k8serrors.IsInvalid(err)
+		})
+
 		if invalidErr != nil && i < maxPatchRetries {
-			logger.Info("patching object failed, trying again: %s", err.Error())
+			logger.Info(fmt.Sprintf("patching object failed, trying again: %s", err.Error()))
 			if err := r.Get(ctx, client.ObjectKeyFromObject(object), object); err != nil {
 				return microerror.Mask(err)
 			}
