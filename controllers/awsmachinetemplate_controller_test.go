@@ -159,7 +159,8 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 		}
 
 		sess, err = session.NewSession(&aws.Config{
-			Region: aws.String("eu-west-1")},
+			Region: aws.String("eu-west-1"),
+		},
 		)
 		Expect(err).NotTo(HaveOccurred())
 	})
