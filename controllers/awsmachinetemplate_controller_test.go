@@ -379,14 +379,20 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 				// Implementation detail: instead of storing the ARN, the controller calls `GetRole` multiple times
 				// from different places. Remove once we don't do this anymore (hence the `MinTimes` call so we
 				// would notice).
-				/*mockIAMClient.EXPECT().GetRole(&iam.GetRoleInput{
+				mockIAMClient.EXPECT().GetRole(&iam.GetRoleInput{
 					RoleName: aws.String(info.ExpectedName),
-				}).MinTimes(1).Return(&iam.GetRoleOutput{
+				}).AnyTimes().Return(&iam.GetRoleOutput{
 					Role: &iam.Role{
 						Arn:  aws.String(info.ReturnRoleArn),
 						Tags: expectedIAMTags,
 					},
-				}, nil)*/
+				}, nil)
+				if info.ExpectedName == externalDnsRoleInfo.ExpectedName || info.ExpectedName == certManagerRoleInfo.ExpectedName {
+					mockIAMClient.EXPECT().UpdateAssumeRolePolicy(&iam.UpdateAssumeRolePolicyInput{
+						PolicyDocument: aws.String(info.ExpectedAssumeRolePolicyDocument),
+						RoleName:       aws.String(info.ExpectedName),
+					}).Return(&iam.UpdateAssumeRolePolicyOutput{}, nil)
+				}
 				mockIAMClient.EXPECT().GetRolePolicy(&iam.GetRolePolicyInput{
 					PolicyName: aws.String(info.ExpectedPolicyName),
 					RoleName:   aws.String(info.ExpectedName),
