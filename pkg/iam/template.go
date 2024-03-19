@@ -2,9 +2,8 @@ package iam
 
 import (
 	"bytes"
+	"strings"
 	"text/template"
-
-	"github.com/giantswarm/capa-iam-operator/pkg/key"
 )
 
 func generatePolicyDocument(t string, params interface{}) (string, error) {
@@ -25,7 +24,7 @@ func generatePolicyDocument(t string, params interface{}) (string, error) {
 func ec2ServiceDomain(region string) string {
 	domain := "ec2.amazonaws.com"
 
-	if key.IsChinaRegion(region) {
+	if isChinaRegion(region) {
 		domain += ".cn"
 	}
 
@@ -35,11 +34,15 @@ func ec2ServiceDomain(region string) string {
 func awsDomain(region string) string {
 	domain := "aws"
 
-	if key.IsChinaRegion(region) {
+	if isChinaRegion(region) {
 		domain = "aws-cn"
 	}
 
 	return domain
+}
+
+func isChinaRegion(region string) bool {
+	return strings.Contains(region, "cn-")
 }
 
 func getInlinePolicyTemplate(roleType string) string {
