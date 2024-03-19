@@ -2,8 +2,9 @@ package iam
 
 import (
 	"bytes"
-	"github.com/giantswarm/capa-iam-operator/pkg/key"
 	"text/template"
+
+	"github.com/giantswarm/capa-iam-operator/pkg/key"
 )
 
 func generatePolicyDocument(t string, params interface{}) (string, error) {

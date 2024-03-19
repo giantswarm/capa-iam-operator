@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	awsarn "github.com/aws/aws-sdk-go/aws/arn"
+	"github.com/giantswarm/microerror"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -13,8 +14,6 @@ import (
 	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/giantswarm/microerror"
 
 	"github.com/giantswarm/capa-iam-operator/pkg/iam"
 )
