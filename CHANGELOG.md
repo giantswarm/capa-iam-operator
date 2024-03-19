@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Use a more relaxed trust identity policy for `Route53Manager` IAM role to allow running multiple external-dns instances in the same cluster.
+
 ## [0.19.0] - 2024-03-19
 
 ### Changed
