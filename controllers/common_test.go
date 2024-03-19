@@ -72,7 +72,7 @@ var externalDnsRoleInfo = RoleInfo{
       },
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
-        "StringEquals": {
+        "StringLike": {
           "irsa.test.gaws.gigantic.io:sub": "system:serviceaccount:*:*external-dns*"
         }
       }

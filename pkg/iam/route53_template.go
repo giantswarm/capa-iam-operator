@@ -42,7 +42,7 @@ const externalDnsTrustIdentityPolicyIRSA = `{
       },
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
-        "StringEquals": {
+        "StringLike": {
           "{{.CloudFrontDomain}}:sub": "system:serviceaccount:*:*{{.ServiceAccount}}*"
         }
       }
@@ -54,7 +54,7 @@ const externalDnsTrustIdentityPolicyIRSA = `{
       },
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
-        "StringEquals": {
+        "StringLike": {
           "{{.AdditionalCloudFrontDomain}}:sub": "system:serviceaccount:*:*{{.ServiceAccount}}*"
         }
       }
