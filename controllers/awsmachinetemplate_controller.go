@@ -253,7 +253,7 @@ func (r *AWSMachineTemplateReconciler) reconcileNormal(ctx context.Context, iamS
 				return ctrl.Result{}, errors.WithStack(err)
 			}
 
-			cloudFrontDomain := key.CloudFrontAlias(baseDomain)
+			cloudFrontDomain := key.IRSADomain(baseDomain, awsCluster.Spec.Region, accountID, clusterName)
 
 			oldCloudFrontDomain := key.GetAdditionalIrsaDomain(awsMachineTemplate)
 

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Use S3 bucket domain instead of CloundFront domain fo China regions.
+
 ## [0.18.0] - 2024-03-13
 
 ### Changed

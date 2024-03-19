@@ -3,6 +3,7 @@ package key
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	awsarn "github.com/aws/aws-sdk-go/aws/arn"
 	corev1 "k8s.io/api/core/v1"
@@ -110,8 +111,12 @@ func IsBastionAWSMachineTemplate(labels map[string]string) bool {
 	return false
 }
 
-func CloudFrontAlias(baseDomain string) string {
-	return fmt.Sprintf("irsa.%s", baseDomain)
+func IRSADomain(baseDomain string, region string, awsAccount string, clusterName string) string {
+	if IsChinaRegion(region) {
+		return fmt.Sprintf("s3.%s.amazonaws.com.cn/%s-g8s-%s-oidc-pod-identity-v2", region, awsAccount, clusterName)
+	} else {
+		return fmt.Sprintf("irsa.%s", baseDomain)
+	}
 }
 
 func GetBaseDomain(ctx context.Context, ctrlClient client.Client, clusterName, namespace string) (string, error) {
@@ -170,4 +175,8 @@ func GetAnnotation(o v1.Object, annotation string) string {
 		return ""
 	}
 	return annotations[annotation]
+}
+
+func IsChinaRegion(region string) bool {
+	return strings.Contains(region, "cn-")
 }
