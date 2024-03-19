@@ -253,11 +253,11 @@ func (r *AWSMachineTemplateReconciler) reconcileNormal(ctx context.Context, iamS
 				return ctrl.Result{}, errors.WithStack(err)
 			}
 
-			cloudFrontDomain := key.IRSADomain(baseDomain, awsCluster.Spec.Region, accountID, clusterName)
+			irsaDomain := key.IRSADomain(baseDomain, awsCluster.Spec.Region, accountID, clusterName)
 
-			oldCloudFrontDomain := key.GetAdditionalIrsaDomain(awsMachineTemplate)
+			oldIrsaDomain := key.GetAdditionalIrsaDomain(awsMachineTemplate)
 
-			err = iamService.ReconcileRolesForIRSA(accountID, cloudFrontDomain, oldCloudFrontDomain)
+			err = iamService.ReconcileRolesForIRSA(accountID, irsaDomain, oldIrsaDomain)
 			if err != nil {
 				return ctrl.Result{}, errors.WithStack(err)
 			}
