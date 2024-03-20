@@ -72,8 +72,8 @@ var externalDnsRoleInfo = RoleInfo{
       },
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
-        "StringEquals": {
-          "irsa.test.gaws.gigantic.io:sub": "system:serviceaccount:kube-system:external-dns"
+        "StringLike": {
+          "irsa.test.gaws.gigantic.io:sub": "system:serviceaccount:*:*external-dns*"
         }
       }
     }
