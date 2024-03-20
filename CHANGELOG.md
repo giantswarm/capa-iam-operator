@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.21.0] - 2024-03-20
 
+### Changed
+
+- Add finalizer to AWSCluster when reconciling AWSClusterTemplates. The AWSClusterTemplate won't block deletion of the AWSCluster, without which the operator cannot proceed with deletion
+
 ## [0.20.0] - 2024-03-20
 
 ### Changed
