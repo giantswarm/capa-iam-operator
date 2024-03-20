@@ -140,7 +140,7 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 	if awsMachineTemplate.DeletionTimestamp != nil {
 		return r.reconcileDelete(ctx, iamService, awsMachineTemplate, logger, clusterName, req.Namespace, role)
 	}
-	return r.reconcileNormal(ctx, iamService, awsMachineTemplate, logger, clusterName, req.Namespace, role)
+	return r.reconcileNormal(ctx, iamService, awsMachineTemplate, logger, awsCluster, clusterName, role)
 }
 
 func (r *AWSMachineTemplateReconciler) reconcileDelete(ctx context.Context, iamService *iam.IAMService, awsMachineTemplate *capa.AWSMachineTemplate, logger logr.Logger, clusterName, namespace, role string) (ctrl.Result, error) {
@@ -204,7 +204,7 @@ func (r *AWSMachineTemplateReconciler) reconcileDelete(ctx context.Context, iamS
 	return ctrl.Result{}, nil
 }
 
-func (r *AWSMachineTemplateReconciler) reconcileNormal(ctx context.Context, iamService *iam.IAMService, awsMachineTemplate *capa.AWSMachineTemplate, logger logr.Logger, clusterName, namespace, role string) (ctrl.Result, error) {
+func (r *AWSMachineTemplateReconciler) reconcileNormal(ctx context.Context, iamService *iam.IAMService, awsMachineTemplate *capa.AWSMachineTemplate, logger logr.Logger, awsCluster *capa.AWSCluster, clusterName, role string) (ctrl.Result, error) {
 	// add finalizer to AWSMachineTemplate
 	if !controllerutil.ContainsFinalizer(awsMachineTemplate, key.FinalizerName(iam.ControlPlaneRole)) {
 		patchHelper, err := patch.NewHelper(awsMachineTemplate, r.Client)
@@ -220,16 +220,26 @@ func (r *AWSMachineTemplateReconciler) reconcileNormal(ctx context.Context, iamS
 		logger.Info("successfully added finalizer to AWSMachineTemplate", "finalizer_name", iam.ControlPlaneRole)
 	}
 
-	awsCluster, err := key.GetAWSClusterByName(ctx, r.Client, clusterName, awsMachineTemplate.GetNamespace())
-	if err != nil {
-		logger.Error(err, "failed to get awsCluster")
-		return ctrl.Result{}, errors.WithStack(err)
+	// add finalizer to AWSCluster
+	if !controllerutil.ContainsFinalizer(awsCluster, key.FinalizerName(iam.ControlPlaneRole)) {
+		patchHelper, err := patch.NewHelper(awsCluster, r.Client)
+		if err != nil {
+			return ctrl.Result{}, errors.WithStack(err)
+		}
+		controllerutil.AddFinalizer(awsCluster, key.FinalizerName(iam.ControlPlaneRole))
+		err = patchHelper.Patch(ctx, awsCluster)
+		if err != nil {
+			logger.Error(err, "failed to add finalizer on AWSCluster")
+			return ctrl.Result{}, errors.WithStack(err)
+		}
+		logger.Info("successfully added finalizer to AWSCluster", "finalizer_name", iam.ControlPlaneRole)
 	}
 
-	err = iamService.ReconcileRole()
+	err := iamService.ReconcileRole()
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+
 	if role == iam.ControlPlaneRole {
 		// route53 role depends on KIAM role
 		if r.EnableRoute53Role {
@@ -247,7 +257,7 @@ func (r *AWSMachineTemplateReconciler) reconcileNormal(ctx context.Context, iamS
 				return ctrl.Result{}, errors.WithStack(err)
 			}
 
-			baseDomain, err := key.GetBaseDomain(ctx, r.Client, clusterName, namespace)
+			baseDomain, err := key.GetBaseDomain(ctx, r.Client, clusterName, awsCluster.Namespace)
 			if err != nil {
 				logger.Error(err, "Could not get base domain")
 				return ctrl.Result{}, errors.WithStack(err)
