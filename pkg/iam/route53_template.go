@@ -32,6 +32,38 @@ const trustIdentityPolicyIRSA = `{
 }
 `
 
+const externalDnsTrustIdentityPolicyIRSA = `{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:{{.AWSDomain}}:iam::{{.AccountID}}:oidc-provider/{{.CloudFrontDomain}}"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringLike": {
+          "{{.CloudFrontDomain}}:sub": "system:serviceaccount:*:*{{.ServiceAccount}}*"
+        }
+      }
+    }{{if .AdditionalCloudFrontDomain}},
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:{{.AWSDomain}}:iam::{{.AccountID}}:oidc-provider/{{.AdditionalCloudFrontDomain}}"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringLike": {
+          "{{.AdditionalCloudFrontDomain}}:sub": "system:serviceaccount:*:*{{.ServiceAccount}}*"
+        }
+      }
+    }
+    {{end}}
+  ]
+}
+`
+
 const route53RolePolicyTemplate = `{
   "Version": "2012-10-17",
   "Statement": [

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Use a more relaxed trust identity policy for `Route53Manager` IAM role to allow running multiple external-dns instances in the same cluster.
+
+## [0.19.0] - 2024-03-19
+
+### Changed
+
+- Use S3 bucket domain instead of CloundFront domain fo China regions.
+
 ## [0.18.0] - 2024-03-13
 
 ### Changed
@@ -213,7 +223,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implement `AWSMachineTemplate` reconciler.
 - Implement `AWSMachinePool` reconciler.
 
-[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v0.18.0...HEAD
+[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v0.19.0...HEAD
+[0.19.0]: https://github.com/giantswarm/capa-iam-operator/compare/v0.18.0...v0.19.0
 [0.18.0]: https://github.com/giantswarm/capa-iam-operator/compare/v0.17.1...v0.18.0
 [0.17.1]: https://github.com/giantswarm/capa-iam-operator/compare/v0.17.0...v0.17.1
 [0.17.0]: https://github.com/giantswarm/capa-iam-operator/compare/v0.16.0...v0.17.0

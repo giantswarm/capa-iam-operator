@@ -83,7 +83,7 @@ func getTrustPolicyTemplate(roleType string) string {
 	case NodesRole:
 		return ec2TrustIdentityPolicyTemplate
 	case Route53Role:
-		return trustIdentityPolicyIRSA
+		return externalDnsTrustIdentityPolicyIRSA
 	case KIAMRole:
 		return kiamTrustIdentityPolicy
 	case IRSARole:
