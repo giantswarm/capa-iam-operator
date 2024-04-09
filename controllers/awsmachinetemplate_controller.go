@@ -27,7 +27,6 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	errutils "k8s.io/apimachinery/pkg/util/errors"
 
 	"k8s.io/apimachinery/pkg/types"
 	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
@@ -169,14 +168,14 @@ func (r *AWSMachineTemplateReconciler) reconcileDelete(ctx context.Context, iamS
 		logger.Error(err, "failed to get awsCluster")
 		return ctrl.Result{}, err
 	}
-	err = r.removeFinalizer(ctx, logger, awsCluster)
+	err = removeFinalizer(ctx, r.Client, awsCluster, iam.ControlPlaneRole)
 	if err != nil {
 		logger.Error(err, "Failed to remove finalizer from AWSCluster")
 		return ctrl.Result{}, err
 	}
 
 	// remove finalizer from AWSMachineTemplate
-	err = r.removeFinalizer(ctx, logger, awsMachineTemplate)
+	err = removeFinalizer(ctx, r.Client, awsMachineTemplate, iam.ControlPlaneRole)
 	if err != nil {
 		logger.Error(err, "Failed to remove finalizer from AWSMachineTemplate")
 		return ctrl.Result{}, err
@@ -195,7 +194,7 @@ func (r *AWSMachineTemplateReconciler) reconcileDelete(ctx context.Context, iamS
 		return ctrl.Result{}, errors.WithStack(client.IgnoreNotFound(err))
 	}
 
-	err = r.removeFinalizer(ctx, logger, cm)
+	err = removeFinalizer(ctx, r.Client, cm, iam.ControlPlaneRole)
 	if err != nil {
 		logger.Error(err, "Failed to remove finalizer from ConfigMap")
 		return ctrl.Result{}, err
@@ -282,45 +281,4 @@ func (r *AWSMachineTemplateReconciler) SetupWithManager(mgr ctrl.Manager) error 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&capa.AWSMachineTemplate{}).
 		Complete(r)
-}
-
-func (r *AWSMachineTemplateReconciler) removeFinalizer(ctx context.Context, logger logr.Logger, object client.Object) error {
-	if !controllerutil.ContainsFinalizer(object, key.FinalizerName(iam.ControlPlaneRole)) {
-		logger.Info("finalizer already removed")
-		return nil
-	}
-
-	for i := 1; i <= maxPatchRetries; i++ {
-		patchHelper, err := patch.NewHelper(object, r.Client)
-		if err != nil {
-			logger.Error(err, "failed to create patch helper")
-			return errors.WithStack(err)
-		}
-		controllerutil.RemoveFinalizer(object, key.FinalizerName(iam.ControlPlaneRole))
-		err = patchHelper.Patch(ctx, object)
-
-		// If another controller has removed its finalizer while we're
-		// reconciling this will fail with "Forbidden: no new finalizers can be
-		// added if the object is being deleted". The actual response code is
-		// 422 Unprocessable entity, which maps to StatusReasonInvalid in the
-		// k8serrors package. We have to get the cluster again with the now
-		// removed finalizer(s) and try again.
-		invalidErr := errutils.FilterOut(err, func(err error) bool {
-			return !k8serrors.IsInvalid(err)
-		})
-
-		if invalidErr != nil && i < maxPatchRetries {
-			logger.Info(fmt.Sprintf("patching object failed, trying again: %s", err.Error()))
-			if err := r.Get(ctx, client.ObjectKeyFromObject(object), object); err != nil {
-				return microerror.Mask(err)
-			}
-			continue
-		}
-		if err != nil {
-			logger.Error(err, "failed to remove finalizers")
-			return microerror.Mask(err)
-		}
-	}
-	logger.Info("successfully removed finalizer")
-	return nil
 }

@@ -105,22 +105,13 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 		if err != nil {
 			return ctrl.Result{}, microerror.Mask(err)
 		}
-		// remove finalizer from AWSManagedControlPlane
-		{
-			if controllerutil.ContainsFinalizer(eksCluster, key.FinalizerName(iam.IRSARole)) {
-				patchHelper, err := patch.NewHelper(eksCluster, r.Client)
-				if err != nil {
-					return ctrl.Result{}, microerror.Mask(err)
-				}
-				controllerutil.RemoveFinalizer(eksCluster, key.FinalizerName(iam.IRSARole))
-				err = patchHelper.Patch(ctx, eksCluster)
-				if err != nil {
-					logger.Error(err, "failed to remove finalizer on AWSManagedControlPlane")
-					return ctrl.Result{}, microerror.Mask(err)
-				}
-				logger.Info("successfully removed finalizer from AWSManagedControlPlane", "finalizer_name", iam.IRSARole)
-			}
+
+		err = removeFinalizer(ctx, r.Client, eksCluster, iam.IRSARole)
+		if err != nil {
+			logger.Error(err, "failed to remove finalizer on AWSManagedControlPlane")
+			return ctrl.Result{}, microerror.Mask(err)
 		}
+
 	} else {
 		// add finalizer to AWSManagedControlPlane
 		if !controllerutil.ContainsFinalizer(eksCluster, key.FinalizerName(iam.IRSARole)) {

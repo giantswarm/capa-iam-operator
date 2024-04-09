@@ -133,19 +133,10 @@ func (r *AWSMachinePoolReconciler) reconcileDelete(ctx context.Context, awsMachi
 		}
 	}
 
-	// remove finalizer from AWSMachinePool
-	if controllerutil.ContainsFinalizer(awsMachinePool, key.FinalizerName(iam.NodesRole)) {
-		patchHelper, err := patch.NewHelper(awsMachinePool, r.Client)
-		if err != nil {
-			return ctrl.Result{}, errors.WithStack(err)
-		}
-		controllerutil.RemoveFinalizer(awsMachinePool, key.FinalizerName(iam.NodesRole))
-		err = patchHelper.Patch(ctx, awsMachinePool)
-		if err != nil {
-			logger.Error(err, "failed to remove finalizer from AWSMachinePool")
-			return ctrl.Result{}, errors.WithStack(err)
-		}
-		logger.Info("successfully removed finalizer from AWSMachinePool", "finalizer_name", iam.NodesRole)
+	err = removeFinalizer(ctx, r.Client, awsMachinePool, iam.NodesRole)
+	if err != nil {
+		logger.Error(err, "failed to remove finalizer from AWSMachinePool")
+		return ctrl.Result{}, errors.WithStack(err)
 	}
 
 	return ctrl.Result{}, nil
