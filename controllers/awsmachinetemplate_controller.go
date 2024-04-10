@@ -23,7 +23,6 @@ import (
 	awsclientgo "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"github.com/giantswarm/microerror"
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -34,6 +33,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/giantswarm/capa-iam-operator/pkg/awsclient"
 	"github.com/giantswarm/capa-iam-operator/pkg/iam"
@@ -47,7 +47,6 @@ type AWSMachineTemplateReconciler struct {
 	client.Client
 	EnableKiamRole    bool
 	EnableRoute53Role bool
-	Log               logr.Logger
 	AWSClient         awsclient.AwsClientInterface
 	IAMClientFactory  func(awsclientgo.ConfigProvider, string) iamiface.IAMAPI
 }
@@ -61,8 +60,7 @@ type AWSMachineTemplateReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	var err error
-	logger := r.Log.WithValues("namespace", req.Namespace, "awsMachineTemplate", req.Name)
+	logger := log.FromContext(ctx)
 
 	awsMachineTemplate := &capa.AWSMachineTemplate{}
 	if err := r.Get(ctx, req.NamespacedName, awsMachineTemplate); err != nil {
@@ -95,6 +93,7 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 
 	logger = logger.WithValues("cluster", clusterName, "role", role)
+	ctx = log.IntoContext(ctx, logger)
 
 	if awsMachineTemplate.Spec.Template.Spec.IAMInstanceProfile == "" {
 		logger.Info("AWSMachineTemplate has empty .Spec.Template.Spec.IAMInstanceProfile, not creating IAM role")
@@ -137,12 +136,14 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 
 	if awsMachineTemplate.DeletionTimestamp != nil {
-		return r.reconcileDelete(ctx, iamService, awsMachineTemplate, logger, clusterName, req.Namespace, role)
+		return r.reconcileDelete(ctx, iamService, awsMachineTemplate, clusterName, req.Namespace, role)
 	}
-	return r.reconcileNormal(ctx, iamService, awsMachineTemplate, logger, awsCluster, clusterName, role)
+	return r.reconcileNormal(ctx, iamService, awsMachineTemplate, awsCluster, clusterName, role)
 }
 
-func (r *AWSMachineTemplateReconciler) reconcileDelete(ctx context.Context, iamService *iam.IAMService, awsMachineTemplate *capa.AWSMachineTemplate, logger logr.Logger, clusterName, namespace, role string) (ctrl.Result, error) {
+func (r *AWSMachineTemplateReconciler) reconcileDelete(ctx context.Context, iamService *iam.IAMService, awsMachineTemplate *capa.AWSMachineTemplate, clusterName, namespace, role string) (ctrl.Result, error) {
+	logger := log.FromContext(ctx)
+
 	roleUsed, err := isRoleUsedElsewhere(ctx, r.Client, awsMachineTemplate.Spec.Template.Spec.IAMInstanceProfile)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -203,7 +204,9 @@ func (r *AWSMachineTemplateReconciler) reconcileDelete(ctx context.Context, iamS
 	return ctrl.Result{}, nil
 }
 
-func (r *AWSMachineTemplateReconciler) reconcileNormal(ctx context.Context, iamService *iam.IAMService, awsMachineTemplate *capa.AWSMachineTemplate, logger logr.Logger, awsCluster *capa.AWSCluster, clusterName, role string) (ctrl.Result, error) {
+func (r *AWSMachineTemplateReconciler) reconcileNormal(ctx context.Context, iamService *iam.IAMService, awsMachineTemplate *capa.AWSMachineTemplate, awsCluster *capa.AWSCluster, clusterName, role string) (ctrl.Result, error) {
+	logger := log.FromContext(ctx)
+
 	// add finalizer to AWSMachineTemplate
 	if !controllerutil.ContainsFinalizer(awsMachineTemplate, key.FinalizerName(iam.ControlPlaneRole)) {
 		patchHelper, err := patch.NewHelper(awsMachineTemplate, r.Client)

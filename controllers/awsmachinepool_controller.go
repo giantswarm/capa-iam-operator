@@ -23,7 +23,6 @@ import (
 	awsclientgo "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"github.com/giantswarm/microerror"
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	expcapa "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
@@ -31,6 +30,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/giantswarm/capa-iam-operator/pkg/awsclient"
 	"github.com/giantswarm/capa-iam-operator/pkg/iam"
@@ -40,7 +40,6 @@ import (
 // AWSMachinePoolReconciler reconciles a AWSMachinePool object
 type AWSMachinePoolReconciler struct {
 	client.Client
-	Log              logr.Logger
 	IAMClientFactory func(awsclientgo.ConfigProvider, string) iamiface.IAMAPI
 	AWSClient        awsclient.AwsClientInterface
 }
@@ -50,8 +49,7 @@ type AWSMachinePoolReconciler struct {
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinepools/finalizers,verbs=update
 
 func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	var err error
-	logger := r.Log.WithValues("namespace", req.Namespace, "awsMachinePool", req.Name)
+	logger := log.FromContext(ctx)
 
 	awsMachinePool := &expcapa.AWSMachinePool{}
 	if err := r.Get(ctx, req.NamespacedName, awsMachinePool); err != nil {
@@ -74,6 +72,7 @@ func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	logger = logger.WithValues("cluster", clusterName)
+	ctx = log.IntoContext(ctx, logger)
 
 	if awsMachinePool.Spec.AWSLaunchTemplate.IamInstanceProfile == "" {
 		logger.Info("AWSMachinePool has empty .Spec.AWSLaunchTemplate.IamInstanceProfile, not reconciling IAM role")
@@ -115,12 +114,14 @@ func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	if awsMachinePool.DeletionTimestamp != nil {
-		return r.reconcileDelete(ctx, awsMachinePool, iamService, logger)
+		return r.reconcileDelete(ctx, awsMachinePool, iamService)
 	}
-	return r.reconcileNormal(ctx, awsMachinePool, iamService, logger)
+	return r.reconcileNormal(ctx, awsMachinePool, iamService)
 }
 
-func (r *AWSMachinePoolReconciler) reconcileDelete(ctx context.Context, awsMachinePool *expcapa.AWSMachinePool, iamService *iam.IAMService, logger logr.Logger) (ctrl.Result, error) {
+func (r *AWSMachinePoolReconciler) reconcileDelete(ctx context.Context, awsMachinePool *expcapa.AWSMachinePool, iamService *iam.IAMService) (ctrl.Result, error) {
+	logger := log.FromContext(ctx)
+
 	roleUsed, err := isRoleUsedElsewhere(ctx, r.Client, awsMachinePool.Spec.AWSLaunchTemplate.IamInstanceProfile)
 	if err != nil {
 		return ctrl.Result{}, errors.WithStack(err)
@@ -142,7 +143,9 @@ func (r *AWSMachinePoolReconciler) reconcileDelete(ctx context.Context, awsMachi
 	return ctrl.Result{}, nil
 }
 
-func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, awsMachinePool *expcapa.AWSMachinePool, iamService *iam.IAMService, logger logr.Logger) (ctrl.Result, error) {
+func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, awsMachinePool *expcapa.AWSMachinePool, iamService *iam.IAMService) (ctrl.Result, error) {
+	logger := log.FromContext(ctx)
+
 	// add finalizer to AWSMachinePool
 	if !controllerutil.ContainsFinalizer(awsMachinePool, key.FinalizerName(iam.NodesRole)) {
 		patchHelper, err := patch.NewHelper(awsMachinePool, r.Client)

@@ -55,7 +55,6 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 			Client:            k8sClient,
 			EnableKiamRole:    true,
 			EnableRoute53Role: true,
-			Log:               ctrl.Log,
 			AWSClient:         mockAwsClient,
 			IAMClientFactory: func(session awsclientupstream.ConfigProvider, region string) iamiface.IAMAPI {
 				return mockIAMClient

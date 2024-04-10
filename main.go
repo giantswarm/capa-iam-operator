@@ -116,7 +116,6 @@ func main() {
 		Client:            mgr.GetClient(),
 		EnableKiamRole:    enableKiamRole,
 		EnableRoute53Role: enableRoute53Role,
-		Log:               ctrl.Log.WithName("controllers").WithName("AWSMachineTemplate"),
 		AWSClient:         awsClientAwsMachineTemplate,
 		IAMClientFactory:  iamClientFactory,
 	}).SetupWithManager(mgr); err != nil {
@@ -135,7 +134,6 @@ func main() {
 
 	if err = (&controllers.AWSMachinePoolReconciler{
 		Client:           mgr.GetClient(),
-		Log:              ctrl.Log.WithName("controllers").WithName("AWSMachinePool"),
 		AWSClient:        awsClientAwsMachine,
 		IAMClientFactory: iamClientFactory,
 	}).SetupWithManager(mgr); err != nil {
@@ -145,7 +143,6 @@ func main() {
 
 	if err = (&controllers.AWSManagedControlPlaneReconciler{
 		Client:           mgr.GetClient(),
-		Log:              ctrl.Log.WithName("controllers").WithName("AWSManagedControlPlane"),
 		AWSClient:        awsClientAwsMachine,
 		IAMClientFactory: iamClientFactory,
 	}).SetupWithManager(mgr); err != nil {
