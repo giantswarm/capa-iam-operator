@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Add retry logic for removing the finalizer to all reconcilers. This fixes the same bug as in 0.17.1 but for all reconcilers.
+
 ## [0.21.0] - 2024-03-20
 
 ### Changed
