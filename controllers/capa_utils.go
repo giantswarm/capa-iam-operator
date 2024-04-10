@@ -90,7 +90,10 @@ func removeFinalizer(ctx context.Context, k8sClient client.Client, object client
 			logger.Error(err, "failed to remove finalizers")
 			return microerror.Mask(err)
 		}
+
+		logger.Info("successfully removed finalizer")
+		return nil
 	}
-	logger.Info("successfully removed finalizer")
-	return nil
+
+	return fmt.Errorf("failed to remove finalizer after %d retries", maxPatchRetries)
 }
