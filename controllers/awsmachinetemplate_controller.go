@@ -40,8 +40,6 @@ import (
 	"github.com/giantswarm/capa-iam-operator/pkg/key"
 )
 
-const maxPatchRetries = 5
-
 // AWSMachineTemplateReconciler reconciles a AWSMachineTemplate object
 type AWSMachineTemplateReconciler struct {
 	client.Client

@@ -18,6 +18,8 @@ import (
 	"github.com/giantswarm/capa-iam-operator/pkg/key"
 )
 
+const maxPatchAttempts = 5
+
 func isRoleUsedElsewhere(ctx context.Context, ctrlClient client.Client, roleName string) (bool, error) {
 	var err error
 
@@ -60,7 +62,7 @@ func removeFinalizer(ctx context.Context, k8sClient client.Client, object client
 		return nil
 	}
 
-	for i := 1; i <= maxPatchRetries; i++ {
+	for i := 1; i <= maxPatchAttempts; i++ {
 		patchHelper, err := patch.NewHelper(object, k8sClient)
 		if err != nil {
 			logger.Error(err, "failed to create patch helper")
@@ -79,7 +81,7 @@ func removeFinalizer(ctx context.Context, k8sClient client.Client, object client
 			return !k8serrors.IsInvalid(err)
 		})
 
-		if invalidErr != nil && i < maxPatchRetries {
+		if invalidErr != nil && i < maxPatchAttempts {
 			logger.Info(fmt.Sprintf("patching object failed, trying again: %s", err.Error()))
 			if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(object), object); err != nil {
 				return microerror.Mask(err)
@@ -95,5 +97,5 @@ func removeFinalizer(ctx context.Context, k8sClient client.Client, object client
 		return nil
 	}
 
-	return fmt.Errorf("failed to remove finalizer after %d retries", maxPatchRetries)
+	return fmt.Errorf("failed to remove finalizer after %d retries", maxPatchAttempts)
 }
