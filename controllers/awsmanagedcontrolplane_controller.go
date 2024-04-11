@@ -23,13 +23,13 @@ import (
 	awsclientgo "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"github.com/giantswarm/microerror"
-	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	eks "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/giantswarm/capa-iam-operator/pkg/awsclient"
 	"github.com/giantswarm/capa-iam-operator/pkg/iam"
@@ -39,17 +39,15 @@ import (
 // AWSManagedControlPlaneReconciler reconciles a AWSManagedControlPlane object
 type AWSManagedControlPlaneReconciler struct {
 	client.Client
-	Log              logr.Logger
 	AWSClient        awsclient.AwsClientInterface
 	IAMClientFactory func(awsclientgo.ConfigProvider, string) iamiface.IAMAPI
 }
 
 func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	var err error
-	logger := r.Log.WithValues("namespace", req.Namespace, "AWSManagedControlPlane", req.Name)
+	logger := log.FromContext(ctx)
 
 	eksCluster := &eks.AWSManagedControlPlane{}
-	if err = r.Get(ctx, req.NamespacedName, eksCluster); err != nil {
+	if err := r.Get(ctx, req.NamespacedName, eksCluster); err != nil {
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
@@ -105,22 +103,13 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 		if err != nil {
 			return ctrl.Result{}, microerror.Mask(err)
 		}
-		// remove finalizer from AWSManagedControlPlane
-		{
-			if controllerutil.ContainsFinalizer(eksCluster, key.FinalizerName(iam.IRSARole)) {
-				patchHelper, err := patch.NewHelper(eksCluster, r.Client)
-				if err != nil {
-					return ctrl.Result{}, microerror.Mask(err)
-				}
-				controllerutil.RemoveFinalizer(eksCluster, key.FinalizerName(iam.IRSARole))
-				err = patchHelper.Patch(ctx, eksCluster)
-				if err != nil {
-					logger.Error(err, "failed to remove finalizer on AWSManagedControlPlane")
-					return ctrl.Result{}, microerror.Mask(err)
-				}
-				logger.Info("successfully removed finalizer from AWSManagedControlPlane", "finalizer_name", iam.IRSARole)
-			}
+
+		err = removeFinalizer(ctx, r.Client, eksCluster, iam.IRSARole)
+		if err != nil {
+			logger.Error(err, "failed to remove finalizer on AWSManagedControlPlane")
+			return ctrl.Result{}, microerror.Mask(err)
 		}
+
 	} else {
 		// add finalizer to AWSManagedControlPlane
 		if !controllerutil.ContainsFinalizer(eksCluster, key.FinalizerName(iam.IRSARole)) {

@@ -54,7 +54,6 @@ var _ = Describe("AWSMachinePoolReconciler", func() {
 
 		reconciler = &controllers.AWSMachinePoolReconciler{
 			Client:    k8sClient,
-			Log:       ctrl.Log,
 			AWSClient: mockAwsClient,
 			IAMClientFactory: func(session awsclientupstream.ConfigProvider, region string) iamiface.IAMAPI {
 				return mockIAMClient
@@ -138,7 +137,8 @@ var _ = Describe("AWSMachinePoolReconciler", func() {
 		}
 
 		sess, err = session.NewSession(&aws.Config{
-			Region: aws.String("eu-west-1")},
+			Region: aws.String("eu-west-1"),
+		},
 		)
 		Expect(err).NotTo(HaveOccurred())
 	})
