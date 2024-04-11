@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Add toleration for `node.cluster.x-k8s.io/uninitialized` taint.
+- Remove toleration for old `node-role.kubernetes.io/master` taint.
+
 ## [0.21.1] - 2024-04-11
 
 ### Fixed
