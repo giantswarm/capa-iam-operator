@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.21.1] - 2024-04-11
+
 ### Fixed
 
 - Add retry logic for removing the finalizer to all reconcilers. This fixes the same bug as in 0.17.1 but for all reconcilers.
@@ -235,7 +237,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implement `AWSMachineTemplate` reconciler.
 - Implement `AWSMachinePool` reconciler.
 
-[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v0.21.0...HEAD
+[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v0.21.1...HEAD
+[0.21.1]: https://github.com/giantswarm/capa-iam-operator/compare/v0.21.0...v0.21.1
 [0.21.0]: https://github.com/giantswarm/capa-iam-operator/compare/v0.20.0...v0.21.0
 [0.20.0]: https://github.com/giantswarm/capa-iam-operator/compare/v0.19.0...v0.20.0
 [0.19.0]: https://github.com/giantswarm/capa-iam-operator/compare/v0.18.0...v0.19.0
