@@ -91,7 +91,7 @@ func getTrustPolicyTemplate(roleType string) string {
 	case CertManagerRole:
 		return trustIdentityPolicyIRSA
 	case ALBConrollerRole:
-		return trustIdentityPolicyIRSA
+		return albControllerTrustIdentityPolicyIRSA
 	case EBSCSIDriverRole:
 		return trustIdentityPolicyIRSA
 	case EFSCSIDriverRole:
