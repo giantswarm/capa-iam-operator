@@ -32,6 +32,38 @@ const trustIdentityPolicyIRSA = `{
 }
 `
 
+const albControllerTrustIdentityPolicyIRSA = `{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:{{.AWSDomain}}:iam::{{.AccountID}}:oidc-provider/{{.CloudFrontDomain}}"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "{{.CloudFrontDomain}}:sub": "system:serviceaccount:*:{{.ServiceAccount}}"
+        }
+      }
+    }{{if .AdditionalCloudFrontDomain}},
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:{{.AWSDomain}}:iam::{{.AccountID}}:oidc-provider/{{.AdditionalCloudFrontDomain}}"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "{{.AdditionalCloudFrontDomain}}:sub": "system:serviceaccount:*:{{.ServiceAccount}}"
+        }
+      }
+    }
+    {{end}}
+  ]
+}
+`
+
 const externalDnsTrustIdentityPolicyIRSA = `{
   "Version": "2012-10-17",
   "Statement": [
