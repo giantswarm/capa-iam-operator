@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Allow ALB controller to be installed on any namespace.
+
 ## [0.21.1] - 2024-04-11
 
 ### Fixed
