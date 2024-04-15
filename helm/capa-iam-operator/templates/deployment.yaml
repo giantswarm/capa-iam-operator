@@ -29,16 +29,12 @@ spec:
               - key: node-role.kubernetes.io/control-plane
                 operator: DoesNotExist
             weight: 10
-          - preference:
-              matchExpressions:
-              - key: node-role.kubernetes.io/master
-                operator: DoesNotExist
-            weight: 10
       tolerations:
       - effect: NoSchedule
-        key: node-role.kubernetes.io/master
-      - effect: NoSchedule
         key: node-role.kubernetes.io/control-plane
+      - effect: NoSchedule
+        key: "node.cluster.x-k8s.io/uninitialized"
+        operator: "Exists"
       serviceAccountName: {{ include "resource.default.name"  . }}
       securityContext:
         runAsUser: {{ .Values.pod.user.id }}
