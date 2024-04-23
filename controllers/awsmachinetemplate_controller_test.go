@@ -53,7 +53,6 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 
 		reconciler = &controllers.AWSMachineTemplateReconciler{
 			Client:            k8sClient,
-			EnableKiamRole:    true,
 			EnableRoute53Role: true,
 			AWSClient:         mockAwsClient,
 			IAMClientFactory: func(session awsclientupstream.ConfigProvider, region string) iamiface.IAMAPI {
