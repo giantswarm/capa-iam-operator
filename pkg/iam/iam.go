@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/url"
 	"reflect"
+	"slices"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -178,7 +179,8 @@ func (s *IAMService) reconcileRole(roleName string, roleType string, params inte
 	}
 
 	// we only apply the assume role to the roles that are meant to be used by IRSA
-	if roleType == IRSARole || roleType == CertManagerRole || roleType == Route53Role || roleType == ALBConrollerRole {
+	// if roleType is in getIRSARoles() function
+	if slices.Contains(getIRSARoles(), roleType) {
 		if err = s.applyAssumePolicyRole(roleName, roleType, params); err != nil {
 			l.Error(err, "Failed to apply assume role policy to role")
 			return err

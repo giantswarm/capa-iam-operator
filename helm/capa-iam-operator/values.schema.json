@@ -19,9 +19,6 @@
         "enableIRSARole": {
             "type": "boolean"
         },
-        "enableKiamRole": {
-            "type": "boolean"
-        },
         "image": {
             "type": "object",
             "properties": {

@@ -55,8 +55,6 @@ func getInlinePolicyTemplate(roleType string) string {
 		return nodesTemplate
 	case Route53Role:
 		return route53RolePolicyTemplate
-	case KIAMRole:
-		return kiamRolePolicyTemplate
 	case IRSARole:
 		return route53RolePolicyTemplate
 	case CertManagerRole:
@@ -84,8 +82,6 @@ func getTrustPolicyTemplate(roleType string) string {
 		return ec2TrustIdentityPolicyTemplate
 	case Route53Role:
 		return externalDnsTrustIdentityPolicyIRSA
-	case KIAMRole:
-		return kiamTrustIdentityPolicy
 	case IRSARole:
 		return trustIdentityPolicyIRSA
 	case CertManagerRole:

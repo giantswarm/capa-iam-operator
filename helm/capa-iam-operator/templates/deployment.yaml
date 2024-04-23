@@ -56,7 +56,6 @@ spec:
         - /manager
         args:
         - --leader-elect
-        - --enable-kiam-role={{ $.Values.enableKiamRole }}
         - --enable-irsa-role={{ $.Values.enableIRSARole }}
         securityContext:
           {{- with .Values.securityContext }}

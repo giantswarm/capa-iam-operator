@@ -62,15 +62,12 @@ func init() {
 
 func main() {
 	var metricsAddr string
-	var enableKiamRole bool
 	var enableIRSARole bool
 	var enableLeaderElection bool
 	var enableRoute53Role bool
 	var probeAddr string
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
-	flag.BoolVar(&enableKiamRole, "enable-kiam-role", true,
-		"Enable creation and management of KIAM role for kiam app.")
 	flag.BoolVar(&enableIRSARole, "enable-irsa-role", true,
 		"Enable creation and management of IRSA role for irsa app.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
@@ -114,7 +111,6 @@ func main() {
 
 	if err = (&controllers.AWSMachineTemplateReconciler{
 		Client:            mgr.GetClient(),
-		EnableKiamRole:    enableKiamRole,
 		EnableRoute53Role: enableRoute53Role,
 		AWSClient:         awsClientAwsMachineTemplate,
 		IAMClientFactory:  iamClientFactory,
