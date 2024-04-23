@@ -84,6 +84,7 @@ func New(config IAMServiceConfig) (*IAMService, error) {
 	if config.MainRoleName == "" {
 		return nil, errors.New("cannot create IAMService with empty MainRoleName")
 	}
+	// Service is only inilitized for ControlPlane, Nodes and Bastion roles. Other roles are managed directly by calling ReconcileRolesForIRSA
 	if !(config.RoleType == ControlPlaneRole || config.RoleType == NodesRole || config.RoleType == BastionRole) {
 		return nil, fmt.Errorf("cannot create IAMService with invalid RoleType '%s'", config.RoleType)
 	}
@@ -215,6 +216,7 @@ func (s *IAMService) reconcileRole(roleName string, roleType string, params inte
 		return err
 	}
 
+	// we only apply the assume role to the roles that are meant to be used by IRSA
 	if roleType == IRSARole || roleType == CertManagerRole || roleType == Route53Role || roleType == ALBConrollerRole {
 		if err = s.applyAssumePolicyRole(roleName, roleType, params); err != nil {
 			l.Error(err, "Failed to apply assume role policy to role")
