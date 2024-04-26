@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.23.0] - 2024-04-26
+
 ### Fixed
 
 - Changed service account matching `StringLike` to accommodate wildcard full names. 
@@ -249,7 +251,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implement `AWSMachineTemplate` reconciler.
 - Implement `AWSMachinePool` reconciler.
 
-[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v0.22.0...HEAD
+[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v0.23.0...HEAD
+[0.23.0]: https://github.com/giantswarm/capa-iam-operator/compare/v0.22.0...v0.23.0
 [0.22.0]: https://github.com/giantswarm/capa-iam-operator/compare/v0.21.1...v0.22.0
 [0.21.1]: https://github.com/giantswarm/capa-iam-operator/compare/v0.21.0...v0.21.1
 [0.21.0]: https://github.com/giantswarm/capa-iam-operator/compare/v0.20.0...v0.21.0
