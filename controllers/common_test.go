@@ -120,7 +120,7 @@ var ALBControllerRoleInfo = RoleInfo{
       },
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
-        "StringEquals": {
+        "StringLike": {
           "irsa.test.gaws.gigantic.io:sub": "system:serviceaccount:*:aws-load-balancer-controller"
         }
       }
