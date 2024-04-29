@@ -386,7 +386,7 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 						Tags: expectedIAMTags,
 					},
 				}, nil)
-				if info.ExpectedName == externalDnsRoleInfo.ExpectedName || info.ExpectedName == certManagerRoleInfo.ExpectedName {
+				if info.ExpectedName == externalDnsRoleInfo.ExpectedName || info.ExpectedName == certManagerRoleInfo.ExpectedName || info.ExpectedName == ALBControllerRoleInfo.ExpectedName || info.ExpectedName == ebsCsiDriverRoleInfo.ExpectedName || info.ExpectedName == efsCsiDriverRoleInfo.ExpectedName || info.ExpectedName == clusterAutoscalerRoleInfo.ExpectedName {
 					mockIAMClient.EXPECT().UpdateAssumeRolePolicy(&iam.UpdateAssumeRolePolicyInput{
 						PolicyDocument: aws.String(info.ExpectedAssumeRolePolicyDocument),
 						RoleName:       aws.String(info.ExpectedName),
