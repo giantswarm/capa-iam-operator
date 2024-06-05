@@ -25,7 +25,7 @@ import (
 	"github.com/giantswarm/microerror"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	expcapa "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
+	expcapa "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"

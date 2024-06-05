@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Update CAPA CR version to `v1beta2`
+
 ## [0.24.1] - 2024-06-05
 
 ### Fixed
@@ -23,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Changed service account matching `StringLike` to accommodate wildcard full names. 
+- Changed service account matching `StringLike` to accommodate wildcard full names.
 
 ## [0.22.0] - 2024-04-15
 
@@ -95,7 +99,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Remove unnecessary finalizers from configmap and AWSCluster. 
+- Remove unnecessary finalizers from configmap and AWSCluster.
 
 ## [0.14.0] - 2023-11-23
 
