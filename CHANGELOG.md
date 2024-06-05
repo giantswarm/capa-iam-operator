@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Ignore not found errors when deleting IAM roles. This is to avoid blocking deletion of the CRs.
+
 ## [0.24.0] - 2024-04-29
 
 ### Changed
