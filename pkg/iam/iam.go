@@ -467,7 +467,7 @@ func (s *IAMService) deleteRole(roleName string) error {
 	l := s.log.WithValues("role_name", roleName)
 
 	// clean any attached policies, otherwise deletion of role will not work
-	err := s.cleanAttachedPolicies(roleName)
+	err := s.cleanRolePolicies(roleName)
 	if err != nil {
 		return err
 	}
@@ -499,7 +499,7 @@ func (s *IAMService) deleteRole(roleName string) error {
 	}
 
 	_, err = s.iamClient.DeleteRole(i3)
-	if err != nil {
+	if err != nil && !IsNotFound(err) {
 		l.Error(err, "failed to delete role")
 		return err
 	}
@@ -507,68 +507,92 @@ func (s *IAMService) deleteRole(roleName string) error {
 	return nil
 }
 
-func (s *IAMService) cleanAttachedPolicies(roleName string) error {
+func (s *IAMService) cleanRolePolicies(roleName string) error {
 	l := s.log.WithValues("role_name", roleName)
-	// clean attached policies
-	{
-		i := &awsiam.ListAttachedRolePoliciesInput{
-			RoleName: aws.String(roleName),
-		}
 
-		o, err := s.iamClient.ListAttachedRolePolicies(i)
-		if err != nil {
-			l.Error(err, "failed to list attached policies")
-			return err
-		} else {
-			for _, p := range o.AttachedPolicies {
-				l.Info(fmt.Sprintf("detaching policy %s", *p.PolicyName))
-
-				i := &awsiam.DetachRolePolicyInput{
-					PolicyArn: p.PolicyArn,
-					RoleName:  aws.String(roleName),
-				}
-
-				_, err := s.iamClient.DetachRolePolicy(i)
-				if err != nil {
-					l.Error(err, fmt.Sprintf("failed to detach policy %s", *p.PolicyName))
-					return err
-				}
-
-				l.Info(fmt.Sprintf("detached policy %s", *p.PolicyName))
-			}
-		}
+	err := s.cleanAttachedPolicies(roleName)
+	if err != nil {
+		l.Error(err, "failed to clean attached policies from IAM Role")
+		return err
 	}
 
-	// clean inline policies
-	{
-		i := &awsiam.ListRolePoliciesInput{
-			RoleName: aws.String(roleName),
-		}
-
-		o, err := s.iamClient.ListRolePolicies(i)
-		if err != nil {
-			l.Error(err, "failed to list inline policies")
-			return err
-		}
-
-		for _, p := range o.PolicyNames {
-			l.Info(fmt.Sprintf("deleting inline policy %s", *p))
-
-			i := &awsiam.DeleteRolePolicyInput{
-				RoleName:   aws.String(roleName),
-				PolicyName: p,
-			}
-
-			_, err := s.iamClient.DeleteRolePolicy(i)
-			if err != nil {
-				l.Error(err, fmt.Sprintf("failed to delete inline policy %s", *p))
-				return err
-			}
-			l.Info(fmt.Sprintf("deleted inline policy %s", *p))
-		}
+	err = s.cleanInlinePolicies(roleName)
+	if err != nil {
+		l.Error(err, "failed to clean inline policies from IAM Role")
+		return err
 	}
 
 	l.Info("cleaned attached and inline policies from IAM Role")
+	return nil
+}
+
+func (s *IAMService) cleanAttachedPolicies(roleName string) error {
+	l := s.log.WithValues("role_name", roleName)
+	i := &awsiam.ListAttachedRolePoliciesInput{
+		RoleName: aws.String(roleName),
+	}
+
+	o, err := s.iamClient.ListAttachedRolePolicies(i)
+	if IsNotFound(err) {
+		l.Info("role not found")
+		return nil
+	}
+	if err != nil {
+		l.Error(err, "failed to list attached policies")
+		return err
+	}
+
+	for _, p := range o.AttachedPolicies {
+		l.Info(fmt.Sprintf("detaching policy %s", *p.PolicyName))
+
+		i := &awsiam.DetachRolePolicyInput{
+			PolicyArn: p.PolicyArn,
+			RoleName:  aws.String(roleName),
+		}
+
+		_, err := s.iamClient.DetachRolePolicy(i)
+		if err != nil {
+			l.Error(err, fmt.Sprintf("failed to detach policy %s", *p.PolicyName))
+			return err
+		}
+
+		l.Info(fmt.Sprintf("detached policy %s", *p.PolicyName))
+	}
+	return nil
+}
+
+func (s *IAMService) cleanInlinePolicies(roleName string) error {
+	l := s.log.WithValues("role_name", roleName)
+	i := &awsiam.ListRolePoliciesInput{
+		RoleName: aws.String(roleName),
+	}
+
+	o, err := s.iamClient.ListRolePolicies(i)
+	if IsNotFound(err) {
+		l.Info("role not found")
+		return nil
+	}
+	if err != nil {
+		l.Error(err, "failed to list inline policies")
+		return err
+	}
+
+	for _, p := range o.PolicyNames {
+		l.Info(fmt.Sprintf("deleting inline policy %s", *p))
+
+		i := &awsiam.DeleteRolePolicyInput{
+			RoleName:   aws.String(roleName),
+			PolicyName: p,
+		}
+
+		_, err := s.iamClient.DeleteRolePolicy(i)
+		if err != nil && !IsNotFound(err) {
+			l.Error(err, fmt.Sprintf("failed to delete inline policy %s", *p))
+			return err
+		}
+		l.Info(fmt.Sprintf("deleted inline policy %s", *p))
+	}
+
 	return nil
 }
 
