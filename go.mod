@@ -7,7 +7,7 @@ require (
 	github.com/aws/aws-sdk-go v1.51.3
 	github.com/benbjohnson/clock v1.3.0 // indirect
 	github.com/giantswarm/microerror v0.4.1
-	github.com/go-logr/logr v1.4.1
+	github.com/go-logr/logr v1.4.2
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.6.0
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
