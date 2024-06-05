@@ -499,7 +499,7 @@ func (s *IAMService) deleteRole(roleName string) error {
 	}
 
 	_, err = s.iamClient.DeleteRole(i3)
-	if err != nil {
+	if err != nil && !IsNotFound(err) {
 		l.Error(err, "failed to delete role")
 		return err
 	}
@@ -519,23 +519,23 @@ func (s *IAMService) cleanAttachedPolicies(roleName string) error {
 		if err != nil {
 			l.Error(err, "failed to list attached policies")
 			return err
-		} else {
-			for _, p := range o.AttachedPolicies {
-				l.Info(fmt.Sprintf("detaching policy %s", *p.PolicyName))
+		}
 
-				i := &awsiam.DetachRolePolicyInput{
-					PolicyArn: p.PolicyArn,
-					RoleName:  aws.String(roleName),
-				}
+		for _, p := range o.AttachedPolicies {
+			l.Info(fmt.Sprintf("detaching policy %s", *p.PolicyName))
 
-				_, err := s.iamClient.DetachRolePolicy(i)
-				if err != nil {
-					l.Error(err, fmt.Sprintf("failed to detach policy %s", *p.PolicyName))
-					return err
-				}
-
-				l.Info(fmt.Sprintf("detached policy %s", *p.PolicyName))
+			i := &awsiam.DetachRolePolicyInput{
+				PolicyArn: p.PolicyArn,
+				RoleName:  aws.String(roleName),
 			}
+
+			_, err := s.iamClient.DetachRolePolicy(i)
+			if err != nil {
+				l.Error(err, fmt.Sprintf("failed to detach policy %s", *p.PolicyName))
+				return err
+			}
+
+			l.Info(fmt.Sprintf("detached policy %s", *p.PolicyName))
 		}
 	}
 
@@ -560,7 +560,7 @@ func (s *IAMService) cleanAttachedPolicies(roleName string) error {
 			}
 
 			_, err := s.iamClient.DeleteRolePolicy(i)
-			if err != nil {
+			if err != nil && !IsNotFound(err) {
 				l.Error(err, fmt.Sprintf("failed to delete inline policy %s", *p))
 				return err
 			}
