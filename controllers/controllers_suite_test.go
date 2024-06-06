@@ -13,8 +13,8 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/kubectl/pkg/scheme"
-	capa "sigs.k8s.io/cluster-api-provider-aws/api/v1beta1"
-	expcapa "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
+	capa "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	expcapa "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -43,8 +43,8 @@ var _ = BeforeSuite(func() {
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths: []string{
 			// Versions must match `go.mod`
-			filepath.Join(build.Default.GOPATH, "pkg", "mod", "sigs.k8s.io", "cluster-api@v1.3.1", "config", "crd", "bases"),
-			filepath.Join(build.Default.GOPATH, "pkg", "mod", "sigs.k8s.io", "cluster-api-provider-aws@v1.5.2", "config", "crd", "bases"),
+			filepath.Join(build.Default.GOPATH, "pkg", "mod", "sigs.k8s.io", "cluster-api@v1.5.3", "config", "crd", "bases"),
+			filepath.Join(build.Default.GOPATH, "pkg", "mod", "sigs.k8s.io", "cluster-api-provider-aws", "v2@v2.3.5", "config", "crd", "bases"),
 		},
 		ErrorIfCRDPathMissing: true,
 	}
