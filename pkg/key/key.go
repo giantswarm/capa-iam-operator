@@ -112,7 +112,7 @@ func IsBastionAWSMachineTemplate(labels map[string]string) bool {
 
 func IRSADomain(baseDomain string, region string, awsAccount string, clusterName string) string {
 	if IsChinaRegion(region) {
-		return fmt.Sprintf("s3.%s.amazonaws.com.cn/%s-g8s-%s-oidc-pod-identity-v2", region, awsAccount, clusterName)
+		return fmt.Sprintf("s3.%s.amazonaws.com.cn/%s-g8s-%s-oidc-pod-identity-v3", region, awsAccount, clusterName)
 	} else {
 		return fmt.Sprintf("irsa.%s", baseDomain)
 	}
