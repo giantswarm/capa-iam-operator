@@ -41,7 +41,7 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
 	SetupNamespaceBeforeAfterEach(&namespace)
 
 	BeforeEach(func() {
-		logger := zap.New(zap.WriteTo(GinkgoWriter))
+		logger := zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true))
 		ctx = log.IntoContext(context.Background(), logger)
 
 		mockCtrl = gomock.NewController(GinkgoT())
