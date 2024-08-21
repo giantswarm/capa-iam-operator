@@ -28,7 +28,6 @@ import (
 	awsiam "github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
-	klogr "k8s.io/klog/v2/klogr"
 	eks "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -79,12 +78,12 @@ func main() {
 	flag.BoolVar(&enableRoute53Role, "enable-route53-role", true,
 		"Enable creation and management of Route53 role for external-dns app.")
 	opts := zap.Options{
-		Development: true,
+		Development: false,
 	}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
-	ctrl.SetLogger(klogr.New())
+	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
