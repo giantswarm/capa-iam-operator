@@ -146,7 +146,7 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 		}
 
 		iamService.SetPrincipalRoleARN(eksRoleARN)
-		err = iamService.ReconcileRolesForIRSA(accountID, eksOpenIdDomain, "")
+		err = iamService.ReconcileRolesForIRSA(accountID, []string{eksOpenIdDomain})
 		if err != nil {
 			return ctrl.Result{}, microerror.Mask(err)
 		}
