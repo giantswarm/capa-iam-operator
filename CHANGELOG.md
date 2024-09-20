@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.28.0] - 2024-09-20
+
 ### Changed
 
 - Support new, plural `aws.giantswarm.io/irsa-trust-domains` annotation on the AWSCluster object that centrally defines which service account issuer domains to use. The previous annotation is supported for backward compatibility.
@@ -291,7 +293,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implement `AWSMachineTemplate` reconciler.
 - Implement `AWSMachinePool` reconciler.
 
-[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v0.27.1...HEAD
+[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v0.28.0...HEAD
+[0.28.0]: https://github.com/giantswarm/capa-iam-operator/compare/v0.27.1...v0.28.0
 [0.27.1]: https://github.com/giantswarm/capa-iam-operator/compare/v0.27.0...v0.27.1
 [0.27.0]: https://github.com/giantswarm/capa-iam-operator/compare/v0.26.0...v0.27.0
 [0.26.0]: https://github.com/giantswarm/capa-iam-operator/compare/v0.25.0...v0.26.0
