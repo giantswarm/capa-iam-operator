@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/url"
 	"reflect"
+	"slices"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -61,14 +62,13 @@ type IAMService struct {
 }
 
 type Route53RoleParams struct {
-	AWSDomain                  string
-	EC2ServiceDomain           string
-	AccountID                  string
-	CloudFrontDomain           string
-	AdditionalCloudFrontDomain string
-	Namespace                  string
-	ServiceAccount             string
-	PrincipalRoleARN           string
+	AWSDomain        string
+	EC2ServiceDomain string
+	AccountID        string
+	IRSATrustDomains []string
+	Namespace        string
+	ServiceAccount   string
+	PrincipalRoleARN string
 }
 
 func New(config IAMServiceConfig) (*IAMService, error) {
@@ -163,12 +163,12 @@ func (s *IAMService) ReconcileKiamRole() error {
 	return nil
 }
 
-func (s *IAMService) ReconcileRolesForIRSA(awsAccountID string, cloudFrontDomain string, oldCloudFrontDomain string) error {
+func (s *IAMService) ReconcileRolesForIRSA(awsAccountID string, irsaTrustDomains []string) error {
 	s.log.Info("reconciling IAM roles for IRSA")
 
 	for _, roleTypeToReconcile := range getIRSARoles() {
 		var params Route53RoleParams
-		params, err := s.generateRoute53RoleParams(roleTypeToReconcile, awsAccountID, cloudFrontDomain, oldCloudFrontDomain)
+		params, err := s.generateRoute53RoleParams(roleTypeToReconcile, awsAccountID, irsaTrustDomains)
 		if err != nil {
 			s.log.Error(err, "failed to generate Route53 role parameters")
 			return err
@@ -184,7 +184,11 @@ func (s *IAMService) ReconcileRolesForIRSA(awsAccountID string, cloudFrontDomain
 	return nil
 }
 
-func (s *IAMService) generateRoute53RoleParams(roleTypeToReconcile string, awsAccountID string, cloudFrontDomain string, additionalCloudFrontDomain string) (Route53RoleParams, error) {
+func (s *IAMService) generateRoute53RoleParams(roleTypeToReconcile string, awsAccountID string, irsaTrustDomains []string) (Route53RoleParams, error) {
+	if len(irsaTrustDomains) == 0 || slices.ContainsFunc(irsaTrustDomains, func(irsaTrustDomain string) bool { return irsaTrustDomain == "" }) {
+		return Route53RoleParams{}, fmt.Errorf("irsaTrustDomains cannot be empty or have empty values: %v", irsaTrustDomains)
+	}
+
 	namespace := "kube-system"
 	serviceAccount, err := getServiceAccount(roleTypeToReconcile)
 	if err != nil {
@@ -196,13 +200,9 @@ func (s *IAMService) generateRoute53RoleParams(roleTypeToReconcile string, awsAc
 		AWSDomain:        awsDomain(s.region),
 		EC2ServiceDomain: ec2ServiceDomain(s.region),
 		AccountID:        awsAccountID,
-		CloudFrontDomain: cloudFrontDomain,
+		IRSATrustDomains: irsaTrustDomains,
 		Namespace:        namespace,
 		ServiceAccount:   serviceAccount,
-	}
-
-	if additionalCloudFrontDomain != "" {
-		params.AdditionalCloudFrontDomain = additionalCloudFrontDomain
 	}
 
 	return params, nil

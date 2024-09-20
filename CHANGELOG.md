@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Support new, plural `aws.giantswarm.io/irsa-trust-domains` annotation on the AWSCluster object that centrally defines which service account issuer domains to use. The previous annotation is supported for backward compatibility.
+
 ## [0.27.1] - 2024-08-21
 
 ### Fixed

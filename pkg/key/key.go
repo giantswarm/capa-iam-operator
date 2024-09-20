@@ -3,6 +3,7 @@ package key
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	awsarn "github.com/aws/aws-sdk-go/aws/arn"
@@ -163,8 +164,23 @@ func GetAWSAccountID(awsClusterRoleIdentity *capa.AWSClusterRoleIdentity) (strin
 	return a.AccountID, nil
 }
 
-func GetAdditionalIrsaDomain(o v1.Object) string {
-	return GetAnnotation(o, "aws.giantswarm.io/irsa-additional-domain")
+func GetIRSATrustDomains(awsMachineTemplate *capa.AWSMachineTemplate, awsCluster *capa.AWSCluster, ensurePrimaryIRSATrustDomain string) []string {
+	var values []string
+	if s := GetAnnotation(awsCluster, "aws.giantswarm.io/irsa-trust-domains"); s != "" {
+		values = strings.Split(s, ",")
+	} else if s = GetAnnotation(awsMachineTemplate, "aws.giantswarm.io/irsa-additional-domain"); s != "" {
+		// Fall back to previously-used, singular annotation for backward compatibility
+		values = append(values, s)
+	}
+
+	irsaTrustDomains := []string{ensurePrimaryIRSATrustDomain}
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value != "" && !slices.Contains(irsaTrustDomains, value) {
+			irsaTrustDomains = append(irsaTrustDomains, value)
+		}
+	}
+	return irsaTrustDomains
 }
 
 // GetAnnotation returns the value of the specified annotation.

@@ -6,7 +6,7 @@ const ec2TrustIdentityPolicyTemplate = `{
     {
       "Effect": "Allow",
       "Principal": {
-        "Service": "{{.EC2ServiceDomain}}"
+        "Service": "{{ .EC2ServiceDomain }}"
       },
       "Action": "sts:AssumeRole"
     }
@@ -36,7 +36,7 @@ const controlPlanePolicyTemplate = `{
     {
       "Condition": {
         "StringEquals": {
-          "autoscaling:ResourceTag/sigs.k8s.io/cluster-api-provider-aws/cluster/{{.ClusterName}}": "owned"
+          "autoscaling:ResourceTag/sigs.k8s.io/cluster-api-provider-aws/cluster/{{ .ClusterName }}": "owned"
         }
       },
       "Action": [

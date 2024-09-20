@@ -6,7 +6,7 @@ const kiamTrustIdentityPolicy = `{
     {
       "Effect": "Allow",
       "Principal": {
-        "AWS": "{{.ControlPlaneRoleARN}}"
+        "AWS": "{{ .ControlPlaneRoleARN }}"
       },
       "Action": "sts:AssumeRole"
     }

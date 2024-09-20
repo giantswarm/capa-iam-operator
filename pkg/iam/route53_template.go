@@ -3,31 +3,21 @@ package iam
 const trustIdentityPolicyIRSA = `{
   "Version": "2012-10-17",
   "Statement": [
+    {{- range $index, $domain := .IRSATrustDomains }}
+    {{ if gt $index 0 }},{{ end -}}
     {
       "Effect": "Allow",
       "Principal": {
-        "Federated": "arn:{{.AWSDomain}}:iam::{{.AccountID}}:oidc-provider/{{.CloudFrontDomain}}"
+        "Federated": "arn:{{ $.AWSDomain }}:iam::{{ $.AccountID }}:oidc-provider/{{ $domain }}"
       },
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
         "StringEquals": {
-          "{{.CloudFrontDomain}}:sub": "system:serviceaccount:{{.Namespace}}:{{.ServiceAccount}}"
-        }
-      }
-    }{{if .AdditionalCloudFrontDomain}},
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Federated": "arn:{{.AWSDomain}}:iam::{{.AccountID}}:oidc-provider/{{.AdditionalCloudFrontDomain}}"
-      },
-      "Action": "sts:AssumeRoleWithWebIdentity",
-      "Condition": {
-        "StringEquals": {
-          "{{.AdditionalCloudFrontDomain}}:sub": "system:serviceaccount:{{.Namespace}}:{{.ServiceAccount}}"
+          "{{ $domain }}:sub": "system:serviceaccount:{{ $.Namespace }}:{{ $.ServiceAccount }}"
         }
       }
     }
-    {{end}}
+    {{- end }}
   ]
 }
 `
@@ -35,31 +25,21 @@ const trustIdentityPolicyIRSA = `{
 const albControllerTrustIdentityPolicyIRSA = `{
   "Version": "2012-10-17",
   "Statement": [
+    {{- range $index, $domain := .IRSATrustDomains }}
+    {{ if gt $index 0 }},{{ end -}}
     {
       "Effect": "Allow",
       "Principal": {
-        "Federated": "arn:{{.AWSDomain}}:iam::{{.AccountID}}:oidc-provider/{{.CloudFrontDomain}}"
+        "Federated": "arn:{{ $.AWSDomain }}:iam::{{ $.AccountID }}:oidc-provider/{{ $domain }}"
       },
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
         "StringLike": {
-          "{{.CloudFrontDomain}}:sub": "system:serviceaccount:*:{{.ServiceAccount}}"
-        }
-      }
-    }{{if .AdditionalCloudFrontDomain}},
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Federated": "arn:{{.AWSDomain}}:iam::{{.AccountID}}:oidc-provider/{{.AdditionalCloudFrontDomain}}"
-      },
-      "Action": "sts:AssumeRoleWithWebIdentity",
-      "Condition": {
-        "StringLike": {
-          "{{.AdditionalCloudFrontDomain}}:sub": "system:serviceaccount:*:{{.ServiceAccount}}"
+          "{{ $domain }}:sub": "system:serviceaccount:*:{{ $.ServiceAccount }}"
         }
       }
     }
-    {{end}}
+    {{- end }}
   ]
 }
 `
@@ -67,31 +47,21 @@ const albControllerTrustIdentityPolicyIRSA = `{
 const externalDnsTrustIdentityPolicyIRSA = `{
   "Version": "2012-10-17",
   "Statement": [
+    {{- range $index, $domain := .IRSATrustDomains }}
+    {{ if gt $index 0 }},{{ end -}}
     {
       "Effect": "Allow",
       "Principal": {
-        "Federated": "arn:{{.AWSDomain}}:iam::{{.AccountID}}:oidc-provider/{{.CloudFrontDomain}}"
+        "Federated": "arn:{{ $.AWSDomain }}:iam::{{ $.AccountID }}:oidc-provider/{{ $domain }}"
       },
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
         "StringLike": {
-          "{{.CloudFrontDomain}}:sub": "system:serviceaccount:*:*{{.ServiceAccount}}*"
-        }
-      }
-    }{{if .AdditionalCloudFrontDomain}},
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Federated": "arn:{{.AWSDomain}}:iam::{{.AccountID}}:oidc-provider/{{.AdditionalCloudFrontDomain}}"
-      },
-      "Action": "sts:AssumeRoleWithWebIdentity",
-      "Condition": {
-        "StringLike": {
-          "{{.AdditionalCloudFrontDomain}}:sub": "system:serviceaccount:*:*{{.ServiceAccount}}*"
+          "{{ $domain }}:sub": "system:serviceaccount:*:*{{ $.ServiceAccount }}*"
         }
       }
     }
-    {{end}}
+    {{- end }}
   ]
 }
 `
