@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"golang.org/x/tools/go/packages"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/kubectl/pkg/scheme"
 	capa "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -39,12 +40,19 @@ var _ = BeforeSuite(func() {
 		Skip("KUBEBUILDER_ASSETS environment variable missing")
 	}
 
+	// We need to calculate the cluster-api version to load the CRDs from the right path
+	capiModule, err := packages.Load(&packages.Config{Mode: packages.NeedModule}, "sigs.k8s.io/cluster-api")
+	Expect(err).NotTo(HaveOccurred())
+	// We need to calculate the cluster-api-provider-aws version to load the CRDs from the right path
+	capaModule, err := packages.Load(&packages.Config{Mode: packages.NeedModule}, "sigs.k8s.io/cluster-api-provider-aws/v2")
+	Expect(err).NotTo(HaveOccurred())
+
 	By("bootstrapping envtest")
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths: []string{
 			// Versions must match `go.mod`
-			filepath.Join(build.Default.GOPATH, "pkg", "mod", "sigs.k8s.io", "cluster-api@v1.8.1", "config", "crd", "bases"),
-			filepath.Join(build.Default.GOPATH, "pkg", "mod", "sigs.k8s.io", "cluster-api-provider-aws", "v2@v2.6.1", "config", "crd", "bases"),
+			filepath.Join(build.Default.GOPATH, "pkg", "mod", "sigs.k8s.io", fmt.Sprintf("cluster-api@%s", capiModule[0].Module.Version), "config", "crd", "bases"),
+			filepath.Join(build.Default.GOPATH, "pkg", "mod", "sigs.k8s.io", "cluster-api-provider-aws", fmt.Sprintf("v2@%s", capaModule[0].Module.Version), "config", "crd", "bases"),
 		},
 		ErrorIfCRDPathMissing: true,
 	}
@@ -61,7 +69,7 @@ var _ = BeforeSuite(func() {
 
 	err = capi.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
-	//+kubebuilder:scaffold:scheme
+	// +kubebuilder:scaffold:scheme
 
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).NotTo(HaveOccurred())
