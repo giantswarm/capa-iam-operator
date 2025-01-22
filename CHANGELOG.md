@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Reintroduce ECR permissions for worker nodes since authentication is required at least for private ECR image repositories
 - Reintroduce IAM permissions for Cilium ENI mode
+- Fix logged finalizer names
 
 ## [0.29.0] - 2025-01-20
 
@@ -20,10 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Dynamically calculate CAPI and CAPA versions from go cache, so that we use the right path when installing the CRDs during tests.
 - Support reduced IAM permissions for instance profile of worker nodes
-
-### Fixed
-
-- Fix logged finalizer names
 
 ## [0.28.0] - 2024-09-20
 
