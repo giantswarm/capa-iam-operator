@@ -57,10 +57,10 @@ func getInlinePolicyTemplate(roleType string, objectLabels map[string]string) st
 		if labelValue := objectLabels[AWSReducedInstanceProfileIAMPermissionsForWorkersLabel]; labelValue == "true" {
 			// Reduce permissions to zero. All applications on worker nodes that want to reach the AWS API must use
 			// IRSA for credentials and must not fall back to the EC2 instance's IAM instance profile.
-			return ""
+			return nodesReducedPermissionsTemplate
 		} else {
 			// Previous default
-			return nodesTemplate
+			return nodesFullPermissionsTemplate
 		}
 	case Route53Role:
 		return route53RolePolicyTemplate

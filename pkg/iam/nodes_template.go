@@ -1,6 +1,26 @@
 package iam
 
-const nodesTemplate = `{
+const nodesReducedPermissionsTemplate = `{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": [
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:BatchGetImage",
+        "ecr:DescribeRepositories",
+        "ecr:GetAuthorizationToken",
+        "ecr:GetDownloadUrlForLayer",
+        "ecr:GetRepositoryPolicy",
+        "ecr:ListImages"
+      ],
+      "Resource": "*",
+      "Effect": "Allow"
+    }
+  ]
+}
+`
+
+const nodesFullPermissionsTemplate = `{
   "Version": "2012-10-17",
   "Statement": [
     {
