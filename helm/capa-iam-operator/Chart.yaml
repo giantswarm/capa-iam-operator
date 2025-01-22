@@ -1,9 +1,16 @@
+apiVersion: v2
 name: capa-iam-operator
-version: [[ .Version ]]
 description: "Operator for managing IAM roles for CAPA clusters"
-appVersion: "[[ .AppVersion ]]"
+version: 0.0.1-dev
+appVersion: 0.0.1-dev
 home: "https://github.com/giantswarm/capa-iam-operator"
-apiVersion: v1
+icon: https://s.giantswarm.io/app-icons/aws/1/dark.svg
 annotations:
   application.giantswarm.io/team: "phoenix"
   config.giantswarm.io/version: 1.x.x
+  ui.giantswarm.io/logo: https://s.giantswarm.io/app-icons/aws/1/dark.svg
+restrictions:
+  clusterSingleton: true
+  fixedNamespace: kube-system
+  gpuInstances: false
+  compatibleProviders: [aws]

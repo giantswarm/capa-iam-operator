@@ -24,12 +24,11 @@ workflows:
           tags:
             only: /^v.*/
           branches:
-            ignore:
-            - main
-            - master
+            only: /.*/
     - architect/push-to-app-catalog:
         context: architect
         name: push-capa-iam-operator-to-app-catalog
+        executor: app-build-suite
         app_catalog: control-plane-catalog
         app_catalog_test: control-plane-test-catalog
         chart: capa-iam-operator
@@ -39,9 +38,7 @@ workflows:
           tags:
             only: /^v.*/
           branches:
-            ignore:
-            - main
-            - master
+            only: /.*/
     - architect/push-to-app-collection:
         name: capa-app-collection
         context: architect
