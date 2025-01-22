@@ -360,10 +360,6 @@ func (s *IAMService) attachInlinePolicy(roleName string, roleType string, params
 	l := s.log.WithValues("role_name", roleName)
 	tmpl := getInlinePolicyTemplate(roleType, s.objectLabels)
 
-	// For `NodesRole`, we reduced the permissions to zero, so the policy should not exist anymore. That results
-	// in `tmpl == ""`. In that case, ensure below that the policy is deleted.
-	wantPolicy := (tmpl != "")
-
 	policyDocument, err := generatePolicyDocument(tmpl, params)
 	if err != nil {
 		l.Error(err, "failed to generate inline policy document from template for IAM role")
@@ -383,16 +379,14 @@ func (s *IAMService) attachInlinePolicy(roleName string, roleType string, params
 	if err == nil {
 		// Policy already exists
 
-		if wantPolicy {
-			isEqual, err := areEqualPolicy(*output.PolicyDocument, policyDocument)
-			if err != nil {
-				l.Error(err, "failed to compare inline policy documents")
-				return err
-			}
-			if isEqual {
-				l.Info("inline policy for IAM role already exists, skipping")
-				return nil
-			}
+		isEqual, err := areEqualPolicy(*output.PolicyDocument, policyDocument)
+		if err != nil {
+			l.Error(err, "failed to compare inline policy documents")
+			return err
+		}
+		if isEqual {
+			l.Info("inline policy for IAM role already exists, skipping")
+			return nil
 		}
 
 		_, err = s.iamClient.DeleteRolePolicy(&awsiam.DeleteRolePolicyInput{
@@ -403,11 +397,6 @@ func (s *IAMService) attachInlinePolicy(roleName string, roleType string, params
 			l.Error(err, "failed to delete inline policy from IAM Role")
 			return err
 		}
-	}
-
-	if !wantPolicy {
-		l.Info("Not using any inline policy (apply zero permissions)")
-		return nil
 	}
 
 	i := &awsiam.PutRolePolicyInput{
