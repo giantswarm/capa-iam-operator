@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Reintroduce ECR permissions for worker nodes since authentication is required at least for private ECR image repositories
+- Reintroduce IAM permissions for Cilium ENI mode
 
 ## [0.29.0] - 2025-01-20
 

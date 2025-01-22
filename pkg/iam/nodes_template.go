@@ -3,6 +3,28 @@ package iam
 const nodesReducedPermissionsTemplate = `{
   "Version": "2012-10-17",
   "Statement": [
+    {{- if eq (index .ObjectLabels "alpha.aws.giantswarm.io/ipam-mode") "eni" }}
+    {
+      "Action": [
+        "ec2:AssignPrivateIpAddresses",
+        "ec2:AttachNetworkInterface",
+        "ec2:CreateNetworkInterface",
+        "ec2:CreateTags",
+        "ec2:DeleteNetworkInterface",
+        "ec2:DescribeInstances",
+        "ec2:DescribeInstanceTypes",
+        "ec2:DescribeNetworkInterfaces",
+        "ec2:DescribeSecurityGroups",
+        "ec2:DescribeSubnets",
+        "ec2:DescribeTags",
+        "ec2:DescribeVpcs",
+        "ec2:ModifyNetworkInterfaceAttribute",
+        "ec2:UnassignPrivateIpAddresses"
+      ],
+      "Resource": "*",
+      "Effect": "Allow"
+    },
+    {{- end }}
     {
       "Action": [
         "ecr:BatchCheckLayerAvailability",
