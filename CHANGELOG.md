@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.29.1] - 2025-01-22
+
 ### Fixed
 
 - Reintroduce ECR permissions for worker nodes since authentication is required at least for private ECR image repositories
@@ -309,7 +311,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implement `AWSMachineTemplate` reconciler.
 - Implement `AWSMachinePool` reconciler.
 
-[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v0.29.0...HEAD
+[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v0.29.1...HEAD
+[0.29.1]: https://github.com/giantswarm/capa-iam-operator/compare/v0.29.0...v0.29.1
 [0.29.0]: https://github.com/giantswarm/capa-iam-operator/compare/v0.28.0...v0.29.0
 [0.28.0]: https://github.com/giantswarm/capa-iam-operator/compare/v0.27.1...v0.28.0
 [0.27.1]: https://github.com/giantswarm/capa-iam-operator/compare/v0.27.0...v0.27.1
