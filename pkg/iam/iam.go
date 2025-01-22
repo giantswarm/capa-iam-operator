@@ -89,6 +89,9 @@ func New(config IAMServiceConfig) (*IAMService, error) {
 	if !(config.RoleType == ControlPlaneRole || config.RoleType == NodesRole || config.RoleType == BastionRole || config.RoleType == IRSARole) {
 		return nil, fmt.Errorf("cannot create IAMService with invalid RoleType '%s'", config.RoleType)
 	}
+	if config.ObjectLabels == nil {
+		config.ObjectLabels = map[string]string{}
+	}
 	iamClient := config.IAMClientFactory(config.AWSSession, config.Region)
 	eksClient := eks.New(config.AWSSession, &aws.Config{Region: aws.String(config.Region)})
 
@@ -115,9 +118,11 @@ func (s *IAMService) ReconcileRole() error {
 	params := struct {
 		ClusterName      string
 		EC2ServiceDomain string
+		ObjectLabels     map[string]string
 	}{
 		ClusterName:      s.clusterName,
 		EC2ServiceDomain: ec2ServiceDomain(s.region),
+		ObjectLabels:     s.objectLabels,
 	}
 	err := s.reconcileRole(s.mainRoleName, s.roleType, params)
 	if err != nil {

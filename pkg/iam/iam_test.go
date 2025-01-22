@@ -1,6 +1,7 @@
 package iam_test
 
 import (
+	"encoding/json"
 	"errors"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -17,6 +18,13 @@ import (
 	"github.com/giantswarm/capa-iam-operator/pkg/iam"
 	"github.com/giantswarm/capa-iam-operator/pkg/test/mocks"
 )
+
+const awsIPAMModeLabel = "alpha.aws.giantswarm.io/ipam-mode"
+
+func isValidJSON(s string) bool {
+	var out interface{}
+	return json.Unmarshal([]byte(s), &out) == nil
+}
 
 var _ = Describe("ReconcileRole", func() {
 
@@ -102,6 +110,172 @@ var _ = Describe("ReconcileRole", func() {
 		It("should create the role", func() {
 			err := iamService.ReconcileRole()
 			Expect(err).To(BeNil())
+		})
+	})
+
+	AfterEach(func() {
+		mockCtrl.Finish()
+	})
+})
+
+var _ = Describe("ReconcileRole AWSMachinePool", func() {
+	var (
+		mockCtrl      *gomock.Controller
+		mockIAMClient *mocks.MockIAMAPI
+		iamService    *iam.IAMService
+		err           error
+		sess          awsclientgo.ConfigProvider
+	)
+
+	BeforeEach(func() {
+		sess, err = session.NewSession(&aws.Config{
+			Region: aws.String("eu-west-1")},
+		)
+		Expect(err).NotTo(HaveOccurred())
+
+		mockCtrl = gomock.NewController(GinkgoT())
+		mockIAMClient = mocks.NewMockIAMAPI(mockCtrl)
+	})
+
+	When("nodes role and policy are not present", func() {
+		BeforeEach(func() {
+			mockIAMClient.EXPECT().GetRole(gomock.Any()).Return(&awsIAM.GetRoleOutput{}, awserr.New(awsIAM.ErrCodeNoSuchEntityException, "test-role", nil))
+			mockIAMClient.EXPECT().CreateRole(gomock.Any()).Return(&awsIAM.CreateRoleOutput{}, nil)
+			mockIAMClient.EXPECT().CreateInstanceProfile(gomock.Any()).Return(&awsIAM.CreateInstanceProfileOutput{}, nil)
+			mockIAMClient.EXPECT().AddRoleToInstanceProfile(gomock.Any()).Return(&awsIAM.AddRoleToInstanceProfileOutput{}, nil)
+			mockIAMClient.EXPECT().GetRolePolicy(gomock.Any()).DoAndReturn(func(input *awsIAM.GetRolePolicyInput) (*awsIAM.GetRolePolicyOutput, error) {
+				Expect(input.PolicyName).To(BeComparableTo(aws.String("nodes-test-cluster-policy")))
+				return &awsIAM.GetRolePolicyOutput{}, awserr.New(awsIAM.ErrCodeNoSuchEntityException, "test", nil)
+			})
+		})
+		When("No labels present (full permission set)", func() {
+			BeforeEach(func() {
+				iamConfig := iam.IAMServiceConfig{
+					ClusterName:  "test-cluster",
+					MainRoleName: "test-role",
+					Region:       "test-region",
+					RoleType:     iam.NodesRole,
+					Log:          ctrl.Log,
+					AWSSession:   sess,
+					IAMClientFactory: func(session awsclientgo.ConfigProvider, region string) iamiface.IAMAPI {
+						return mockIAMClient
+					},
+				}
+				iamService, err = iam.New(iamConfig)
+				Expect(err).To(BeNil())
+
+			})
+
+			It("should create the role", func() {
+				mockIAMClient.EXPECT().PutRolePolicy(gomock.Any()).DoAndReturn(func(input *awsIAM.PutRolePolicyInput) (*awsIAM.PutRolePolicyOutput, error) {
+					Expect(input.PolicyName).To(BeComparableTo(aws.String("nodes-test-cluster-policy")))
+					Expect(isValidJSON(*input.PolicyDocument)).To(BeTrue(), *input.PolicyDocument)
+
+					// Full set should contain lots of permissions
+					Expect(*input.PolicyDocument).To(ContainSubstring(`"elasticloadbalancing:CreateLoadBalancer"`))
+					Expect(*input.PolicyDocument).To(ContainSubstring(`"ec2:AssignPrivateIpAddresses"`))
+					Expect(*input.PolicyDocument).To(ContainSubstring(`"ecr:GetAuthorizationToken"`))
+					Expect(*input.PolicyDocument).To(ContainSubstring(`"Action": "ec2:*",`))
+
+					return &awsIAM.PutRolePolicyOutput{}, nil
+				})
+
+				err := iamService.ReconcileRole()
+				Expect(err).To(BeNil())
+			})
+		})
+
+		When("Reduced-permission-set label present (not Cilium ENI Mode)", func() {
+			BeforeEach(func() {
+				iamConfig := iam.IAMServiceConfig{
+					ClusterName:  "test-cluster",
+					MainRoleName: "test-role",
+					Region:       "test-region",
+					RoleType:     iam.NodesRole,
+					Log:          ctrl.Log,
+					AWSSession:   sess,
+					IAMClientFactory: func(session awsclientgo.ConfigProvider, region string) iamiface.IAMAPI {
+						return mockIAMClient
+					},
+
+					ObjectLabels: map[string]string{
+						iam.AWSReducedInstanceProfileIAMPermissionsForWorkersLabel: "true",
+					},
+				}
+				iamService, err = iam.New(iamConfig)
+				Expect(err).To(BeNil())
+
+			})
+
+			It("should create the role", func() {
+				mockIAMClient.EXPECT().PutRolePolicy(gomock.Any()).DoAndReturn(func(input *awsIAM.PutRolePolicyInput) (*awsIAM.PutRolePolicyOutput, error) {
+					Expect(input.PolicyName).To(BeComparableTo(aws.String("nodes-test-cluster-policy")))
+					Expect(isValidJSON(*input.PolicyDocument)).To(BeTrue(), *input.PolicyDocument)
+
+					// These permissions only exist in the old, full set of permissions
+					Expect(*input.PolicyDocument).ToNot(ContainSubstring(`"elasticloadbalancing:CreateLoadBalancer"`))
+					Expect(*input.PolicyDocument).ToNot(ContainSubstring(`"Action": "ec2:*",`))
+
+					// This permission is only needed for Cilium ENI mode
+					Expect(*input.PolicyDocument).ToNot(ContainSubstring(`"ec2:AssignPrivateIpAddresses"`))
+
+					// This permission is always needed
+					Expect(*input.PolicyDocument).To(ContainSubstring(`"ecr:GetAuthorizationToken"`))
+
+					return &awsIAM.PutRolePolicyOutput{}, nil
+				})
+
+				err := iamService.ReconcileRole()
+				Expect(err).To(BeNil())
+			})
+		})
+
+		When("Reduced-permission-set and Cilium ENI mode labels present", func() {
+			BeforeEach(func() {
+				iamConfig := iam.IAMServiceConfig{
+					ClusterName:  "test-cluster",
+					MainRoleName: "test-role",
+					Region:       "test-region",
+					RoleType:     iam.NodesRole,
+					Log:          ctrl.Log,
+					AWSSession:   sess,
+					IAMClientFactory: func(session awsclientgo.ConfigProvider, region string) iamiface.IAMAPI {
+						return mockIAMClient
+					},
+
+					ObjectLabels: map[string]string{
+						iam.AWSReducedInstanceProfileIAMPermissionsForWorkersLabel: "true",
+						awsIPAMModeLabel: "eni",
+					},
+				}
+				iamService, err = iam.New(iamConfig)
+				Expect(err).To(BeNil())
+
+			})
+
+			It("should create the role", func() {
+				mockIAMClient.EXPECT().PutRolePolicy(gomock.Any()).DoAndReturn(func(input *awsIAM.PutRolePolicyInput) (*awsIAM.PutRolePolicyOutput, error) {
+					Expect(input.PolicyName).To(BeComparableTo(aws.String("nodes-test-cluster-policy")))
+					Expect(isValidJSON(*input.PolicyDocument)).To(BeTrue(), *input.PolicyDocument)
+
+					// These permissions only exist in the old, full set of permissions
+					Expect(*input.PolicyDocument).ToNot(ContainSubstring(`"elasticloadbalancing:CreateLoadBalancer"`))
+					Expect(*input.PolicyDocument).ToNot(ContainSubstring(`"Action": "ec2:*",`))
+
+					// These permissions are only needed for Cilium ENI mode
+					Expect(*input.PolicyDocument).To(ContainSubstring(`"ec2:AssignPrivateIpAddresses"`))
+					Expect(*input.PolicyDocument).To(ContainSubstring(`"ec2:AttachNetworkInterface"`))
+					Expect(*input.PolicyDocument).To(ContainSubstring(`"ec2:DescribeSecurityGroups"`))
+
+					// This permission is always needed
+					Expect(*input.PolicyDocument).To(ContainSubstring(`"ecr:GetAuthorizationToken"`))
+
+					return &awsIAM.PutRolePolicyOutput{}, nil
+				})
+
+				err := iamService.ReconcileRole()
+				Expect(err).To(BeNil())
+			})
 		})
 	})
 
