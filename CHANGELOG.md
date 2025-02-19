@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2025-02-19
+
 ### Changed
 
 - Reconcile `MachinePools` instead of `AWSMachinePools` when creating IAM roles for worker nodes.
@@ -312,7 +314,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implement `AWSMachineTemplate` reconciler.
 - Implement `AWSMachinePool` reconciler.
 
-[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v0.29.1...HEAD
+[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/giantswarm/capa-iam-operator/compare/v0.29.1...v1.0.0
 [0.29.1]: https://github.com/giantswarm/capa-iam-operator/compare/v0.29.0...v0.29.1
 [0.29.0]: https://github.com/giantswarm/capa-iam-operator/compare/v0.28.0...v0.29.0
 [0.28.0]: https://github.com/giantswarm/capa-iam-operator/compare/v0.27.1...v0.28.0
