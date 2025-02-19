@@ -89,6 +89,11 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, nil
 	}
 
+	if machinePool.Spec.Template.Spec.InfrastructureRef.Kind != "AWSMachinePool" && machinePool.Spec.Template.Spec.InfrastructureRef.Kind != "KarpenterMachinePool" {
+		logger.Info("we only care about AWSMachinePool or KarpenterMachinePool, skipping reconciliation")
+		return ctrl.Result{}, nil
+	}
+
 	// We just switched the type that we were reconciling from AWSMachinePool to MachinePool.
 	// We need to remove the existing AWSMachinePools that may have the finalizer.
 	// This bit can be removed on the next release of the operator, after all `AWSMachinePools` have been reconciled
