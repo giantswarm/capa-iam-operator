@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
 
@@ -29,6 +30,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	eks "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	expcapi "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -58,6 +60,7 @@ func init() {
 	_ = capa.AddToScheme(scheme)
 	_ = eks.AddToScheme(scheme)
 	_ = expcapa.AddToScheme(scheme)
+	_ = expcapi.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -139,11 +142,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.AWSMachinePoolReconciler{
+	if err = (&controllers.MachinePoolReconciler{
 		Client:           mgr.GetClient(),
 		AWSClient:        awsClientAwsMachine,
 		IAMClientFactory: iamClientFactory,
-	}).SetupWithManager(mgr); err != nil {
+	}).SetupWithManager(context.Background(), mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AWSMachinePool")
 		os.Exit(1)
 	}

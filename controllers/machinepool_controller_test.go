@@ -17,6 +17,7 @@ import (
 	capa "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	expcapa "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	expcapi "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -26,14 +27,14 @@ import (
 	"github.com/giantswarm/capa-iam-operator/pkg/test/mocks"
 )
 
-var _ = Describe("AWSMachinePoolReconciler", func() {
+var _ = Describe("MachinePoolReconciler", func() {
 	var (
 		ctx           context.Context
 		mockCtrl      *gomock.Controller
 		mockAwsClient *mocks.MockAwsClientInterface
 		mockIAMClient *mocks.MockIAMAPI
 		reconcileErr  error
-		reconciler    *controllers.AWSMachinePoolReconciler
+		reconciler    *controllers.MachinePoolReconciler
 		req           ctrl.Request
 		namespace     string
 		sess          *session.Session
@@ -52,7 +53,7 @@ var _ = Describe("AWSMachinePoolReconciler", func() {
 		mockAwsClient = mocks.NewMockAwsClientInterface(mockCtrl)
 		mockIAMClient = mocks.NewMockIAMAPI(mockCtrl)
 
-		reconciler = &controllers.AWSMachinePoolReconciler{
+		reconciler = &controllers.MachinePoolReconciler{
 			Client:    k8sClient,
 			AWSClient: mockAwsClient,
 			IAMClientFactory: func(session awsclientupstream.ConfigProvider, region string) iamiface.IAMAPI {
@@ -74,6 +75,32 @@ var _ = Describe("AWSMachinePoolReconciler", func() {
 					IamInstanceProfile: "the-profile",
 				},
 				MaxSize: 3,
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		err = k8sClient.Create(ctx, &expcapi.MachinePool{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{
+					"cluster.x-k8s.io/cluster-name": "test-cluster",
+					"cluster.x-k8s.io/watch-filter": "capi",
+				},
+				Name:      "my-mp",
+				Namespace: namespace,
+			},
+			Spec: expcapi.MachinePoolSpec{
+				ClusterName: "test-cluster",
+				Template: capi.MachineTemplateSpec{
+					Spec: capi.MachineSpec{
+						ClusterName: "test-cluster",
+						InfrastructureRef: corev1.ObjectReference{
+							Kind:       "AWSMachinePool",
+							Namespace:  namespace,
+							Name:       "my-awsmp",
+							APIVersion: "infrastructure.cluster.x-k8s.io/v1beta2",
+						},
+					},
+				},
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -132,7 +159,7 @@ var _ = Describe("AWSMachinePoolReconciler", func() {
 		Expect(namespace).NotTo(BeEmpty())
 		req = ctrl.Request{
 			NamespacedName: client.ObjectKey{
-				Name:      "my-awsmp",
+				Name:      "my-mp",
 				Namespace: namespace,
 			},
 		}

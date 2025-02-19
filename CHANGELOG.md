@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Reconcile `MachinePools` instead of `AWSMachinePools` when creating IAM roles for worker nodes.
+
 ## [0.29.1] - 2025-01-22
 
 ### Fixed
