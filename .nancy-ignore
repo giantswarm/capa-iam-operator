@@ -1,6 +1,2 @@
-CVE-2023-3978
-CVE-2023-39325
-
-# pkg:golang/github.com/hashicorp/consul/sdk@v0.13.0
-CVE-2022-24687
-CVE-2022-24687
+# golang/k8s.io/apiserver@v0.31.3
+CVE-2020-8561

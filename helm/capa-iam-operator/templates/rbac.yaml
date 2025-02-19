@@ -25,6 +25,8 @@ rules:
   - awsmachinepools/status
   - clusters
   - clusters/status
+  - machinepools
+  - karpentermachinepools
   verbs:
   - get
   - list
