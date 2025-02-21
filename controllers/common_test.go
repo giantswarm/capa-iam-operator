@@ -419,6 +419,11 @@ var ebsCsiDriverRoleInfo = RoleInfo{
     },
     {
       "Effect": "Allow",
+      "Action": "ec2:CreateVolume",
+      "Resource": "arn:*:ec2:*:*:snapshot/*"
+    },
+    {
+      "Effect": "Allow",
       "Action": [
         "ec2:CreateTags"
       ],
