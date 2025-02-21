@@ -152,10 +152,16 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, errors.WithStack(err)
 	}
 
+	labels := maps.Clone(machinePool.GetLabels())
+
+	if value, ok := awsCluster.Labels[iam.AWSReducedInstanceProfileIAMPermissionsForWorkersLabel]; ok {
+		labels[iam.AWSReducedInstanceProfileIAMPermissionsForWorkersLabel] = value
+	}
+
 	var iamService *iam.IAMService
 	{
 		c := iam.IAMServiceConfig{
-			ObjectLabels:     maps.Clone(machinePool.GetLabels()),
+			ObjectLabels:     labels,
 			AWSSession:       awsClientSession,
 			ClusterName:      cluster.Name,
 			MainRoleName:     iamInstanceProfile,
