@@ -94,16 +94,6 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, nil
 	}
 
-	// We just switched the type that we were reconciling from AWSMachinePool to MachinePool.
-	// We need to remove the existing AWSMachinePools that may have the finalizer.
-	// This bit can be removed on the next release of the operator, after all `AWSMachinePools` have been reconciled
-	// and no longer contain the finalizer.
-	err = removeFinalizer(ctx, r.Client, infraMachinePool, iam.NodesRole)
-	if err != nil {
-		logger.Error(err, "failed to remove finalizer from AWSMachinePool")
-		return ctrl.Result{}, errors.WithStack(err)
-	}
-
 	var iamInstanceProfile string
 	var found bool
 
@@ -155,7 +145,7 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	var iamService *iam.IAMService
 	{
 		c := iam.IAMServiceConfig{
-			ObjectLabels:     maps.Clone(machinePool.GetLabels()),
+			ObjectLabels:     maps.Clone(infraMachinePool.GetLabels()),
 			AWSSession:       awsClientSession,
 			ClusterName:      cluster.Name,
 			MainRoleName:     iamInstanceProfile,
