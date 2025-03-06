@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2025-03-06
+
 ### Changed
 
 - Put finalizers on infra machinepools instead of `MachinePools`.
@@ -318,7 +320,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implement `AWSMachineTemplate` reconciler.
 - Implement `AWSMachinePool` reconciler.
 
-[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/giantswarm/capa-iam-operator/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/giantswarm/capa-iam-operator/compare/v0.29.1...v1.0.0
 [0.29.1]: https://github.com/giantswarm/capa-iam-operator/compare/v0.29.0...v0.29.1
 [0.29.0]: https://github.com/giantswarm/capa-iam-operator/compare/v0.28.0...v0.29.0
