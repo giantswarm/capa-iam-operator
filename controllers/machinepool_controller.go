@@ -49,10 +49,6 @@ type MachinePoolReconciler struct {
 	AWSClient        awsclient.AwsClientInterface
 }
 
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinepools,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinepools/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinepools/finalizers,verbs=update
-
 func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
@@ -94,13 +90,13 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, nil
 	}
 
-	// We just switched the type that we were reconciling from AWSMachinePool to MachinePool.
-	// We need to remove the existing AWSMachinePools that may have the finalizer.
-	// This bit can be removed on the next release of the operator, after all `AWSMachinePools` have been reconciled
+	// We just switched the type that we are adding the finalizer to.
+	// We need to remove the finalizers from existing MachinePools that may have the finalizer.
+	// This bit can be removed on the next release of the operator, after all `MachinePools` have been reconciled
 	// and no longer contain the finalizer.
-	err = removeFinalizer(ctx, r.Client, infraMachinePool, iam.NodesRole)
+	err = removeFinalizer(ctx, r.Client, machinePool, iam.NodesRole)
 	if err != nil {
-		logger.Error(err, "failed to remove finalizer from AWSMachinePool")
+		logger.Error(err, "failed to remove finalizer from MachinePool")
 		return ctrl.Result{}, errors.WithStack(err)
 	}
 
@@ -155,7 +151,7 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	var iamService *iam.IAMService
 	{
 		c := iam.IAMServiceConfig{
-			ObjectLabels:     maps.Clone(machinePool.GetLabels()),
+			ObjectLabels:     maps.Clone(infraMachinePool.GetLabels()),
 			AWSSession:       awsClientSession,
 			ClusterName:      cluster.Name,
 			MainRoleName:     iamInstanceProfile,
@@ -173,12 +169,12 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 
 	if machinePool.DeletionTimestamp != nil {
-		return r.reconcileDelete(ctx, machinePool, iamService, iamInstanceProfile)
+		return r.reconcileDelete(ctx, infraMachinePool, iamService, iamInstanceProfile)
 	}
-	return r.reconcileNormal(ctx, machinePool, iamService)
+	return r.reconcileNormal(ctx, infraMachinePool, iamService)
 }
 
-func (r *MachinePoolReconciler) reconcileDelete(ctx context.Context, machinePool *expcapi.MachinePool, iamService *iam.IAMService, iamInstanceProfile string) (ctrl.Result, error) {
+func (r *MachinePoolReconciler) reconcileDelete(ctx context.Context, infraMachinePool *unstructured.Unstructured, iamService *iam.IAMService, iamInstanceProfile string) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
 	roleUsed, err := isRoleUsedElsewhere(ctx, r.Client, iamInstanceProfile)
@@ -193,30 +189,30 @@ func (r *MachinePoolReconciler) reconcileDelete(ctx context.Context, machinePool
 		}
 	}
 
-	err = removeFinalizer(ctx, r.Client, machinePool, iam.NodesRole)
+	err = removeFinalizer(ctx, r.Client, infraMachinePool, iam.NodesRole)
 	if err != nil {
-		logger.Error(err, "failed to remove finalizer from MachinePool")
+		logger.Error(err, "failed to remove finalizer from infrastructure MachinePool")
 		return ctrl.Result{}, errors.WithStack(err)
 	}
 
 	return ctrl.Result{}, nil
 }
 
-func (r *MachinePoolReconciler) reconcileNormal(ctx context.Context, machinePool *expcapi.MachinePool, iamService *iam.IAMService) (ctrl.Result, error) {
+func (r *MachinePoolReconciler) reconcileNormal(ctx context.Context, infraMachinePool *unstructured.Unstructured, iamService *iam.IAMService) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
-	if !controllerutil.ContainsFinalizer(machinePool, key.FinalizerName(iam.NodesRole)) {
-		patchHelper, err := patch.NewHelper(machinePool, r.Client)
+	if !controllerutil.ContainsFinalizer(infraMachinePool, key.FinalizerName(iam.NodesRole)) {
+		patchHelper, err := patch.NewHelper(infraMachinePool, r.Client)
 		if err != nil {
 			return ctrl.Result{}, errors.WithStack(err)
 		}
-		controllerutil.AddFinalizer(machinePool, key.FinalizerName(iam.NodesRole))
-		err = patchHelper.Patch(ctx, machinePool)
+		controllerutil.AddFinalizer(infraMachinePool, key.FinalizerName(iam.NodesRole))
+		err = patchHelper.Patch(ctx, infraMachinePool)
 		if err != nil {
-			logger.Error(err, "failed to add finalizer on MachinePool")
+			logger.Error(err, "failed to add finalizer on infrastructure MachinePool")
 			return ctrl.Result{}, errors.WithStack(err)
 		}
-		logger.Info("successfully added finalizer to MachinePool", "finalizer_name", key.FinalizerName(iam.NodesRole))
+		logger.Info("successfully added finalizer to infrastructure MachinePool", "finalizer_name", key.FinalizerName(iam.NodesRole))
 	}
 
 	err := iamService.ReconcileRole()
