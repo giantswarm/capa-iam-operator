@@ -86,7 +86,7 @@ func New(config IAMServiceConfig) (*IAMService, error) {
 	if config.MainRoleName == "" {
 		return nil, errors.New("cannot create IAMService with empty MainRoleName")
 	}
-	if !(config.RoleType == ControlPlaneRole || config.RoleType == NodesRole || config.RoleType == BastionRole || config.RoleType == IRSARole) {
+	if config.RoleType != ControlPlaneRole && config.RoleType != NodesRole && config.RoleType != BastionRole && config.RoleType != IRSARole {
 		return nil, fmt.Errorf("cannot create IAMService with invalid RoleType '%s'", config.RoleType)
 	}
 	if config.ObjectLabels == nil {
@@ -639,13 +639,14 @@ func (s *IAMService) GetIRSAOpenIDForEKS(clusterName string) (string, error) {
 }
 
 func roleName(role string, clusterID string) string {
-	if role == Route53Role {
+	switch role {
+	case Route53Role:
 		return fmt.Sprintf("%s-Route53Manager-Role", clusterID)
-	} else if role == KIAMRole {
+	case KIAMRole:
 		return fmt.Sprintf("%s-IAMManager-Role", clusterID)
-	} else if role == CertManagerRole {
+	case CertManagerRole:
 		return fmt.Sprintf("%s-CertManager-Role", clusterID)
-	} else {
+	default:
 		return fmt.Sprintf("%s-%s", clusterID, role)
 	}
 }
@@ -655,23 +656,24 @@ func policyName(role string, clusterID string) string {
 }
 
 func getServiceAccount(role string) (string, error) {
-	if role == CertManagerRole {
+	switch role {
+	case CertManagerRole:
 		return "cert-manager-app", nil
-	} else if role == IRSARole {
+	case IRSARole:
 		return "external-dns", nil
-	} else if role == Route53Role {
+	case Route53Role:
 		return "external-dns", nil
-	} else if role == ALBConrollerRole {
+	case ALBConrollerRole:
 		return "aws-load-balancer-controller", nil
-	} else if role == EBSCSIDriverRole {
+	case EBSCSIDriverRole:
 		return "ebs-csi-controller-sa", nil
-	} else if role == EFSCSIDriverRole {
+	case EFSCSIDriverRole:
 		return "efs-csi-sa", nil
-	} else if role == ClusterAutoscalerRole {
+	case ClusterAutoscalerRole:
 		return "cluster-autoscaler", nil
+	default:
+		return "", fmt.Errorf("cannot get service account for specified role - %s", role)
 	}
-
-	return "", fmt.Errorf("cannot get service account for specified role - %s", role)
 }
 
 func getIRSARoles() []string {

@@ -63,7 +63,7 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	logger = logger.WithValues("cluster", machinePool.Spec.ClusterName)
 	ctx = log.IntoContext(ctx, logger)
 
-	cluster, err := util.GetClusterByName(ctx, r.Client, machinePool.ObjectMeta.Namespace, machinePool.Spec.ClusterName)
+	cluster, err := util.GetClusterByName(ctx, r.Client, machinePool.Namespace, machinePool.Spec.ClusterName)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to get cluster for machinepool")
 	}
