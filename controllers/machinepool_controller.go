@@ -31,7 +31,6 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
-	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -68,21 +67,9 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, errors.Wrapf(err, "failed to get cluster for machinepool")
 	}
 
-	// Return early if the object or Cluster is paused.
-	if annotations.IsPaused(cluster, machinePool) {
-		logger.Info("Reconciliation is paused for this object")
-		return ctrl.Result{}, nil
-	}
-
 	infraMachinePool, err := external.Get(ctx, r.Client, &machinePool.Spec.Template.Spec.InfrastructureRef)
 	if err != nil {
 		return ctrl.Result{}, errors.WithStack(err)
-	}
-
-	// Return early if the object or Cluster is paused.
-	if annotations.IsPaused(cluster, infraMachinePool) {
-		logger.Info("Reconciliation is paused for infra machinepool object referenced in the MachinePool")
-		return ctrl.Result{}, nil
 	}
 
 	if machinePool.Spec.Template.Spec.InfrastructureRef.Kind != "AWSMachinePool" && machinePool.Spec.Template.Spec.InfrastructureRef.Kind != "KarpenterMachinePool" {
@@ -227,6 +214,5 @@ func (r *MachinePoolReconciler) reconcileNormal(ctx context.Context, infraMachin
 func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&expcapi.MachinePool{}).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), log.FromContext(ctx), "capi")).
 		Complete(r)
 }
