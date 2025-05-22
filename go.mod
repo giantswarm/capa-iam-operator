@@ -20,7 +20,7 @@ require (
 	k8s.io/kubectl v0.32.1
 	sigs.k8s.io/cluster-api v1.9.4
 	sigs.k8s.io/cluster-api-provider-aws/v2 v2.7.1
-	sigs.k8s.io/controller-runtime v0.19.4
+	sigs.k8s.io/controller-runtime v0.21.0
 )
 
 require (
