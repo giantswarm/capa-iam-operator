@@ -9,6 +9,7 @@ workflows:
     - architect/go-build:
         name: go-build
         binary: capa-iam-operator
+        resource_class: large
         pre_test_target: generate
         test_target: test-unit
         filters:
