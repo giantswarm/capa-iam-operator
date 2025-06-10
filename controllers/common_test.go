@@ -404,10 +404,6 @@ var ebsCsiDriverRoleInfo = RoleInfo{
     {
       "Effect": "Allow",
       "Action": [
-        "ec2:CreateSnapshot",
-        "ec2:AttachVolume",
-        "ec2:DetachVolume",
-        "ec2:ModifyVolume",
         "ec2:DescribeAvailabilityZones",
         "ec2:DescribeInstances",
         "ec2:DescribeSnapshots",
@@ -420,11 +416,38 @@ var ebsCsiDriverRoleInfo = RoleInfo{
     {
       "Effect": "Allow",
       "Action": [
+        "ec2:CreateSnapshot",
+        "ec2:ModifyVolume"
+      ],
+      "Resource": "arn:aws:ec2:*:*:volume/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:AttachVolume",
+        "ec2:DetachVolume"
+      ],
+      "Resource": [
+        "arn:aws:ec2:*:*:volume/*",
+        "arn:aws:ec2:*:*:instance/*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateVolume",
+        "ec2:EnableFastSnapshotRestores"
+      ],
+      "Resource": "arn:aws:ec2:*:*:snapshot/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
         "ec2:CreateTags"
       ],
       "Resource": [
-        "arn:*:ec2:*:*:volume/*",
-        "arn:*:ec2:*:*:snapshot/*"
+        "arn:aws:ec2:*:*:volume/*",
+        "arn:aws:ec2:*:*:snapshot/*"
       ],
       "Condition": {
         "StringEquals": {
@@ -441,8 +464,8 @@ var ebsCsiDriverRoleInfo = RoleInfo{
         "ec2:DeleteTags"
       ],
       "Resource": [
-        "arn:*:ec2:*:*:volume/*",
-        "arn:*:ec2:*:*:snapshot/*"
+        "arn:aws:ec2:*:*:volume/*",
+        "arn:aws:ec2:*:*:snapshot/*"
       ]
     },
     {
@@ -450,7 +473,7 @@ var ebsCsiDriverRoleInfo = RoleInfo{
       "Action": [
         "ec2:CreateVolume"
       ],
-      "Resource": "*",
+      "Resource": "arn:aws:ec2:*:*:volume/*",
       "Condition": {
         "StringLike": {
           "aws:RequestTag/ebs.csi.aws.com/cluster": "true"
@@ -462,7 +485,7 @@ var ebsCsiDriverRoleInfo = RoleInfo{
       "Action": [
         "ec2:CreateVolume"
       ],
-      "Resource": "*",
+      "Resource": "arn:aws:ec2:*:*:volume/*",
       "Condition": {
         "StringLike": {
           "aws:RequestTag/CSIVolumeName": "*"
@@ -474,7 +497,7 @@ var ebsCsiDriverRoleInfo = RoleInfo{
       "Action": [
         "ec2:DeleteVolume"
       ],
-      "Resource": "*",
+      "Resource": "arn:aws:ec2:*:*:volume/*",
       "Condition": {
         "StringLike": {
           "ec2:ResourceTag/ebs.csi.aws.com/cluster": "true"
@@ -486,7 +509,7 @@ var ebsCsiDriverRoleInfo = RoleInfo{
       "Action": [
         "ec2:DeleteVolume"
       ],
-      "Resource": "*",
+      "Resource": "arn:aws:ec2:*:*:volume/*",
       "Condition": {
         "StringLike": {
           "ec2:ResourceTag/CSIVolumeName": "*"
@@ -498,7 +521,7 @@ var ebsCsiDriverRoleInfo = RoleInfo{
       "Action": [
         "ec2:DeleteVolume"
       ],
-      "Resource": "*",
+      "Resource": "arn:aws:ec2:*:*:volume/*",
       "Condition": {
         "StringLike": {
           "ec2:ResourceTag/kubernetes.io/created-for/pvc/name": "*"
@@ -508,9 +531,33 @@ var ebsCsiDriverRoleInfo = RoleInfo{
     {
       "Effect": "Allow",
       "Action": [
+        "ec2:CreateSnapshot"
+      ],
+      "Resource": "arn:aws:ec2:*:*:snapshot/*",
+      "Condition": {
+        "StringLike": {
+          "aws:RequestTag/CSIVolumeSnapshotName": "*"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateSnapshot"
+      ],
+      "Resource": "arn:aws:ec2:*:*:snapshot/*",
+      "Condition": {
+        "StringLike": {
+          "aws:RequestTag/ebs.csi.aws.com/cluster": "true"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
         "ec2:DeleteSnapshot"
       ],
-      "Resource": "*",
+      "Resource": "arn:aws:ec2:*:*:snapshot/*",
       "Condition": {
         "StringLike": {
           "ec2:ResourceTag/CSIVolumeSnapshotName": "*"
@@ -522,7 +569,7 @@ var ebsCsiDriverRoleInfo = RoleInfo{
       "Action": [
         "ec2:DeleteSnapshot"
       ],
-      "Resource": "*",
+      "Resource": "arn:aws:ec2:*:*:snapshot/*",
       "Condition": {
         "StringLike": {
           "ec2:ResourceTag/ebs.csi.aws.com/cluster": "true"
