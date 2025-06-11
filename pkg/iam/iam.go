@@ -118,10 +118,12 @@ func (s *IAMService) ReconcileRole() error {
 	params := struct {
 		ClusterName      string
 		EC2ServiceDomain string
+		AWSDomain        string
 		ObjectLabels     map[string]string
 	}{
 		ClusterName:      s.clusterName,
 		EC2ServiceDomain: ec2ServiceDomain(s.region),
+		AWSDomain:        awsDomain(s.region),
 		ObjectLabels:     s.objectLabels,
 	}
 	err := s.reconcileRole(s.mainRoleName, s.roleType, params)
