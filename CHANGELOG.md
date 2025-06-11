@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Fix aws partition for EBS CSI Role.
+
 ## [1.3.1] - 2025-06-10
 
 ### Changed

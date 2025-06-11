@@ -8,7 +8,7 @@ const trustIdentityPolicyIRSA = `{
     {
       "Effect": "Allow",
       "Principal": {
-        "Federated": "arn:{{ $.AWSDomain }}:iam::{{ $.AccountID }}:oidc-provider/{{ $domain }}"
+        "Federated": "arn:{{ $.AWSPartition }}:iam::{{ $.AccountID }}:oidc-provider/{{ $domain }}"
       },
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
@@ -30,7 +30,7 @@ const albControllerTrustIdentityPolicyIRSA = `{
     {
       "Effect": "Allow",
       "Principal": {
-        "Federated": "arn:{{ $.AWSDomain }}:iam::{{ $.AccountID }}:oidc-provider/{{ $domain }}"
+        "Federated": "arn:{{ $.AWSPartition }}:iam::{{ $.AccountID }}:oidc-provider/{{ $domain }}"
       },
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
@@ -52,7 +52,7 @@ const externalDnsTrustIdentityPolicyIRSA = `{
     {
       "Effect": "Allow",
       "Principal": {
-        "Federated": "arn:{{ $.AWSDomain }}:iam::{{ $.AccountID }}:oidc-provider/{{ $domain }}"
+        "Federated": "arn:{{ $.AWSPartition }}:iam::{{ $.AccountID }}:oidc-provider/{{ $domain }}"
       },
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {

@@ -21,7 +21,7 @@ const EBSCSIDriverPolicyTemplate = `{
         "ec2:CreateSnapshot",
         "ec2:ModifyVolume"
       ],
-      "Resource": "arn:aws:ec2:*:*:volume/*"
+      "Resource": "arn:{{ $.AWSPartition }}:ec2:*:*:volume/*"
     },
     {
       "Effect": "Allow",
@@ -30,8 +30,8 @@ const EBSCSIDriverPolicyTemplate = `{
         "ec2:DetachVolume"
       ],
       "Resource": [
-        "arn:aws:ec2:*:*:volume/*",
-        "arn:aws:ec2:*:*:instance/*"
+        "arn:{{ $.AWSPartition }}:ec2:*:*:volume/*",
+        "arn:{{ $.AWSPartition }}:ec2:*:*:instance/*"
       ]
     },
     {
@@ -40,7 +40,7 @@ const EBSCSIDriverPolicyTemplate = `{
         "ec2:CreateVolume",
         "ec2:EnableFastSnapshotRestores"
       ],
-      "Resource": "arn:aws:ec2:*:*:snapshot/*"
+      "Resource": "arn:{{ $.AWSPartition }}:ec2:*:*:snapshot/*"
     },
     {
       "Effect": "Allow",
@@ -48,8 +48,8 @@ const EBSCSIDriverPolicyTemplate = `{
         "ec2:CreateTags"
       ],
       "Resource": [
-        "arn:aws:ec2:*:*:volume/*",
-        "arn:aws:ec2:*:*:snapshot/*"
+        "arn:{{ $.AWSPartition }}:ec2:*:*:volume/*",
+        "arn:{{ $.AWSPartition }}:ec2:*:*:snapshot/*"
       ],
       "Condition": {
         "StringEquals": {
@@ -66,8 +66,8 @@ const EBSCSIDriverPolicyTemplate = `{
         "ec2:DeleteTags"
       ],
       "Resource": [
-        "arn:aws:ec2:*:*:volume/*",
-        "arn:aws:ec2:*:*:snapshot/*"
+        "arn:{{ $.AWSPartition }}:ec2:*:*:volume/*",
+        "arn:{{ $.AWSPartition }}:ec2:*:*:snapshot/*"
       ]
     },
     {
@@ -75,7 +75,7 @@ const EBSCSIDriverPolicyTemplate = `{
       "Action": [
         "ec2:CreateVolume"
       ],
-      "Resource": "arn:aws:ec2:*:*:volume/*",
+      "Resource": "arn:{{ $.AWSPartition }}:ec2:*:*:volume/*",
       "Condition": {
         "StringLike": {
           "aws:RequestTag/ebs.csi.aws.com/cluster": "true"
@@ -87,7 +87,7 @@ const EBSCSIDriverPolicyTemplate = `{
       "Action": [
         "ec2:CreateVolume"
       ],
-      "Resource": "arn:aws:ec2:*:*:volume/*",
+      "Resource": "arn:{{ $.AWSPartition }}:ec2:*:*:volume/*",
       "Condition": {
         "StringLike": {
           "aws:RequestTag/CSIVolumeName": "*"
@@ -99,7 +99,7 @@ const EBSCSIDriverPolicyTemplate = `{
       "Action": [
         "ec2:DeleteVolume"
       ],
-      "Resource": "arn:aws:ec2:*:*:volume/*",
+      "Resource": "arn:{{ $.AWSPartition }}:ec2:*:*:volume/*",
       "Condition": {
         "StringLike": {
           "ec2:ResourceTag/ebs.csi.aws.com/cluster": "true"
@@ -111,7 +111,7 @@ const EBSCSIDriverPolicyTemplate = `{
       "Action": [
         "ec2:DeleteVolume"
       ],
-      "Resource": "arn:aws:ec2:*:*:volume/*",
+      "Resource": "arn:{{ $.AWSPartition }}:ec2:*:*:volume/*",
       "Condition": {
         "StringLike": {
           "ec2:ResourceTag/CSIVolumeName": "*"
@@ -123,7 +123,7 @@ const EBSCSIDriverPolicyTemplate = `{
       "Action": [
         "ec2:DeleteVolume"
       ],
-      "Resource": "arn:aws:ec2:*:*:volume/*",
+      "Resource": "arn:{{ $.AWSPartition }}:ec2:*:*:volume/*",
       "Condition": {
         "StringLike": {
           "ec2:ResourceTag/kubernetes.io/created-for/pvc/name": "*"
@@ -135,7 +135,7 @@ const EBSCSIDriverPolicyTemplate = `{
       "Action": [
         "ec2:CreateSnapshot"
       ],
-      "Resource": "arn:aws:ec2:*:*:snapshot/*",
+      "Resource": "arn:{{ $.AWSPartition }}:ec2:*:*:snapshot/*",
       "Condition": {
         "StringLike": {
           "aws:RequestTag/CSIVolumeSnapshotName": "*"
@@ -147,7 +147,7 @@ const EBSCSIDriverPolicyTemplate = `{
       "Action": [
         "ec2:CreateSnapshot"
       ],
-      "Resource": "arn:aws:ec2:*:*:snapshot/*",
+      "Resource": "arn:{{ $.AWSPartition }}:ec2:*:*:snapshot/*",
       "Condition": {
         "StringLike": {
           "aws:RequestTag/ebs.csi.aws.com/cluster": "true"
@@ -159,7 +159,7 @@ const EBSCSIDriverPolicyTemplate = `{
       "Action": [
         "ec2:DeleteSnapshot"
       ],
-      "Resource": "arn:aws:ec2:*:*:snapshot/*",
+      "Resource": "arn:{{ $.AWSPartition }}:ec2:*:*:snapshot/*",
       "Condition": {
         "StringLike": {
           "ec2:ResourceTag/CSIVolumeSnapshotName": "*"
@@ -171,7 +171,7 @@ const EBSCSIDriverPolicyTemplate = `{
       "Action": [
         "ec2:DeleteSnapshot"
       ],
-      "Resource": "arn:aws:ec2:*:*:snapshot/*",
+      "Resource": "arn:{{ $.AWSPartition }}:ec2:*:*:snapshot/*",
       "Condition": {
         "StringLike": {
           "ec2:ResourceTag/ebs.csi.aws.com/cluster": "true"
