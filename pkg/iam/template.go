@@ -33,7 +33,7 @@ func ec2ServiceDomain(region string) string {
 	return domain
 }
 
-func awsDomain(region string) string {
+func awsPartition(region string) string {
 	domain := "aws"
 
 	if isChinaRegion(region) {

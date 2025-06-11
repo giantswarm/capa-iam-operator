@@ -64,7 +64,7 @@ type IAMService struct {
 }
 
 type Route53RoleParams struct {
-	AWSDomain        string
+	AWSPartition     string
 	EC2ServiceDomain string
 	AccountID        string
 	IRSATrustDomains []string
@@ -118,12 +118,12 @@ func (s *IAMService) ReconcileRole() error {
 	params := struct {
 		ClusterName      string
 		EC2ServiceDomain string
-		AWSDomain        string
+		AWSPartition     string
 		ObjectLabels     map[string]string
 	}{
 		ClusterName:      s.clusterName,
 		EC2ServiceDomain: ec2ServiceDomain(s.region),
-		AWSDomain:        awsDomain(s.region),
+		AWSPartition:     awsPartition(s.region),
 		ObjectLabels:     s.objectLabels,
 	}
 	err := s.reconcileRole(s.mainRoleName, s.roleType, params)
@@ -155,11 +155,11 @@ func (s *IAMService) ReconcileKiamRole() error {
 	}
 
 	params := struct {
-		AWSDomain           string
+		AWSPartition        string
 		ControlPlaneRoleARN string
 		EC2ServiceDomain    string
 	}{
-		AWSDomain:           awsDomain(s.region),
+		AWSPartition:        awsPartition(s.region),
 		ControlPlaneRoleARN: controlPlaneRoleARN,
 		EC2ServiceDomain:    ec2ServiceDomain(s.region),
 	}
@@ -207,7 +207,7 @@ func (s *IAMService) generateRoute53RoleParams(roleTypeToReconcile string, awsAc
 	}
 
 	params := Route53RoleParams{
-		AWSDomain:        awsDomain(s.region),
+		AWSPartition:     awsPartition(s.region),
 		EC2ServiceDomain: ec2ServiceDomain(s.region),
 		AccountID:        awsAccountID,
 		IRSATrustDomains: irsaTrustDomains,
