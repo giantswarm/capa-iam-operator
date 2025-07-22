@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Change the field used for the IAM instance profile when using `KarpenterMachinePools`.
+
 ## [1.3.2] - 2025-06-11
 
 ### Changed

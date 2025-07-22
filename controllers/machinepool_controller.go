@@ -98,9 +98,9 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 	if !found {
 		// If we don't find it, let's try the `KarpenterMachinePool` field instead.
-		iamInstanceProfile, found, err = unstructured.NestedString(infraMachinePool.Object, "spec", "iamInstanceProfile")
+		iamInstanceProfile, found, err = unstructured.NestedString(infraMachinePool.Object, "spec", "ec2NodeClass", "instanceProfile")
 		if err != nil {
-			logger.Error(err, "error retrieving iamInstanceProfile", "infraMachinePool", machinePool.Spec.Template.Spec.InfrastructureRef.Name)
+			logger.Error(err, "error retrieving .spec.ec2NodeClass.instanceProfile", "infraMachinePool", machinePool.Spec.Template.Spec.InfrastructureRef.Name)
 			return ctrl.Result{}, errors.New("failed to get iamInstanceProfile")
 		}
 		if !found {
