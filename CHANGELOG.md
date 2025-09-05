@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Add ec2:DescribeRouteTables permission to node template role for Cilium ENI mode.
+
 ## [1.4.0] - 2025-07-22
 
 ### Changed
