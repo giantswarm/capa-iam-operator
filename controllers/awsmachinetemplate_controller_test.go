@@ -278,6 +278,7 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
         "ec2:DetachVolume",
         "ec2:RevokeSecurityGroupIngress",
         "ec2:DescribeVpcs",
+        "ec2:DescribeInstanceTopology",
         "elasticloadbalancing:AddTags",
         "elasticloadbalancing:AttachLoadBalancerToSubnets",
         "elasticloadbalancing:ApplySecurityGroupsToLoadBalancer",
@@ -306,6 +307,7 @@ var _ = Describe("AWSMachineTemplateReconciler", func() {
         "elasticloadbalancing:ModifyListener",
         "elasticloadbalancing:ModifyTargetGroup",
         "elasticloadbalancing:RegisterTargets",
+        "elasticloadbalancing:DeregisterTargets",
         "elasticloadbalancing:SetLoadBalancerPoliciesOfListener",
         "iam:CreateServiceLinkedRole",
         "kms:DescribeKey"
