@@ -104,6 +104,7 @@ const controlPlanePolicyTemplate = `{
         "ec2:DetachVolume",
         "ec2:RevokeSecurityGroupIngress",
         "ec2:DescribeVpcs",
+        "ec2:DescribeInstanceTopology",
         "elasticloadbalancing:AddTags",
         "elasticloadbalancing:AttachLoadBalancerToSubnets",
         "elasticloadbalancing:ApplySecurityGroupsToLoadBalancer",
@@ -132,6 +133,7 @@ const controlPlanePolicyTemplate = `{
         "elasticloadbalancing:ModifyListener",
         "elasticloadbalancing:ModifyTargetGroup",
         "elasticloadbalancing:RegisterTargets",
+        "elasticloadbalancing:DeregisterTargets",
         "elasticloadbalancing:SetLoadBalancerPoliciesOfListener",
         "iam:CreateServiceLinkedRole",
         "kms:DescribeKey"

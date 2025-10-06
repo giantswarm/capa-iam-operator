@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- IAM: Adapt to Cloud Provider AWS v1.33.
+
 ## [1.5.0] - 2025-10-01
 
 ### Changed

@@ -234,6 +234,8 @@ var _ = Describe("MachinePoolReconciler", func() {
     },
     {
       "Action": [
+        "ec2:DescribeInstances",
+        "ec2:DescribeRegions",
         "ecr:GetAuthorizationToken",
         "ecr:BatchCheckLayerAvailability",
         "ecr:GetDownloadUrlForLayer",

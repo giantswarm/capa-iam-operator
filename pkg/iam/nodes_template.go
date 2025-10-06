@@ -31,6 +31,8 @@ const nodesReducedPermissionsTemplate = `{
         "ecr:BatchCheckLayerAvailability",
         "ecr:BatchGetImage",
         "ecr:DescribeRepositories",
+        "ec2:DescribeInstances",
+        "ec2:DescribeRegions",
         "ecr:GetAuthorizationToken",
         "ecr:GetDownloadUrlForLayer",
         "ecr:GetRepositoryPolicy",
@@ -82,6 +84,8 @@ const nodesFullPermissionsTemplate = `{
     },
     {
       "Action": [
+        "ec2:DescribeInstances",
+        "ec2:DescribeRegions",
         "ecr:GetAuthorizationToken",
         "ecr:BatchCheckLayerAvailability",
         "ecr:GetDownloadUrlForLayer",
