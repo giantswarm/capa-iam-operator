@@ -20,8 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	awsclientgo "github.com/aws/aws-sdk-go/aws/client"
-	"github.com/aws/aws-sdk-go/service/iam/iamiface"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/giantswarm/microerror"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -46,7 +45,7 @@ type AWSMachineTemplateReconciler struct {
 	EnableKiamRole    bool
 	EnableRoute53Role bool
 	AWSClient         awsclient.AwsClientInterface
-	IAMClientFactory  func(awsclientgo.ConfigProvider, string) iamiface.IAMAPI
+	IAMClientFactory  func(aws.Config, string) iam.IAMClient
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinetemplates,verbs=get;list;watch;create;update;patch;delete
@@ -108,7 +107,7 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, microerror.Mask(err)
 	}
 
-	awsClientSession, err := r.AWSClient.GetAWSClientSession(awsClusterRoleIdentity.Spec.RoleArn, awsCluster.Spec.Region)
+	awsClientConfig, err := r.AWSClient.GetAWSClientConfig(awsClusterRoleIdentity.Spec.RoleArn, awsCluster.Spec.Region)
 	if err != nil {
 		logger.Error(err, "Failed to get aws client session")
 		return ctrl.Result{}, err
@@ -117,7 +116,7 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 	var iamService *iam.IAMService
 	{
 		c := iam.IAMServiceConfig{
-			AWSSession:       awsClientSession,
+			AWSConfig:        &awsClientConfig,
 			ClusterName:      clusterName,
 			MainRoleName:     awsMachineTemplate.Spec.Template.Spec.IAMInstanceProfile,
 			Log:              logger,

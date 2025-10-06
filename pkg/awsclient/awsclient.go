@@ -1,19 +1,20 @@
 package awsclient
 
 import (
+	"context"
 	"errors"
 
-	"github.com/aws/aws-sdk-go/aws"
-	clientaws "github.com/aws/aws-sdk-go/aws/client"
-	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/giantswarm/microerror"
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type AwsClientInterface interface {
-	GetAWSClientSession(awsRoleARN string, region string) (clientaws.ConfigProvider, error)
+	GetAWSClientConfig(awsRoleARN string, region string) (aws.Config, error)
 }
 
 type AWSClientConfig struct {
@@ -29,8 +30,8 @@ type AwsClient struct {
 func New(config AWSClientConfig) (*AwsClient, error) {
 	if config.CtrlClient == nil {
 		return nil, errors.New("failed to generate new awsClient from nil CtrlClient")
-	}
 
+	}
 	a := &AwsClient{
 		ctrlClient: config.CtrlClient,
 		log:        config.Log,
@@ -39,19 +40,24 @@ func New(config AWSClientConfig) (*AwsClient, error) {
 	return a, nil
 }
 
-func (a *AwsClient) GetAWSClientSession(awsRoleARN string, region string) (clientaws.ConfigProvider, error) {
-	ns, err := session.NewSession(&aws.Config{
-		Region: aws.String(region),
-	})
+// GetAWSClientConfig doesn't use the receiver argument, so I don't know why this is a method.
+func (a *AwsClient) GetAWSClientConfig(awsRoleARN string, region string) (aws.Config, error) {
+	// Initial credentials loaded from SDK's default credential chain. Such as
+	// the environment, shared credentials (~/.aws/credentials), or EC2 Instance
+	// Role. These credentials will be used to to make the STS Assume Role API.
+	cfg, err := config.LoadDefaultConfig(context.Background(),
+		config.WithRegion(region),
+	)
 	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-	awsClientConfig := &aws.Config{Credentials: stscreds.NewCredentials(ns, awsRoleARN)}
-
-	o, err := session.NewSession(awsClientConfig)
-	if err != nil {
-		return nil, microerror.Mask(err)
+		return aws.Config{}, microerror.Mask(err)
 	}
 
-	return o, nil
+	// Create the credentials from AssumeRoleProvider to assume the role
+	// referenced by the "awsRoleARN" ARN.
+	stsSvc := sts.NewFromConfig(cfg)
+	creds := stscreds.NewAssumeRoleProvider(stsSvc, awsRoleARN)
+
+	cfg.Credentials = aws.NewCredentialsCache(creds)
+
+	return cfg, nil
 }

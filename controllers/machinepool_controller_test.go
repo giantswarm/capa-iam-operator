@@ -3,12 +3,9 @@ package controllers_test
 import (
 	"context"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	awsclientupstream "github.com/aws/aws-sdk-go/aws/client"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/iam"
-	"github.com/aws/aws-sdk-go/service/iam/iamiface"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsiam "github.com/aws/aws-sdk-go-v2/service/iam"
+	awsiamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -24,6 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"github.com/giantswarm/capa-iam-operator/controllers"
+	"github.com/giantswarm/capa-iam-operator/pkg/iam"
 	"github.com/giantswarm/capa-iam-operator/pkg/test/mocks"
 )
 
@@ -32,12 +30,12 @@ var _ = Describe("MachinePoolReconciler", func() {
 		ctx           context.Context
 		mockCtrl      *gomock.Controller
 		mockAwsClient *mocks.MockAwsClientInterface
-		mockIAMClient *mocks.MockIAMAPI
+		mockIAMClient *mocks.MockIAMClient
 		reconcileErr  error
 		reconciler    *controllers.MachinePoolReconciler
 		req           ctrl.Request
 		namespace     string
-		sess          *session.Session
+		cfg           *aws.Config
 	)
 
 	SetupNamespaceBeforeAfterEach(&namespace)
@@ -51,12 +49,12 @@ var _ = Describe("MachinePoolReconciler", func() {
 		ctx := context.TODO()
 
 		mockAwsClient = mocks.NewMockAwsClientInterface(mockCtrl)
-		mockIAMClient = mocks.NewMockIAMAPI(mockCtrl)
+		mockIAMClient = mocks.NewMockIAMClient(mockCtrl)
 
 		reconciler = &controllers.MachinePoolReconciler{
 			Client:    k8sClient,
 			AWSClient: mockAwsClient,
-			IAMClientFactory: func(session awsclientupstream.ConfigProvider, region string) iamiface.IAMAPI {
+			IAMClientFactory: func(_ aws.Config, _ string) iam.IAMClient {
 				return mockIAMClient
 			},
 		}
@@ -164,11 +162,7 @@ var _ = Describe("MachinePoolReconciler", func() {
 			},
 		}
 
-		sess, err = session.NewSession(&aws.Config{
-			Region: aws.String("eu-west-1"),
-		},
-		)
-		Expect(err).NotTo(HaveOccurred())
+		cfg = aws.NewConfig()
 	})
 
 	AfterEach(func() {
@@ -341,7 +335,7 @@ var _ = Describe("MachinePoolReconciler", func() {
 		},
 	}
 
-	expectedIAMTags := []*iam.Tag{
+	expectedIAMTags := []awsiamtypes.Tag{
 		{
 			Key:   aws.String("capi-iam-controller/owned"),
 			Value: aws.String(""),
@@ -354,44 +348,44 @@ var _ = Describe("MachinePoolReconciler", func() {
 
 	When("a role does not exist", func() {
 		BeforeEach(func() {
-			mockAwsClient.EXPECT().GetAWSClientSession("arn:aws:iam::012345678901:role/giantswarm-test-capa-controller", "eu-west-1").Return(sess, nil)
+			mockAwsClient.EXPECT().GetAWSClientConfig("arn:aws:iam::012345678901:role/giantswarm-test-capa-controller", "eu-west-1").Return(*cfg, nil)
 			for _, info := range expectedRoleStatusesOnSuccess {
-				mockIAMClient.EXPECT().GetRole(&iam.GetRoleInput{
+				mockIAMClient.EXPECT().GetRole(context.TODO(), &awsiam.GetRoleInput{
 					RoleName: aws.String(info.ExpectedName),
-				}).Return(nil, awserr.New(iam.ErrCodeNoSuchEntityException, "unit test", nil))
+				}).Return(nil, &awsiamtypes.NoSuchEntityException{})
 			}
 		})
 
 		It("creates the role", func() {
 			for _, info := range expectedRoleStatusesOnSuccess {
-				mockIAMClient.EXPECT().CreateRole(&iam.CreateRoleInput{
+				mockIAMClient.EXPECT().CreateRole(context.TODO(), &awsiam.CreateRoleInput{
 					AssumeRolePolicyDocument: aws.String(info.ExpectedAssumeRolePolicyDocument),
 					RoleName:                 aws.String(info.ExpectedName),
 					Tags:                     expectedIAMTags,
-				}).Return(&iam.CreateRoleOutput{}, nil)
+				}).Return(&awsiam.CreateRoleOutput{}, nil)
 
-				mockIAMClient.EXPECT().CreateInstanceProfile(&iam.CreateInstanceProfileInput{
+				mockIAMClient.EXPECT().CreateInstanceProfile(context.TODO(), &awsiam.CreateInstanceProfileInput{
 					InstanceProfileName: aws.String(info.ExpectedName),
 					Tags:                expectedIAMTags,
-				}).Return(&iam.CreateInstanceProfileOutput{}, nil)
+				}).Return(&awsiam.CreateInstanceProfileOutput{}, nil)
 
-				mockIAMClient.EXPECT().AddRoleToInstanceProfile(&iam.AddRoleToInstanceProfileInput{
+				mockIAMClient.EXPECT().AddRoleToInstanceProfile(context.TODO(), &awsiam.AddRoleToInstanceProfileInput{
 					InstanceProfileName: aws.String(info.ExpectedName),
 					RoleName:            aws.String(info.ExpectedName),
-				}).Return(&iam.AddRoleToInstanceProfileOutput{}, nil)
+				}).Return(&awsiam.AddRoleToInstanceProfileOutput{}, nil)
 
-				mockIAMClient.EXPECT().GetRolePolicy(
-					&iam.GetRolePolicyInput{
+				mockIAMClient.EXPECT().GetRolePolicy(context.TODO(),
+					&awsiam.GetRolePolicyInput{
 						PolicyName: aws.String(info.ExpectedPolicyName),
 						RoleName:   aws.String(info.ExpectedName),
 					},
-				).Return(&iam.GetRolePolicyOutput{}, awserr.New(iam.ErrCodeNoSuchEntityException, "unit test", nil))
+				).Return(&awsiam.GetRolePolicyOutput{}, &awsiamtypes.NoSuchEntityException{})
 
-				mockIAMClient.EXPECT().PutRolePolicy(&iam.PutRolePolicyInput{
+				mockIAMClient.EXPECT().PutRolePolicy(context.TODO(), &awsiam.PutRolePolicyInput{
 					PolicyName:     aws.String(info.ExpectedPolicyName),
 					PolicyDocument: aws.String(info.ExpectedPolicyDocument),
 					RoleName:       aws.String(info.ExpectedName),
-				}).Return(&iam.PutRolePolicyOutput{}, nil)
+				}).Return(&awsiam.PutRolePolicyOutput{}, nil)
 			}
 
 			_, reconcileErr = reconciler.Reconcile(ctx, req)
@@ -402,10 +396,10 @@ var _ = Describe("MachinePoolReconciler", func() {
 	When("a role already exists", func() {
 		BeforeEach(func() {
 			for _, info := range expectedRoleStatusesOnSuccess {
-				mockIAMClient.EXPECT().GetRole(&iam.GetRoleInput{
+				mockIAMClient.EXPECT().GetRole(context.TODO(), &awsiam.GetRoleInput{
 					RoleName: aws.String(info.ExpectedName),
-				}).MinTimes(1).Return(&iam.GetRoleOutput{
-					Role: &iam.Role{
+				}).MinTimes(1).Return(&awsiam.GetRoleOutput{
+					Role: &awsiamtypes.Role{
 						Arn:  aws.String(info.ReturnRoleArn),
 						Tags: expectedIAMTags,
 					},
@@ -417,37 +411,37 @@ var _ = Describe("MachinePoolReconciler", func() {
 			Skip("TODO The controller is not idempotent to this extent, but should be. Once this is implemented, we should also add test cases for failures in each AWS SDK call")
 
 			for _, info := range expectedRoleStatusesOnSuccess {
-				mockIAMClient.EXPECT().CreateInstanceProfile(&iam.CreateInstanceProfileInput{
+				mockIAMClient.EXPECT().CreateInstanceProfile(context.TODO(), &awsiam.CreateInstanceProfileInput{
 					InstanceProfileName: aws.String(info.ExpectedName),
 					Tags:                expectedIAMTags,
-				}).Return(&iam.CreateInstanceProfileOutput{}, nil)
+				}).Return(&awsiam.CreateInstanceProfileOutput{}, nil)
 
-				mockIAMClient.EXPECT().AddRoleToInstanceProfile(&iam.AddRoleToInstanceProfileInput{
+				mockIAMClient.EXPECT().AddRoleToInstanceProfile(context.TODO(), &awsiam.AddRoleToInstanceProfileInput{
 					InstanceProfileName: aws.String(info.ExpectedName),
 					RoleName:            aws.String(info.ExpectedName),
-				}).Return(&iam.AddRoleToInstanceProfileOutput{}, nil)
+				}).Return(&awsiam.AddRoleToInstanceProfileOutput{}, nil)
 
 				// Implementation detail: instead of storing the ARN, the controller calls `GetRole` multiple times
 				// from different places. Remove once we don't do this anymore (hence the `MinTimes` call so we
 				// would notice).
-				mockIAMClient.EXPECT().GetRole(&iam.GetRoleInput{
+				mockIAMClient.EXPECT().GetRole(context.TODO(), &awsiam.GetRoleInput{
 					RoleName: aws.String(info.ExpectedName),
-				}).MinTimes(1).Return(&iam.GetRoleOutput{
-					Role: &iam.Role{
+				}).MinTimes(1).Return(&awsiam.GetRoleOutput{
+					Role: &awsiamtypes.Role{
 						Arn:  aws.String(info.ReturnRoleArn),
 						Tags: expectedIAMTags,
 					},
 				}, nil)
 
-				mockIAMClient.EXPECT().ListRolePolicies(&iam.ListRolePoliciesInput{
+				mockIAMClient.EXPECT().ListRolePolicies(context.TODO(), &awsiam.ListRolePoliciesInput{
 					RoleName: aws.String(info.ExpectedName),
-				}).Return(&iam.ListRolePoliciesOutput{}, nil)
+				}).Return(&awsiam.ListRolePoliciesOutput{}, nil)
 
-				mockIAMClient.EXPECT().PutRolePolicy(&iam.PutRolePolicyInput{
+				mockIAMClient.EXPECT().PutRolePolicy(context.TODO(), &awsiam.PutRolePolicyInput{
 					PolicyName:     aws.String(info.ExpectedPolicyName),
 					PolicyDocument: aws.String(info.ExpectedPolicyDocument),
 					RoleName:       aws.String(info.ExpectedName),
-				}).Return(&iam.PutRolePolicyOutput{}, nil)
+				}).Return(&awsiam.PutRolePolicyOutput{}, nil)
 			}
 
 			_, reconcileErr = reconciler.Reconcile(ctx, req)

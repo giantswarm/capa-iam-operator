@@ -1,6 +1,7 @@
 package iam
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,12 +10,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	awsclientgo "github.com/aws/aws-sdk-go/aws/client"
-	"github.com/aws/aws-sdk-go/service/eks"
-	"github.com/aws/aws-sdk-go/service/eks/eksiface"
-	awsiam "github.com/aws/aws-sdk-go/service/iam"
-	"github.com/aws/aws-sdk-go/service/iam/iamiface"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/eks"
+	"github.com/aws/aws-sdk-go-v2/service/iam"
+	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/giantswarm/microerror"
 	"github.com/go-logr/logr"
 )
@@ -36,9 +35,36 @@ const (
 	ClusterIDTag          = "sigs.k8s.io/cluster-api-provider-aws/cluster/%s"
 )
 
+// IAMClient defines all of the methods that we use of the IAM service.
+// The AWS SDK used to defined this, but not anymore since v2.
+// I hate this.
+type IAMClient interface {
+	iam.GetRoleAPIClient
+	iam.ListRolePoliciesAPIClient
+	iam.ListAttachedRolePoliciesAPIClient
+
+	AddRoleToInstanceProfile(ctx context.Context, params *iam.AddRoleToInstanceProfileInput, optFns ...func(*iam.Options)) (*iam.AddRoleToInstanceProfileOutput, error)
+	CreateInstanceProfile(ctx context.Context, params *iam.CreateInstanceProfileInput, optFns ...func(*iam.Options)) (*iam.CreateInstanceProfileOutput, error)
+	CreateRole(ctx context.Context, params *iam.CreateRoleInput, optFns ...func(*iam.Options)) (*iam.CreateRoleOutput, error)
+	DeleteInstanceProfile(ctx context.Context, params *iam.DeleteInstanceProfileInput, optFns ...func(*iam.Options)) (*iam.DeleteInstanceProfileOutput, error)
+	DeleteRole(ctx context.Context, params *iam.DeleteRoleInput, optFns ...func(*iam.Options)) (*iam.DeleteRoleOutput, error)
+	DeleteRolePolicy(ctx context.Context, params *iam.DeleteRolePolicyInput, optFns ...func(*iam.Options)) (*iam.DeleteRolePolicyOutput, error)
+	DetachRolePolicy(ctx context.Context, params *iam.DetachRolePolicyInput, optFns ...func(*iam.Options)) (*iam.DetachRolePolicyOutput, error)
+	GetRolePolicy(ctx context.Context, params *iam.GetRolePolicyInput, optFns ...func(*iam.Options)) (*iam.GetRolePolicyOutput, error)
+	PutRolePolicy(ctx context.Context, params *iam.PutRolePolicyInput, optFns ...func(*iam.Options)) (*iam.PutRolePolicyOutput, error)
+	RemoveRoleFromInstanceProfile(ctx context.Context, params *iam.RemoveRoleFromInstanceProfileInput, optFns ...func(*iam.Options)) (*iam.RemoveRoleFromInstanceProfileOutput, error)
+	UpdateAssumeRolePolicy(ctx context.Context, params *iam.UpdateAssumeRolePolicyInput, optFns ...func(*iam.Options)) (*iam.UpdateAssumeRolePolicyOutput, error)
+}
+
+// EKSClient defines all the methods that we use of the EKS service.
+// I hate this less.
+type EKSClient interface {
+	eks.DescribeClusterAPIClient
+}
+
 type IAMServiceConfig struct {
 	ObjectLabels     map[string]string // not always filled
-	AWSSession       awsclientgo.ConfigProvider
+	AWSConfig        *aws.Config
 	ClusterName      string
 	MainRoleName     string
 	Log              logr.Logger
@@ -47,14 +73,14 @@ type IAMServiceConfig struct {
 	PrincipalRoleARN string
 	CustomTags       map[string]string
 
-	IAMClientFactory func(awsclientgo.ConfigProvider, string) iamiface.IAMAPI
+	IAMClientFactory func(aws.Config, string) IAMClient
 }
 
 type IAMService struct {
 	objectLabels     map[string]string // not always filled
 	clusterName      string
-	iamClient        iamiface.IAMAPI
-	eksClient        eksiface.EKSAPI
+	iamClient        IAMClient
+	eksClient        EKSClient
 	mainRoleName     string
 	log              logr.Logger
 	region           string
@@ -74,8 +100,8 @@ type Route53RoleParams struct {
 }
 
 func New(config IAMServiceConfig) (*IAMService, error) {
-	if config.AWSSession == nil {
-		return nil, errors.New("cannot create IAMService with AWSSession equal to nil")
+	if config.AWSConfig == nil {
+		return nil, errors.New("cannot create IAMService with AWSConfig equal to nil")
 	}
 	if config.IAMClientFactory == nil {
 		return nil, errors.New("cannot create IAMService with IAMClientFactory equal to nil")
@@ -92,8 +118,8 @@ func New(config IAMServiceConfig) (*IAMService, error) {
 	if config.ObjectLabels == nil {
 		config.ObjectLabels = map[string]string{}
 	}
-	iamClient := config.IAMClientFactory(config.AWSSession, config.Region)
-	eksClient := eks.New(config.AWSSession, &aws.Config{Region: aws.String(config.Region)})
+	iamClient := config.IAMClientFactory(*config.AWSConfig, config.Region)
+	eksClient := eks.NewFromConfig(*config.AWSConfig)
 
 	l := config.Log.WithValues("clusterName", config.ClusterName, "iam-role", config.RoleType)
 	s := &IAMService{
@@ -141,11 +167,11 @@ func (s *IAMService) ReconcileKiamRole() error {
 	var controlPlaneRoleARN string
 	{
 
-		i := &awsiam.GetRoleInput{
+		i := &iam.GetRoleInput{
 			RoleName: aws.String(s.mainRoleName),
 		}
 
-		o, err := s.iamClient.GetRole(i)
+		o, err := s.iamClient.GetRole(context.TODO(), i)
 		if err != nil {
 			s.log.Error(err, "failed to fetch ControlPlane role")
 			return err
@@ -218,7 +244,7 @@ func (s *IAMService) generateRoute53RoleParams(roleTypeToReconcile string, awsAc
 	return params, nil
 }
 
-func (s *IAMService) reconcileRole(roleName string, roleType string, params interface{}) error {
+func (s *IAMService) reconcileRole(roleName string, roleType string, params any) error {
 	l := s.log.WithValues("role_name", roleName, "role_type", roleType)
 	err := s.createRole(roleName, roleType, params)
 	if err != nil {
@@ -242,10 +268,10 @@ func (s *IAMService) reconcileRole(roleName string, roleType string, params inte
 }
 
 // createRole will create requested IAM role
-func (s *IAMService) createRole(roleName string, roleType string, params interface{}) error {
+func (s *IAMService) createRole(roleName string, roleType string, params any) error {
 	l := s.log.WithValues("role_name", roleName, "role_type", roleType)
 
-	_, err := s.iamClient.GetRole(&awsiam.GetRoleInput{
+	_, err := s.iamClient.GetRole(context.TODO(), &iam.GetRoleInput{
 		RoleName: aws.String(roleName),
 	})
 
@@ -267,7 +293,7 @@ func (s *IAMService) createRole(roleName string, roleType string, params interfa
 		return err
 	}
 
-	tags := []*awsiam.Tag{
+	tags := []iamtypes.Tag{
 		{
 			Key:   aws.String(IAMControllerOwnedTag),
 			Value: aws.String(""),
@@ -278,13 +304,13 @@ func (s *IAMService) createRole(roleName string, roleType string, params interfa
 		},
 	}
 	for k, v := range s.customTags {
-		tags = append(tags, &awsiam.Tag{
+		tags = append(tags, iamtypes.Tag{
 			Key:   aws.String(k),
 			Value: aws.String(v),
 		})
 	}
 
-	_, err = s.iamClient.CreateRole(&awsiam.CreateRoleInput{
+	_, err = s.iamClient.CreateRole(context.TODO(), &iam.CreateRoleInput{
 		RoleName:                 aws.String(roleName),
 		AssumeRolePolicyDocument: aws.String(assumeRolePolicyDocument),
 		Tags:                     tags,
@@ -294,12 +320,12 @@ func (s *IAMService) createRole(roleName string, roleType string, params interfa
 		return err
 	}
 
-	i2 := &awsiam.CreateInstanceProfileInput{
+	i2 := &iam.CreateInstanceProfileInput{
 		InstanceProfileName: aws.String(roleName),
 		Tags:                tags,
 	}
 
-	_, err = s.iamClient.CreateInstanceProfile(i2)
+	_, err = s.iamClient.CreateInstanceProfile(context.TODO(), i2)
 	if IsAlreadyExists(err) {
 		// fall thru
 	} else if err != nil {
@@ -307,12 +333,12 @@ func (s *IAMService) createRole(roleName string, roleType string, params interfa
 		return err
 	}
 
-	i3 := &awsiam.AddRoleToInstanceProfileInput{
+	i3 := &iam.AddRoleToInstanceProfileInput{
 		InstanceProfileName: aws.String(roleName),
 		RoleName:            aws.String(roleName),
 	}
 
-	_, err = s.iamClient.AddRoleToInstanceProfile(i3)
+	_, err = s.iamClient.AddRoleToInstanceProfile(context.TODO(), i3)
 	if IsAlreadyExists(err) {
 		// fall thru
 	} else if err != nil {
@@ -325,13 +351,13 @@ func (s *IAMService) createRole(roleName string, roleType string, params interfa
 	return nil
 }
 
-func (s *IAMService) applyAssumePolicyRole(roleName string, roleType string, params interface{}) error {
+func (s *IAMService) applyAssumePolicyRole(roleName string, roleType string, params any) error {
 	log := s.log.WithValues("role_name", roleName)
-	i := &awsiam.GetRoleInput{
+	i := &iam.GetRoleInput{
 		RoleName: aws.String(roleName),
 	}
 
-	_, err := s.iamClient.GetRole(i)
+	_, err := s.iamClient.GetRole(context.TODO(), i)
 
 	if IsNotFound(err) {
 		log.Info("role doesn't exist. Skipping application of assume policy")
@@ -352,18 +378,18 @@ func (s *IAMService) applyAssumePolicyRole(roleName string, roleType string, par
 		return err
 	}
 
-	updateInput := &awsiam.UpdateAssumeRolePolicyInput{
+	updateInput := &iam.UpdateAssumeRolePolicyInput{
 		RoleName:       aws.String(roleName),
 		PolicyDocument: aws.String(assumeRolePolicyDocument),
 	}
 
-	_, err = s.iamClient.UpdateAssumeRolePolicy(updateInput)
+	_, err = s.iamClient.UpdateAssumeRolePolicy(context.TODO(), updateInput)
 
 	return err
 }
 
 // attachInlinePolicy  will attach inline policy to the main IAM role
-func (s *IAMService) attachInlinePolicy(roleName string, roleType string, params interface{}) error {
+func (s *IAMService) attachInlinePolicy(roleName string, roleType string, params any) error {
 	l := s.log.WithValues("role_name", roleName)
 	tmpl := getInlinePolicyTemplate(roleType, s.objectLabels)
 
@@ -374,7 +400,7 @@ func (s *IAMService) attachInlinePolicy(roleName string, roleType string, params
 	}
 
 	// check if the inline policy already exists
-	output, err := s.iamClient.GetRolePolicy(&awsiam.GetRolePolicyInput{
+	output, err := s.iamClient.GetRolePolicy(context.TODO(), &iam.GetRolePolicyInput{
 		RoleName:   aws.String(roleName),
 		PolicyName: aws.String(policyName(s.roleType, s.clusterName)),
 	})
@@ -396,7 +422,7 @@ func (s *IAMService) attachInlinePolicy(roleName string, roleType string, params
 			return nil
 		}
 
-		_, err = s.iamClient.DeleteRolePolicy(&awsiam.DeleteRolePolicyInput{
+		_, err = s.iamClient.DeleteRolePolicy(context.TODO(), &iam.DeleteRolePolicyInput{
 			PolicyName: aws.String(policyName(s.roleType, s.clusterName)),
 			RoleName:   aws.String(roleName),
 		})
@@ -406,13 +432,13 @@ func (s *IAMService) attachInlinePolicy(roleName string, roleType string, params
 		}
 	}
 
-	i := &awsiam.PutRolePolicyInput{
+	i := &iam.PutRolePolicyInput{
 		PolicyName:     aws.String(policyName(s.roleType, s.clusterName)),
 		PolicyDocument: aws.String(policyDocument),
 		RoleName:       aws.String(roleName),
 	}
 
-	_, err = s.iamClient.PutRolePolicy(i)
+	_, err = s.iamClient.PutRolePolicy(context.TODO(), i)
 	if err != nil {
 		l.Error(err, "failed to add inline policy to IAM Role")
 		return err
@@ -484,33 +510,33 @@ func (s *IAMService) deleteRole(roleName string) error {
 		return err
 	}
 
-	i := &awsiam.RemoveRoleFromInstanceProfileInput{
+	i := &iam.RemoveRoleFromInstanceProfileInput{
 		InstanceProfileName: aws.String(roleName),
 		RoleName:            aws.String(roleName),
 	}
 
-	_, err = s.iamClient.RemoveRoleFromInstanceProfile(i)
+	_, err = s.iamClient.RemoveRoleFromInstanceProfile(context.TODO(), i)
 	if err != nil && !IsNotFound(err) {
 		l.Error(err, "failed to remove role from instance profile")
 		return err
 	}
 
-	i2 := &awsiam.DeleteInstanceProfileInput{
+	i2 := &iam.DeleteInstanceProfileInput{
 		InstanceProfileName: aws.String(roleName),
 	}
 
-	_, err = s.iamClient.DeleteInstanceProfile(i2)
+	_, err = s.iamClient.DeleteInstanceProfile(context.TODO(), i2)
 	if err != nil && !IsNotFound(err) {
 		l.Error(err, "failed to delete instance profile")
 		return err
 	}
 
 	// delete the role
-	i3 := &awsiam.DeleteRoleInput{
+	i3 := &iam.DeleteRoleInput{
 		RoleName: aws.String(roleName),
 	}
 
-	_, err = s.iamClient.DeleteRole(i3)
+	_, err = s.iamClient.DeleteRole(context.TODO(), i3)
 	if err != nil && !IsNotFound(err) {
 		l.Error(err, "failed to delete role")
 		return err
@@ -540,11 +566,11 @@ func (s *IAMService) cleanRolePolicies(roleName string) error {
 
 func (s *IAMService) cleanAttachedPolicies(roleName string) error {
 	l := s.log.WithValues("role_name", roleName)
-	i := &awsiam.ListAttachedRolePoliciesInput{
+	i := &iam.ListAttachedRolePoliciesInput{
 		RoleName: aws.String(roleName),
 	}
 
-	o, err := s.iamClient.ListAttachedRolePolicies(i)
+	o, err := s.iamClient.ListAttachedRolePolicies(context.TODO(), i)
 	if IsNotFound(err) {
 		l.Info("role not found")
 		return nil
@@ -557,12 +583,12 @@ func (s *IAMService) cleanAttachedPolicies(roleName string) error {
 	for _, p := range o.AttachedPolicies {
 		l.Info(fmt.Sprintf("detaching policy %s", *p.PolicyName))
 
-		i := &awsiam.DetachRolePolicyInput{
+		i := &iam.DetachRolePolicyInput{
 			PolicyArn: p.PolicyArn,
 			RoleName:  aws.String(roleName),
 		}
 
-		_, err := s.iamClient.DetachRolePolicy(i)
+		_, err := s.iamClient.DetachRolePolicy(context.TODO(), i)
 		if err != nil {
 			l.Error(err, fmt.Sprintf("failed to detach policy %s", *p.PolicyName))
 			return err
@@ -575,11 +601,11 @@ func (s *IAMService) cleanAttachedPolicies(roleName string) error {
 
 func (s *IAMService) cleanInlinePolicies(roleName string) error {
 	l := s.log.WithValues("role_name", roleName)
-	i := &awsiam.ListRolePoliciesInput{
+	i := &iam.ListRolePoliciesInput{
 		RoleName: aws.String(roleName),
 	}
 
-	o, err := s.iamClient.ListRolePolicies(i)
+	o, err := s.iamClient.ListRolePolicies(context.TODO(), i)
 	if IsNotFound(err) {
 		l.Info("role not found")
 		return nil
@@ -590,26 +616,26 @@ func (s *IAMService) cleanInlinePolicies(roleName string) error {
 	}
 
 	for _, p := range o.PolicyNames {
-		l.Info(fmt.Sprintf("deleting inline policy %s", *p))
+		l.Info(fmt.Sprintf("deleting inline policy %s", p))
 
-		i := &awsiam.DeleteRolePolicyInput{
+		i := &iam.DeleteRolePolicyInput{
 			RoleName:   aws.String(roleName),
-			PolicyName: p,
+			PolicyName: aws.String(p),
 		}
 
-		_, err := s.iamClient.DeleteRolePolicy(i)
+		_, err := s.iamClient.DeleteRolePolicy(context.TODO(), i)
 		if err != nil && !IsNotFound(err) {
-			l.Error(err, fmt.Sprintf("failed to delete inline policy %s", *p))
+			l.Error(err, fmt.Sprintf("failed to delete inline policy %s", p))
 			return err
 		}
-		l.Info(fmt.Sprintf("deleted inline policy %s", *p))
+		l.Info(fmt.Sprintf("deleted inline policy %s", p))
 	}
 
 	return nil
 }
 
 func (s *IAMService) GetRoleARN(roleName string) (string, error) {
-	o, err := s.iamClient.GetRole(&awsiam.GetRoleInput{
+	o, err := s.iamClient.GetRole(context.TODO(), &iam.GetRoleInput{
 		RoleName: aws.String(roleName),
 	})
 	if err != nil {
@@ -627,7 +653,7 @@ func (s *IAMService) GetIRSAOpenIDForEKS(clusterName string) (string, error) {
 	i := &eks.DescribeClusterInput{
 		Name: aws.String(clusterName),
 	}
-	cluster, err := s.eksClient.DescribeCluster(i)
+	cluster, err := s.eksClient.DescribeCluster(context.TODO(), i)
 	if err != nil {
 		return "", microerror.Mask(err)
 	}
@@ -698,8 +724,8 @@ func areEqualPolicy(encodedPolicy, expectedPolicy string) (bool, error) {
 }
 
 func areEqualJSON(s1, s2 string) (bool, error) {
-	var o1 interface{}
-	var o2 interface{}
+	var o1 any
+	var o2 any
 
 	var err error
 	err = json.Unmarshal([]byte(s1), &o1)
