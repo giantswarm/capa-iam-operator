@@ -24,10 +24,8 @@ import (
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 
-	"github.com/aws/aws-sdk-go/aws"
-	awsclientgo "github.com/aws/aws-sdk-go/aws/client"
-	awsiam "github.com/aws/aws-sdk-go/service/iam"
-	"github.com/aws/aws-sdk-go/service/iam/iamiface"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsiam "github.com/aws/aws-sdk-go-v2/service/iam"
 	corev1 "k8s.io/api/core/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	eks "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
@@ -47,6 +45,7 @@ import (
 
 	"github.com/giantswarm/capa-iam-operator/controllers"
 	"github.com/giantswarm/capa-iam-operator/pkg/awsclient"
+	"github.com/giantswarm/capa-iam-operator/pkg/iam"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -128,8 +127,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	iamClientFactory := func(session awsclientgo.ConfigProvider, region string) iamiface.IAMAPI {
-		return awsiam.New(session, &aws.Config{Region: aws.String(region)})
+	iamClientFactory := func(cfg aws.Config, region string) iam.IAMClient {
+		return awsiam.NewFromConfig(cfg)
 	}
 
 	if err = (&controllers.AWSMachineTemplateReconciler{

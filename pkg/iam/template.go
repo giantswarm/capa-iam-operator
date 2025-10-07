@@ -8,7 +8,7 @@ import (
 
 const AWSReducedInstanceProfileIAMPermissionsForWorkersLabel = "alpha.aws.giantswarm.io/reduced-instance-permissions-workers"
 
-func generatePolicyDocument(t string, params interface{}) (string, error) {
+func generatePolicyDocument(t string, params any) (string, error) {
 	tmpl, err := template.New("policy").Parse(t)
 	if err != nil {
 		return "", err

@@ -6,7 +6,7 @@ import (
 	"slices"
 	"strings"
 
-	awsarn "github.com/aws/aws-sdk-go/aws/arn"
+	awsarn "github.com/aws/aws-sdk-go-v2/aws/arn"
 	"github.com/giantswarm/microerror"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"

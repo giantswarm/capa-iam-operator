@@ -20,8 +20,7 @@ import (
 	"context"
 	"time"
 
-	awsclientgo "github.com/aws/aws-sdk-go/aws/client"
-	"github.com/aws/aws-sdk-go/service/iam/iamiface"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/giantswarm/microerror"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	eks "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
@@ -40,7 +39,7 @@ import (
 type AWSManagedControlPlaneReconciler struct {
 	client.Client
 	AWSClient        awsclient.AwsClientInterface
-	IAMClientFactory func(awsclientgo.ConfigProvider, string) iamiface.IAMAPI
+	IAMClientFactory func(aws.Config, string) iam.IAMClient
 }
 
 func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -73,7 +72,7 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 		return ctrl.Result{}, microerror.Mask(err)
 	}
 
-	awsClientSession, err := r.AWSClient.GetAWSClientSession(awsClusterRoleIdentity.Spec.RoleArn, eksCluster.Spec.Region)
+	awsClientConfig, err := r.AWSClient.GetAWSClientConfig(awsClusterRoleIdentity.Spec.RoleArn, eksCluster.Spec.Region)
 	if err != nil {
 		logger.Error(err, "Failed to get aws client session")
 		return ctrl.Result{}, microerror.Mask(err)
@@ -82,7 +81,7 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 	var iamService *iam.IAMService
 	{
 		c := iam.IAMServiceConfig{
-			AWSSession:       awsClientSession,
+			AWSConfig:        &awsClientConfig,
 			ClusterName:      clusterName,
 			MainRoleName:     *eksCluster.Spec.RoleName,
 			Log:              logger,

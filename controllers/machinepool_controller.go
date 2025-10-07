@@ -20,8 +20,7 @@ import (
 	"context"
 	"maps"
 
-	awsclientgo "github.com/aws/aws-sdk-go/aws/client"
-	"github.com/aws/aws-sdk-go/service/iam/iamiface"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/giantswarm/microerror"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -44,7 +43,7 @@ import (
 // MachinePoolReconciler reconciles a AWSMachinePool object
 type MachinePoolReconciler struct {
 	client.Client
-	IAMClientFactory func(awsclientgo.ConfigProvider, string) iamiface.IAMAPI
+	IAMClientFactory func(aws.Config, string) iam.IAMClient
 	AWSClient        awsclient.AwsClientInterface
 }
 
@@ -129,7 +128,7 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, microerror.Mask(err)
 	}
 
-	awsClientSession, err := r.AWSClient.GetAWSClientSession(awsClusterRoleIdentity.Spec.RoleArn, awsCluster.Spec.Region)
+	awsClientConfig, err := r.AWSClient.GetAWSClientConfig(awsClusterRoleIdentity.Spec.RoleArn, awsCluster.Spec.Region)
 	if err != nil {
 		logger.Error(err, "Failed to get aws client session")
 		return ctrl.Result{}, errors.WithStack(err)
@@ -139,7 +138,7 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	{
 		c := iam.IAMServiceConfig{
 			ObjectLabels:     maps.Clone(infraMachinePool.GetLabels()),
-			AWSSession:       awsClientSession,
+			AWSConfig:        &awsClientConfig,
 			ClusterName:      cluster.Name,
 			MainRoleName:     iamInstanceProfile,
 			Log:              logger,

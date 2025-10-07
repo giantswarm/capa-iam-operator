@@ -7,7 +7,7 @@ package mocks
 import (
 	reflect "reflect"
 
-	client "github.com/aws/aws-sdk-go/aws/client"
+	aws "github.com/aws/aws-sdk-go-v2/aws"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -34,17 +34,17 @@ func (m *MockAwsClientInterface) EXPECT() *MockAwsClientInterfaceMockRecorder {
 	return m.recorder
 }
 
-// GetAWSClientSession mocks base method.
-func (m *MockAwsClientInterface) GetAWSClientSession(awsRoleARN, region string) (client.ConfigProvider, error) {
+// GetAWSClientConfig mocks base method.
+func (m *MockAwsClientInterface) GetAWSClientConfig(awsRoleARN, region string) (aws.Config, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAWSClientSession", awsRoleARN, region)
-	ret0, _ := ret[0].(client.ConfigProvider)
+	ret := m.ctrl.Call(m, "GetAWSClientConfig", awsRoleARN, region)
+	ret0, _ := ret[0].(aws.Config)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetAWSClientSession indicates an expected call of GetAWSClientSession.
-func (mr *MockAwsClientInterfaceMockRecorder) GetAWSClientSession(awsRoleARN, region interface{}) *gomock.Call {
+// GetAWSClientConfig indicates an expected call of GetAWSClientConfig.
+func (mr *MockAwsClientInterfaceMockRecorder) GetAWSClientConfig(awsRoleARN, region interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAWSClientSession", reflect.TypeOf((*MockAwsClientInterface)(nil).GetAWSClientSession), awsRoleARN, region)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAWSClientConfig", reflect.TypeOf((*MockAwsClientInterface)(nil).GetAWSClientConfig), awsRoleARN, region)
 }
