@@ -42,6 +42,7 @@ var _ = Describe("ReconcileRole", func() {
 
 		iamConfig := iam.IAMServiceConfig{
 			ClusterName:      "test-cluster",
+			ClusterRelease:   "33.0.0",
 			MainRoleName:     "test-role",
 			Region:           "test-region",
 			RoleType:         "control-plane",
@@ -143,12 +144,13 @@ var _ = Describe("ReconcileRole AWSMachinePool", func() {
 		When("No labels present (full permission set)", func() {
 			BeforeEach(func() {
 				iamConfig := iam.IAMServiceConfig{
-					ClusterName:  "test-cluster",
-					MainRoleName: "test-role",
-					Region:       "test-region",
-					RoleType:     iam.NodesRole,
-					Log:          ctrl.Log,
-					AWSConfig:    &conf,
+					ClusterName:    "test-cluster",
+					ClusterRelease: "33.0.0",
+					MainRoleName:   "test-role",
+					Region:         "test-region",
+					RoleType:       iam.NodesRole,
+					Log:            ctrl.Log,
+					AWSConfig:      &conf,
 					IAMClientFactory: func(_ aws.Config, _ string) iam.IAMClient {
 						return mockIAMClient
 					},
@@ -180,12 +182,13 @@ var _ = Describe("ReconcileRole AWSMachinePool", func() {
 		When("Reduced-permission-set label present (not Cilium ENI Mode)", func() {
 			BeforeEach(func() {
 				iamConfig := iam.IAMServiceConfig{
-					ClusterName:  "test-cluster",
-					MainRoleName: "test-role",
-					Region:       "test-region",
-					RoleType:     iam.NodesRole,
-					Log:          ctrl.Log,
-					AWSConfig:    &conf,
+					ClusterName:    "test-cluster",
+					ClusterRelease: "33.0.0",
+					MainRoleName:   "test-role",
+					Region:         "test-region",
+					RoleType:       iam.NodesRole,
+					Log:            ctrl.Log,
+					AWSConfig:      &conf,
 					IAMClientFactory: func(_ aws.Config, region string) iam.IAMClient {
 						return mockIAMClient
 					},
@@ -225,12 +228,13 @@ var _ = Describe("ReconcileRole AWSMachinePool", func() {
 		When("Reduced-permission-set and Cilium ENI mode labels present", func() {
 			BeforeEach(func() {
 				iamConfig := iam.IAMServiceConfig{
-					ClusterName:  "test-cluster",
-					MainRoleName: "test-role",
-					Region:       "test-region",
-					RoleType:     iam.NodesRole,
-					Log:          ctrl.Log,
-					AWSConfig:    &conf,
+					ClusterName:    "test-cluster",
+					ClusterRelease: "33.0.0",
+					MainRoleName:   "test-role",
+					Region:         "test-region",
+					RoleType:       iam.NodesRole,
+					Log:            ctrl.Log,
+					AWSConfig:      &conf,
 					IAMClientFactory: func(_ aws.Config, _ string) iam.IAMClient {
 						return mockIAMClient
 					},
