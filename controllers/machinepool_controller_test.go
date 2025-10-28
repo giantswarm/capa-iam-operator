@@ -139,6 +139,9 @@ var _ = Describe("MachinePoolReconciler", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-cluster",
 				Namespace: namespace,
+				Labels: map[string]string{
+					controllers.GiantSwarmReleaseLabel: "33.0.0",
+				},
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
