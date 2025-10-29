@@ -484,6 +484,29 @@ func (s *IAMService) attachInlinePolicy(roleName string, roleType string, params
 func (s *IAMService) DeleteRole() error {
 	s.log.Info("deleting IAM resources")
 
+	// In a certain GiantSwarm release we changed how the IAM Roles are managed within `cluster-aws`. Crossplane will manage the roles from now on.
+	// This means that we no longer need to manage the IAM Roles for nodes (workers, control-plane) from this controller.
+	// If a cluster is using a release equal or greater than the release containing these changes, we skip the nodes IAM Role creation.
+	if s.roleType == ControlPlaneRole || s.roleType == NodesRole {
+		// Parse the current cluster release version
+		currentVersion, err := semver.NewVersion(s.clusterRelease)
+		if err != nil {
+			return err
+		}
+
+		// Parse the threshold version
+		thresholdVersion, err := semver.NewVersion(GiantSwarmReleaseCrossplaneNodesIAMRoles)
+		if err != nil {
+			// This should never happen as we control this constant
+			return err
+		}
+
+		// Check if the current version is equal or greater than threshold version
+		if currentVersion.GreaterThanEqual(thresholdVersion) {
+			return nil
+		}
+	}
+
 	// delete main role
 	err := s.deleteRole(s.mainRoleName)
 	if err != nil {
