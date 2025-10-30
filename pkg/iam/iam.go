@@ -31,14 +31,13 @@ const (
 	EBSCSIDriverRole      = "ebs-csi-driver-role"
 	EFSCSIDriverRole      = "efs-csi-driver-role"
 	ClusterAutoscalerRole = "cluster-autoscaler-role"
-
-	// GiantSwarmReleaseCrossplaneNodesIAMRoles The GiantSwarm CAPA release that introduced Crossplane CRs to manage IAM Roles / Policies / Instance profiles in `cluster-aws`.
-	// That means that we no longer need to manage these resources for the nodes (workers, control-plane) from this controller.
-	GiantSwarmReleaseCrossplaneNodesIAMRoles = "34.0.0"
-
 	IAMControllerOwnedTag = "capi-iam-controller/owned"
 	ClusterIDTag          = "sigs.k8s.io/cluster-api-provider-aws/cluster/%s"
 )
+
+// GiantSwarmReleaseCrossplaneNodesIAMRoles The GiantSwarm CAPA release that introduced Crossplane CRs to manage IAM Roles / Policies / Instance profiles in `cluster-aws`.
+// That means that we no longer need to manage these resources for the nodes (workers, control-plane) from this controller.
+var GiantSwarmReleaseCrossplaneNodesIAMRoles = semver.MustParse("34.0.0")
 
 // IAMClient defines all of the methods that we use of the IAM service.
 // The AWS SDK used to defined this, but not anymore since v2.
@@ -266,15 +265,8 @@ func (s *IAMService) reconcileRole(roleName string, roleType string, params any)
 			return err
 		}
 
-		// Parse the threshold version
-		thresholdVersion, err := semver.NewVersion(GiantSwarmReleaseCrossplaneNodesIAMRoles)
-		if err != nil {
-			// This should never happen as we control this constant
-			return err
-		}
-
 		// Check if the current version is equal or greater than threshold version
-		if currentVersion.GreaterThanEqual(thresholdVersion) {
+		if currentVersion.GreaterThanEqual(GiantSwarmReleaseCrossplaneNodesIAMRoles) {
 			return nil
 		}
 	}
@@ -494,15 +486,8 @@ func (s *IAMService) DeleteRole() error {
 			return err
 		}
 
-		// Parse the threshold version
-		thresholdVersion, err := semver.NewVersion(GiantSwarmReleaseCrossplaneNodesIAMRoles)
-		if err != nil {
-			// This should never happen as we control this constant
-			return err
-		}
-
 		// Check if the current version is equal or greater than threshold version
-		if currentVersion.GreaterThanEqual(thresholdVersion) {
+		if currentVersion.GreaterThanEqual(GiantSwarmReleaseCrossplaneNodesIAMRoles) {
 			return nil
 		}
 	}
