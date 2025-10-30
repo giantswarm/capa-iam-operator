@@ -24,6 +24,7 @@ import (
 	"github.com/giantswarm/microerror"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	eks "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -58,6 +59,11 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 		return ctrl.Result{}, microerror.Mask(err)
 	}
 
+	cluster, err := util.GetClusterByName(ctx, r.Client, eksCluster.Namespace, clusterName)
+	if err != nil {
+		return ctrl.Result{}, microerror.Mask(err)
+	}
+
 	if eksCluster.Spec.RoleName == nil {
 		logger.Info("AWSManagedControlPlane has empty .spec.RoleName, waiting for role creation")
 		return ctrl.Result{
@@ -83,6 +89,7 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 		c := iam.IAMServiceConfig{
 			AWSConfig:        &awsClientConfig,
 			ClusterName:      clusterName,
+			ClusterRelease:   cluster.Labels[GiantSwarmReleaseLabel],
 			MainRoleName:     *eksCluster.Spec.RoleName,
 			Log:              logger,
 			RoleType:         iam.IRSARole,

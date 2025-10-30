@@ -18,7 +18,10 @@ import (
 	"github.com/giantswarm/capa-iam-operator/pkg/key"
 )
 
-const maxPatchAttempts = 5
+const (
+	GiantSwarmReleaseLabel = "release.giantswarm.io/version"
+	maxPatchAttempts       = 5
+)
 
 func isRoleUsedElsewhere(ctx context.Context, ctrlClient client.Client, roleName string) (bool, error) {
 	var err error

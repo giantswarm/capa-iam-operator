@@ -25,6 +25,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"sigs.k8s.io/cluster-api/util"
 
 	"k8s.io/apimachinery/pkg/types"
 	capa "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -92,6 +93,11 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 	logger = logger.WithValues("cluster", clusterName, "role", role)
 	ctx = log.IntoContext(ctx, logger)
 
+	cluster, err := util.GetClusterByName(ctx, r.Client, awsMachineTemplate.Namespace, clusterName)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to get cluster for AWSMachineTemplate")
+	}
+
 	if awsMachineTemplate.Spec.Template.Spec.IAMInstanceProfile == "" {
 		logger.Info("AWSMachineTemplate has empty .Spec.Template.Spec.IAMInstanceProfile, not creating IAM role")
 		return ctrl.Result{}, nil
@@ -101,6 +107,7 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 	if err != nil {
 		return ctrl.Result{}, microerror.Mask(err)
 	}
+
 	awsClusterRoleIdentity, err := key.GetAWSClusterRoleIdentity(ctx, r.Client, awsCluster.Spec.IdentityRef.Name)
 	if err != nil {
 		logger.Error(err, "could not get AWSClusterRoleIdentity")
@@ -118,6 +125,7 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 		c := iam.IAMServiceConfig{
 			AWSConfig:        &awsClientConfig,
 			ClusterName:      clusterName,
+			ClusterRelease:   cluster.Labels[GiantSwarmReleaseLabel],
 			MainRoleName:     awsMachineTemplate.Spec.Template.Spec.IAMInstanceProfile,
 			Log:              logger,
 			RoleType:         role,
