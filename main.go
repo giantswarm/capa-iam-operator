@@ -43,9 +43,9 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	"github.com/giantswarm/capa-iam-operator/controllers"
-	"github.com/giantswarm/capa-iam-operator/pkg/awsclient"
-	"github.com/giantswarm/capa-iam-operator/pkg/iam"
+	"github.com/giantswarm/capa-iam-operator/v2/controllers"
+	"github.com/giantswarm/capa-iam-operator/v2/pkg/awsclient"
+	"github.com/giantswarm/capa-iam-operator/v2/pkg/iam"
 	// +kubebuilder:scaffold:imports
 )
 

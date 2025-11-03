@@ -14,8 +14,8 @@ import (
 	. "github.com/onsi/gomega"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"github.com/giantswarm/capa-iam-operator/pkg/iam"
-	"github.com/giantswarm/capa-iam-operator/pkg/test/mocks"
+	"github.com/giantswarm/capa-iam-operator/v2/pkg/iam"
+	"github.com/giantswarm/capa-iam-operator/v2/pkg/test/mocks"
 )
 
 const awsIPAMModeLabel = "alpha.aws.giantswarm.io/ipam-mode"
