@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Migrate to AWS SDK v2.
+- Disable nodes IAM Role management when using Giant Swarm CAPA Release >= 34.0.0. From that release, nodes IAM Role management is done by Crossplane from `cluster-aws`.
+- Remove logic introduced in previous release that deleted finalizers from `MachinePools`, as part of the migration to reconcile infra node pools instead.
 
 ## [1.6.0] - 2025-10-06
 

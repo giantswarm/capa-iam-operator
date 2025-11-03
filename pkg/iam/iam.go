@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/eks"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
@@ -30,10 +31,13 @@ const (
 	EBSCSIDriverRole      = "ebs-csi-driver-role"
 	EFSCSIDriverRole      = "efs-csi-driver-role"
 	ClusterAutoscalerRole = "cluster-autoscaler-role"
-
 	IAMControllerOwnedTag = "capi-iam-controller/owned"
 	ClusterIDTag          = "sigs.k8s.io/cluster-api-provider-aws/cluster/%s"
 )
+
+// GiantSwarmReleaseCrossplaneNodesIAMRoles The GiantSwarm CAPA release that introduced Crossplane CRs to manage IAM Roles / Policies / Instance profiles in `cluster-aws`.
+// That means that we no longer need to manage these resources for the nodes (workers, control-plane) from this controller.
+var GiantSwarmReleaseCrossplaneNodesIAMRoles = semver.MustParse("34.0.0")
 
 // IAMClient defines all of the methods that we use of the IAM service.
 // The AWS SDK used to defined this, but not anymore since v2.
@@ -66,6 +70,7 @@ type IAMServiceConfig struct {
 	ObjectLabels     map[string]string // not always filled
 	AWSConfig        *aws.Config
 	ClusterName      string
+	ClusterRelease   string
 	MainRoleName     string
 	Log              logr.Logger
 	RoleType         string
@@ -79,6 +84,7 @@ type IAMServiceConfig struct {
 type IAMService struct {
 	objectLabels     map[string]string // not always filled
 	clusterName      string
+	clusterRelease   string
 	iamClient        IAMClient
 	eksClient        EKSClient
 	mainRoleName     string
@@ -109,6 +115,9 @@ func New(config IAMServiceConfig) (*IAMService, error) {
 	if config.ClusterName == "" {
 		return nil, errors.New("cannot create IAMService with empty ClusterName")
 	}
+	if config.ClusterRelease == "" {
+		return nil, errors.New("cannot create IAMService with empty ClusterRelease")
+	}
 	if config.MainRoleName == "" {
 		return nil, errors.New("cannot create IAMService with empty MainRoleName")
 	}
@@ -125,6 +134,7 @@ func New(config IAMServiceConfig) (*IAMService, error) {
 	s := &IAMService{
 		objectLabels:     config.ObjectLabels,
 		clusterName:      config.ClusterName,
+		clusterRelease:   config.ClusterRelease,
 		iamClient:        iamClient,
 		eksClient:        eksClient,
 		mainRoleName:     config.MainRoleName,
@@ -246,6 +256,21 @@ func (s *IAMService) generateRoute53RoleParams(roleTypeToReconcile string, awsAc
 
 func (s *IAMService) reconcileRole(roleName string, roleType string, params any) error {
 	l := s.log.WithValues("role_name", roleName, "role_type", roleType)
+
+	// If a cluster is using a release equal or greater than the release containing these changes, we skip the nodes IAM Role creation.
+	if roleType == ControlPlaneRole || roleType == NodesRole {
+		// Parse the current cluster release version
+		currentVersion, err := semver.NewVersion(s.clusterRelease)
+		if err != nil {
+			return err
+		}
+
+		// Check if the current version is equal or greater than threshold version
+		if currentVersion.GreaterThanEqual(GiantSwarmReleaseCrossplaneNodesIAMRoles) {
+			return nil
+		}
+	}
+
 	err := s.createRole(roleName, roleType, params)
 	if err != nil {
 		return err
@@ -450,6 +475,22 @@ func (s *IAMService) attachInlinePolicy(roleName string, roleType string, params
 
 func (s *IAMService) DeleteRole() error {
 	s.log.Info("deleting IAM resources")
+
+	// In a certain GiantSwarm release we changed how the IAM Roles are managed within `cluster-aws`. Crossplane will manage the roles from now on.
+	// This means that we no longer need to manage the IAM Roles for nodes (workers, control-plane) from this controller.
+	// If a cluster is using a release equal or greater than the release containing these changes, we skip the nodes IAM Role creation.
+	if s.roleType == ControlPlaneRole || s.roleType == NodesRole {
+		// Parse the current cluster release version
+		currentVersion, err := semver.NewVersion(s.clusterRelease)
+		if err != nil {
+			return err
+		}
+
+		// Check if the current version is equal or greater than threshold version
+		if currentVersion.GreaterThanEqual(GiantSwarmReleaseCrossplaneNodesIAMRoles) {
+			return nil
+		}
+	}
 
 	// delete main role
 	err := s.deleteRole(s.mainRoleName)
