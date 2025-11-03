@@ -20,9 +20,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	"github.com/giantswarm/capa-iam-operator/controllers"
-	"github.com/giantswarm/capa-iam-operator/pkg/iam"
-	"github.com/giantswarm/capa-iam-operator/pkg/test/mocks"
+	"github.com/giantswarm/capa-iam-operator/v2/controllers"
+	"github.com/giantswarm/capa-iam-operator/v2/pkg/iam"
+	"github.com/giantswarm/capa-iam-operator/v2/pkg/test/mocks"
 )
 
 var _ = Describe("MachinePoolReconciler", func() {

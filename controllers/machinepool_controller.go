@@ -35,9 +35,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/giantswarm/capa-iam-operator/pkg/awsclient"
-	"github.com/giantswarm/capa-iam-operator/pkg/iam"
-	"github.com/giantswarm/capa-iam-operator/pkg/key"
+	"github.com/giantswarm/capa-iam-operator/v2/pkg/awsclient"
+	"github.com/giantswarm/capa-iam-operator/v2/pkg/iam"
+	"github.com/giantswarm/capa-iam-operator/v2/pkg/key"
 )
 
 // MachinePoolReconciler reconciles a AWSMachinePool object
