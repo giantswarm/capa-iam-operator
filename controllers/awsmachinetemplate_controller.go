@@ -123,15 +123,16 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 	var iamService *iam.IAMService
 	{
 		c := iam.IAMServiceConfig{
-			AWSConfig:        &awsClientConfig,
-			ClusterName:      clusterName,
-			ClusterRelease:   cluster.Labels[GiantSwarmReleaseLabel],
-			MainRoleName:     awsMachineTemplate.Spec.Template.Spec.IAMInstanceProfile,
-			Log:              logger,
-			RoleType:         role,
-			Region:           awsCluster.Spec.Region,
-			IAMClientFactory: r.IAMClientFactory,
-			CustomTags:       awsCluster.Spec.AdditionalTags,
+			AWSConfig:             &awsClientConfig,
+			ClusterIsBeingDeleted: cluster.DeletionTimestamp != nil,
+			ClusterName:           clusterName,
+			ClusterRelease:        cluster.Labels[GiantSwarmReleaseLabel],
+			MainRoleName:          awsMachineTemplate.Spec.Template.Spec.IAMInstanceProfile,
+			Log:                   logger,
+			RoleType:              role,
+			Region:                awsCluster.Spec.Region,
+			IAMClientFactory:      r.IAMClientFactory,
+			CustomTags:            awsCluster.Spec.AdditionalTags,
 		}
 		iamService, err = iam.New(c)
 		if err != nil {
