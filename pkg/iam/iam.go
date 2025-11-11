@@ -67,32 +67,34 @@ type EKSClient interface {
 }
 
 type IAMServiceConfig struct {
-	ObjectLabels     map[string]string // not always filled
-	AWSConfig        *aws.Config
-	ClusterName      string
-	ClusterRelease   string
-	MainRoleName     string
-	Log              logr.Logger
-	RoleType         string
-	Region           string
-	PrincipalRoleARN string
-	CustomTags       map[string]string
+	ObjectLabels          map[string]string // not always filled
+	AWSConfig             *aws.Config
+	ClusterIsBeingDeleted bool
+	ClusterName           string
+	ClusterRelease        string
+	MainRoleName          string
+	Log                   logr.Logger
+	RoleType              string
+	Region                string
+	PrincipalRoleARN      string
+	CustomTags            map[string]string
 
 	IAMClientFactory func(aws.Config, string) IAMClient
 }
 
 type IAMService struct {
-	objectLabels     map[string]string // not always filled
-	clusterName      string
-	clusterRelease   string
-	iamClient        IAMClient
-	eksClient        EKSClient
-	mainRoleName     string
-	log              logr.Logger
-	region           string
-	roleType         string
-	principalRoleARN string
-	customTags       map[string]string
+	objectLabels          map[string]string // not always filled
+	clusterIsBeingDeleted bool
+	clusterName           string
+	clusterRelease        string
+	iamClient             IAMClient
+	eksClient             EKSClient
+	mainRoleName          string
+	log                   logr.Logger
+	region                string
+	roleType              string
+	principalRoleARN      string
+	customTags            map[string]string
 }
 
 type Route53RoleParams struct {
@@ -132,17 +134,18 @@ func New(config IAMServiceConfig) (*IAMService, error) {
 
 	l := config.Log.WithValues("clusterName", config.ClusterName, "iam-role", config.RoleType)
 	s := &IAMService{
-		objectLabels:     config.ObjectLabels,
-		clusterName:      config.ClusterName,
-		clusterRelease:   config.ClusterRelease,
-		iamClient:        iamClient,
-		eksClient:        eksClient,
-		mainRoleName:     config.MainRoleName,
-		log:              l,
-		roleType:         config.RoleType,
-		region:           config.Region,
-		principalRoleARN: config.PrincipalRoleARN,
-		customTags:       config.CustomTags,
+		objectLabels:          config.ObjectLabels,
+		clusterIsBeingDeleted: config.ClusterIsBeingDeleted,
+		clusterName:           config.ClusterName,
+		clusterRelease:        config.ClusterRelease,
+		iamClient:             iamClient,
+		eksClient:             eksClient,
+		mainRoleName:          config.MainRoleName,
+		log:                   l,
+		roleType:              config.RoleType,
+		region:                config.Region,
+		principalRoleARN:      config.PrincipalRoleARN,
+		customTags:            config.CustomTags,
 	}
 
 	return s, nil
@@ -478,7 +481,8 @@ func (s *IAMService) DeleteRole() error {
 
 	// In a certain GiantSwarm release we changed how the IAM Roles are managed within `cluster-aws`. Crossplane will manage the roles from now on.
 	// This means that we no longer need to manage the IAM Roles for nodes (workers, control-plane) from this controller.
-	// If a cluster is using a release equal or greater than the release containing these changes, we skip the nodes IAM Role creation.
+	// If a cluster is using a release equal or greater than the release containing these changes, we skip the node IAM Role deletion.
+	// We have an issue to delete them manually when customers have upgraded https://github.com/giantswarm/giantswarm/issues/34712.
 	if s.roleType == ControlPlaneRole || s.roleType == NodesRole {
 		// Parse the current cluster release version
 		currentVersion, err := semver.NewVersion(s.clusterRelease)
@@ -488,8 +492,17 @@ func (s *IAMService) DeleteRole() error {
 
 		// Check if the current version is equal or greater than threshold version
 		if currentVersion.GreaterThanEqual(GiantSwarmReleaseCrossplaneNodesIAMRoles) {
+			s.log.Info("Skipped deleting control plane role as the cluster is using a giantswarm release that uses Crossplane IAM Roles")
 			return nil
 		}
+	}
+
+	// For the migration to Crossplane IAM Roles (https://github.com/giantswarm/giantswarm/issues/34549), We only want this controller to delete the role if the cluster is being deleted.
+	// When clusters upgrade to the GS release using Crossplane IAM Roles, the roles created by this controller will be left behind.
+	// There is an issue to clean them up https://github.com/giantswarm/giantswarm/issues/34712
+	if !s.clusterIsBeingDeleted && s.roleType == ControlPlaneRole {
+		s.log.Info("Skipped deleting control plane role as the cluster is not being deleted")
+		return nil
 	}
 
 	// delete main role

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Only delete control plane IAM Roles if the cluster is being deleted. We need this to avoid deleting the control plane IAM Role when the cluster is being upgraded, breaking existing control plane nodes.
+
 ## [2.0.0] - 2025-11-03
 
 ### Changed
