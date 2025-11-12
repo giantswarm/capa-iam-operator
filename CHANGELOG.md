@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.1] - 2025-11-12
+
 ### Fixed
 
 - Only delete control plane IAM Roles if the cluster is being deleted. We need this to avoid deleting the control plane IAM Role when the cluster is being upgraded, breaking existing control plane nodes.
@@ -380,7 +382,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implement `AWSMachineTemplate` reconciler.
 - Implement `AWSMachinePool` reconciler.
 
-[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v2.0.1...HEAD
+[2.0.1]: https://github.com/giantswarm/capa-iam-operator/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/giantswarm/capa-iam-operator/compare/v1.6.0...v2.0.0
 [1.6.0]: https://github.com/giantswarm/capa-iam-operator/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/giantswarm/capa-iam-operator/compare/v1.4.1...v1.5.0
