@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.2] - 2025-11-13
+
 ### Fixed
 
 - Only remove default apps IAM Roles when the cluster is being deleted, not when AWSMachineTemplate is being deleted.
@@ -386,7 +388,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implement `AWSMachineTemplate` reconciler.
 - Implement `AWSMachinePool` reconciler.
 
-[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v2.0.1...HEAD
+[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v2.0.2...HEAD
+[2.0.2]: https://github.com/giantswarm/capa-iam-operator/compare/v2.0.1...v2.0.2
 [2.0.1]: https://github.com/giantswarm/capa-iam-operator/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/giantswarm/capa-iam-operator/compare/v1.6.0...v2.0.0
 [1.6.0]: https://github.com/giantswarm/capa-iam-operator/compare/v1.5.0...v1.6.0
