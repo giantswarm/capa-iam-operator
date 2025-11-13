@@ -545,6 +545,16 @@ func (s *IAMService) DeleteRolesForIRSA() error {
 	s.log.Info("deleting IAM roles for IRSA")
 	defer s.log.Info("finished deleting IAM roles for IRSA")
 
+	// IRSA roles are cluster-wide resources. We only delete them when the entire cluster
+	// is being deleted, not during rolling upgrades or release upgrades when individual
+	// AWSMachineTemplates or control plane components are removed.
+	// This prevents IRSA roles from being deleted during cluster upgrades (e.g., v33 -> v34)
+	// when old control plane AWSMachineTemplate objects are replaced with new ones.
+	if !s.clusterIsBeingDeleted {
+		s.log.Info("Skipping IRSA roles deletion as cluster is not being deleted")
+		return nil
+	}
+
 	for _, roleTypeToReconcile := range getIRSARoles() {
 		err := s.deleteRole(roleName(roleTypeToReconcile, s.clusterName))
 		if err != nil {

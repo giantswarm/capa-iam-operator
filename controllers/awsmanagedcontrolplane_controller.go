@@ -87,15 +87,16 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 	var iamService *iam.IAMService
 	{
 		c := iam.IAMServiceConfig{
-			AWSConfig:        &awsClientConfig,
-			ClusterName:      clusterName,
-			ClusterRelease:   cluster.Labels[GiantSwarmReleaseLabel],
-			MainRoleName:     *eksCluster.Spec.RoleName,
-			Log:              logger,
-			RoleType:         iam.IRSARole,
-			Region:           eksCluster.Spec.Region,
-			IAMClientFactory: r.IAMClientFactory,
-			CustomTags:       eksCluster.Spec.AdditionalTags,
+			AWSConfig:             &awsClientConfig,
+			ClusterIsBeingDeleted: cluster.DeletionTimestamp != nil,
+			ClusterName:           clusterName,
+			ClusterRelease:        cluster.Labels[GiantSwarmReleaseLabel],
+			MainRoleName:          *eksCluster.Spec.RoleName,
+			Log:                   logger,
+			RoleType:              iam.IRSARole,
+			Region:                eksCluster.Spec.Region,
+			IAMClientFactory:      r.IAMClientFactory,
+			CustomTags:            eksCluster.Spec.AdditionalTags,
 		}
 		iamService, err = iam.New(c)
 		if err != nil {

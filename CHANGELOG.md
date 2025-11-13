@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Only remove default apps IAM Roles when the cluster is being deleted, not when AWSMachineTemplate is being deleted.
+
 ## [2.0.1] - 2025-11-12
 
 ### Fixed
