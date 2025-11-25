@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix IAM role deletion for clusters with GiantSwarm release < 34.0.0, by correctly signaling that a Cluster is being deleted. 
+
 ## [2.0.2] - 2025-11-13
 
 ### Fixed
