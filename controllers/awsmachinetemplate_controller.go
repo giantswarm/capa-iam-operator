@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/giantswarm/microerror"
@@ -92,6 +93,17 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	logger = logger.WithValues("cluster", clusterName, "role", role)
 	ctx = log.IntoContext(ctx, logger)
+
+	if awsMachineTemplate.DeletionTimestamp != nil {
+		deletionAge := time.Since(awsMachineTemplate.DeletionTimestamp.Time)
+		if deletionAge < 10*time.Second {
+			logger.Info("AWSMachineTemplate recently marked for deletion, waiting before reconciliation", "wait", 30*time.Second)
+			return ctrl.Result{
+				Requeue:      true,
+				RequeueAfter: 30 * time.Second,
+			}, nil
+		}
+	}
 
 	cluster, err := util.GetClusterByName(ctx, r.Client, awsMachineTemplate.Namespace, clusterName)
 	if err != nil {
