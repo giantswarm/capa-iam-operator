@@ -127,16 +127,17 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	var iamService *iam.IAMService
 	{
 		c := iam.IAMServiceConfig{
-			ObjectLabels:     maps.Clone(infraMachinePool.GetLabels()),
-			AWSConfig:        &awsClientConfig,
-			ClusterName:      cluster.Name,
-			ClusterRelease:   cluster.Labels[GiantSwarmReleaseLabel],
-			MainRoleName:     iamInstanceProfile,
-			Log:              logger,
-			RoleType:         iam.NodesRole,
-			Region:           awsCluster.Spec.Region,
-			IAMClientFactory: r.IAMClientFactory,
-			CustomTags:       awsCluster.Spec.AdditionalTags,
+			ObjectLabels:          maps.Clone(infraMachinePool.GetLabels()),
+			AWSConfig:             &awsClientConfig,
+			ClusterIsBeingDeleted: cluster.DeletionTimestamp != nil,
+			ClusterName:           cluster.Name,
+			ClusterRelease:        cluster.Labels[GiantSwarmReleaseLabel],
+			MainRoleName:          iamInstanceProfile,
+			Log:                   logger,
+			RoleType:              iam.NodesRole,
+			Region:                awsCluster.Spec.Region,
+			IAMClientFactory:      r.IAMClientFactory,
+			CustomTags:            awsCluster.Spec.AdditionalTags,
 		}
 		iamService, err = iam.New(c)
 		if err != nil {
