@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.3] - 2025-11-27
+
 ### Fixed
 
 - Fix IAM role deletion for clusters with GiantSwarm release < 34.0.0. When the `AWSMachineTemplate` controller was reconciling the deletion of a CR, due to how Helm deletes resources, the owner `Cluster` CR may not have the `deletionTimestamp` set. So now we requeue the reconciliation event if the `AWSMachineTemplate` has been removed in the past 10s.  
@@ -392,7 +394,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implement `AWSMachineTemplate` reconciler.
 - Implement `AWSMachinePool` reconciler.
 
-[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v2.0.2...HEAD
+[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v2.0.3...HEAD
+[2.0.3]: https://github.com/giantswarm/capa-iam-operator/compare/v2.0.2...v2.0.3
 [2.0.2]: https://github.com/giantswarm/capa-iam-operator/compare/v2.0.1...v2.0.2
 [2.0.1]: https://github.com/giantswarm/capa-iam-operator/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/giantswarm/capa-iam-operator/compare/v1.6.0...v2.0.0
