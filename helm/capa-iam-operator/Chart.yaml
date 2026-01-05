@@ -1,9 +1,10 @@
+apiVersion: v2
 name: capa-iam-operator
-version: [[ .Version ]]
+version: 2.0.3-dev
 description: "Operator for managing IAM roles for CAPA clusters"
-appVersion: "[[ .AppVersion ]]"
+appVersion: 2.0.3-dev
 home: "https://github.com/giantswarm/capa-iam-operator"
-apiVersion: v1
+icon: https://s.giantswarm.io/app-icons/giantswarm/1/dark.svg
 annotations:
-  application.giantswarm.io/team: "phoenix"
   config.giantswarm.io/version: 1.x.x
+  io.giantswarm.application.team: phoenix

@@ -1,0 +1,7 @@
+replace-chart-version-with-git: true
+replace-app-version-with-git: true
+generate-metadata: true
+chart-dir: ./helm/capa-iam-operator
+destination: build
+catalog-base-url: https://giantswarm.github.io/control-plane-catalog/
+

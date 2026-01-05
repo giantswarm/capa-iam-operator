@@ -6,12 +6,9 @@ aws:
 enableKiamRole: true
 enableIRSARole: true
 
-project:
-  branch: "[[ .Branch ]]"
-  commit: "[[ .SHA ]]"
 image:
   name: "giantswarm/capa-iam-operator"
-  tag: "[[ .Version ]]"
+  tag: ""
 registry:
   domain: gsoci.azurecr.io
 
