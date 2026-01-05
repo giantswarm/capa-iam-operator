@@ -105,6 +105,10 @@
                             "default": ["ALL"]
                         }
                     }
+                },
+                "readOnlyRootFilesystem": {
+                    "type": "boolean",
+                    "default": true
                 }
             }
         },
