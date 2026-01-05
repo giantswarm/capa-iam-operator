@@ -71,17 +71,6 @@
                 }
             }
         },
-        "project": {
-            "type": "object",
-            "properties": {
-                "branch": {
-                    "type": "string"
-                },
-                "commit": {
-                    "type": "string"
-                }
-            }
-        },
         "registry": {
             "type": "object",
             "properties": {
@@ -116,6 +105,10 @@
                             "default": ["ALL"]
                         }
                     }
+                },
+                "readOnlyRootFilesystem": {
+                    "type": "boolean",
+                    "default": true
                 }
             }
         },
