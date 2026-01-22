@@ -7,9 +7,9 @@ capa-iam-operator is creating unique IAM roles for each CAPA cluster, it watches
 If the IAM role in CR is found in the AWS API it will skip the creation, if its missing it will create a new one from a template.
 
 ### IAM roles for Control Plane
- In addition to the IAM role for Control plane nodes, `capa-iam-operator` wil also create IAM role for `kiam` app and Route53 role for `external-dns` app.
+In addition to the IAM role for Control plane nodes, `capa-iam-operator` will also create Route53 role for `external-dns` app and other IRSA roles.
 
-You can disable creating KIAM and Route53 roles via arguments `--enable-kiam-role=false` and `--enable-route53-role=false`. Route53 role will be only created if KIAm role is enabled, as it depends on it.
+You can disable creating Route53 role via argument `--enable-route53-role=false`.
 
 
 ### IAM roles for Worker nodes

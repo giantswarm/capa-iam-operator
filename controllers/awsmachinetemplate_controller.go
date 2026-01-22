@@ -44,7 +44,6 @@ import (
 // AWSMachineTemplateReconciler reconciles a AWSMachineTemplate object
 type AWSMachineTemplateReconciler struct {
 	client.Client
-	EnableKiamRole    bool
 	EnableRoute53Role bool
 	AWSClient         awsclient.AwsClientInterface
 	IAMClientFactory  func(aws.Config, string) iam.IAMClient
@@ -261,7 +260,6 @@ func (r *AWSMachineTemplateReconciler) reconcileNormal(ctx context.Context, iamS
 	}
 
 	if role == iam.ControlPlaneRole {
-		// route53 role depends on KIAM role
 		if r.EnableRoute53Role {
 			logger.Info("reconciling IRSA roles")
 			identityRefName := awsCluster.Spec.IdentityRef.Name

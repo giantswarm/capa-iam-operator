@@ -3,7 +3,6 @@ aws:
   secretAccessKey: secretkey
   region: region
 
-enableKiamRole: true
 enableIRSARole: true
 
 project:

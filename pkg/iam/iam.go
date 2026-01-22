@@ -24,7 +24,6 @@ const (
 	ControlPlaneRole      = "control-plane" // also used as part of finalizer name
 	NodesRole             = "nodes"         // also used as part of finalizer name
 	Route53Role           = "route53-role"
-	KIAMRole              = "kiam-role"
 	IRSARole              = "irsa-role"
 	CertManagerRole       = "cert-manager-role"
 	ALBConrollerRole      = "ALBController-Role"
@@ -171,44 +170,6 @@ func (s *IAMService) ReconcileRole() error {
 	}
 
 	s.log.Info("finished reconciling IAM role")
-	return nil
-}
-
-func (s *IAMService) ReconcileKiamRole() error {
-	s.log.Info("reconciling KIAM IAM role")
-
-	var controlPlaneRoleARN string
-	{
-
-		i := &iam.GetRoleInput{
-			RoleName: aws.String(s.mainRoleName),
-		}
-
-		o, err := s.iamClient.GetRole(context.TODO(), i)
-		if err != nil {
-			s.log.Error(err, "failed to fetch ControlPlane role")
-			return err
-		}
-
-		controlPlaneRoleARN = *o.Role.Arn
-	}
-
-	params := struct {
-		AWSPartition        string
-		ControlPlaneRoleARN string
-		EC2ServiceDomain    string
-	}{
-		AWSPartition:        awsPartition(s.region),
-		ControlPlaneRoleARN: controlPlaneRoleARN,
-		EC2ServiceDomain:    ec2ServiceDomain(s.region),
-	}
-
-	err := s.reconcileRole(roleName(KIAMRole, s.clusterName), KIAMRole, params)
-	if err != nil {
-		return err
-	}
-
-	s.log.Info("finished reconciling KIAM IAM role")
 	return nil
 }
 
@@ -515,19 +476,6 @@ func (s *IAMService) DeleteRole() error {
 	return nil
 }
 
-func (s *IAMService) DeleteKiamRole() error {
-	s.log.Info("deleting KIAM IAM resources")
-
-	// delete kiam role
-	err := s.deleteRole(roleName(KIAMRole, s.clusterName))
-	if err != nil {
-		return err
-	}
-
-	s.log.Info("finished deleting KIAM IAM resources")
-	return nil
-}
-
 func (s *IAMService) DeleteRoute53Role() error {
 	s.log.Info("deleting Route53 IAM resources")
 
@@ -734,8 +682,6 @@ func roleName(role string, clusterID string) string {
 	switch role {
 	case Route53Role:
 		return fmt.Sprintf("%s-Route53Manager-Role", clusterID)
-	case KIAMRole:
-		return fmt.Sprintf("%s-IAMManager-Role", clusterID)
 	case CertManagerRole:
 		return fmt.Sprintf("%s-CertManager-Role", clusterID)
 	default:

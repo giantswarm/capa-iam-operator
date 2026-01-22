@@ -19,9 +19,6 @@
         "enableIRSARole": {
             "type": "boolean"
         },
-        "enableKiamRole": {
-            "type": "boolean"
-        },
         "image": {
             "type": "object",
             "properties": {
@@ -105,7 +102,7 @@
                         }
                     }
                 },
-                "capabilities":{
+                "capabilities": {
                     "type": "object",
                     "properties": {
                         "drop": {
@@ -113,7 +110,9 @@
                             "items": {
                                 "type": "string"
                             },
-                            "default": ["ALL"]
+                            "default": [
+                                "ALL"
+                            ]
                         }
                     }
                 }
