@@ -16,8 +16,8 @@ require (
 	github.com/go-logr/logr v1.4.3
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.6.0
-	github.com/onsi/ginkgo/v2 v2.27.5
-	github.com/onsi/gomega v1.39.0
+	github.com/onsi/ginkgo/v2 v2.28.1
+	github.com/onsi/gomega v1.39.1
 	github.com/pkg/errors v0.9.1
 	golang.org/x/tools v0.41.0
 	k8s.io/api v0.32.1
@@ -63,7 +63,7 @@ require (
 	github.com/google/gnostic-models v0.6.9-0.20230804172637-c7be7c783f49 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
-	github.com/google/pprof v0.0.0-20250820193118-f64d9cf942d6 // indirect
+	github.com/google/pprof v0.0.0-20260115054156-294ebfa9ad83 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
