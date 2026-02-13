@@ -36,7 +36,3 @@ securityContext:
     drop:
       - ALL
   readOnlyRootFilesystem: true
-
-global:
-  podSecurityStandards:
-    enforced: false
