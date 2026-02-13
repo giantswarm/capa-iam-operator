@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- Removed `PodSecurityPolicy`.
+- Removed `global.podSecurityStandards.enforced` helm value.
+
 ### Changed
 
 - Migrate to App Build Suite (ABS) for building and publishing Helm charts.
