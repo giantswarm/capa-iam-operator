@@ -44,17 +44,3 @@ workflows:
             ignore:
             - main
             - master
-    - architect/push-to-app-collection:
-        name: capa-app-collection
-        context: architect
-        app_name: capa-iam-operator
-        app_namespace: giantswarm
-        app_collection_repo: capa-app-collection
-        requires:
-        - push-capa-iam-operator-to-app-catalog
-        - push-to-registries
-        filters:
-          branches:
-            ignore: /.*/
-          tags:
-            only: /^v.*/
