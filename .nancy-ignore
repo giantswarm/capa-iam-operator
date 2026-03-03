@@ -1,2 +1,1 @@
-CVE-2025-47914 until=2025-12-20 # golang.org/x/crypto@v0.44.0
-CVE-2025-58181 until=2025-12-20 # golang.org/x/crypto@v0.44.0
+CVE-2026-27141 until=2026-04-02 # golang.org/x/net@v0.50.0
