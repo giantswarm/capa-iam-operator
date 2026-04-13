@@ -13,7 +13,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	capa "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/giantswarm/capa-iam-operator/v2/pkg/iam"
@@ -35,19 +34,6 @@ func GetClusterIDFromLabels(t v1.ObjectMeta) (string, error) {
 		return "", fmt.Errorf("missing label %q", ClusterNameLabel)
 	}
 	return value, nil
-}
-
-func GetClusterByName(ctx context.Context, ctrlClient client.Client, clusterName string, namespace string) (*capi.Cluster, error) {
-	cluster := &capi.Cluster{}
-
-	if err := ctrlClient.Get(ctx, types.NamespacedName{
-		Name:      clusterName,
-		Namespace: namespace,
-	}, cluster); err != nil {
-		return nil, err
-	}
-
-	return cluster, nil
 }
 
 func GetAWSClusterByName(ctx context.Context, ctrlClient client.Client, clusterName string, namespace string) (*capa.AWSCluster, error) {
