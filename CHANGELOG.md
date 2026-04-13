@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Migrate to App Build Suite (ABS) for building and publishing Helm charts.
-- Delete operator-owned IAM roles starting with CAPA v35, in favor of Crossplane-managed resources that should have been in use since v34.
+- Delete operator-owned IAM roles starting with CAPA v35, in favor of Crossplane-managed resources that should have been in use since v34 and latest app versions.
 
 ## [2.0.3] - 2025-11-27
 
