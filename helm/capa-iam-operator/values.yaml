@@ -3,9 +3,6 @@ aws:
   secretAccessKey: secretkey
   region: region
 
-enableKiamRole: true
-enableIRSARole: true
-
 image:
   name: "giantswarm/capa-iam-operator"
   tag: ""
