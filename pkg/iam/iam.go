@@ -488,21 +488,12 @@ func (s *IAMService) DeleteRolesForIRSA() error {
 	s.log.Info("deleting IAM roles for IRSA")
 	defer s.log.Info("finished deleting IAM roles for IRSA")
 
-	currentVersion, err := semver.NewVersion(s.clusterRelease)
-	if err != nil {
-		return err
-	}
-
 	// IRSA roles are cluster-wide resources. We only delete them when the entire cluster
 	// is being deleted, not during rolling upgrades or release upgrades when individual
 	// AWSMachineTemplates or control plane components are removed.
 	// This prevents IRSA roles from being deleted during cluster upgrades (e.g., v33 -> v34)
 	// when old control plane AWSMachineTemplate objects are replaced with new ones.
-	//
-	// However, starting with v35 (`GiantSwarmReleaseDeleteCAPAIAMOperatorRoles`), they
-	// can immediately be deleted since we assume that the cluster has been using the
-	// Crossplane-managed IAM roles instead for a while.
-	if currentVersion.LessThan(GiantSwarmReleaseDeleteCAPAIAMOperatorRoles) && !s.clusterIsBeingDeleted {
+	if !s.clusterIsBeingDeleted {
 		s.log.Info("Skipping IRSA roles deletion as cluster is not being deleted")
 		return nil
 	}
