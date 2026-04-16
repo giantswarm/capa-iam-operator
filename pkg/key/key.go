@@ -15,7 +15,7 @@ import (
 	capa "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/giantswarm/capa-iam-operator/v2/pkg/iam"
+	"github.com/giantswarm/capa-iam-operator/v3/pkg/iam"
 )
 
 const (
