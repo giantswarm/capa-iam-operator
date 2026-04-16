@@ -37,6 +37,7 @@ const (
 // GiantSwarmReleaseCrossplaneNodesIAMRoles The GiantSwarm CAPA release that introduced Crossplane CRs to manage IAM Roles / Policies / Instance profiles in `cluster-aws`.
 // That means that we no longer need to manage these resources for the nodes (workers, control-plane) from this controller.
 var GiantSwarmReleaseCrossplaneNodesIAMRoles = semver.MustParse("34.0.0")
+var GiantSwarmReleaseDeleteCAPAIAMOperatorRoles = semver.MustParse("35.0.0")
 
 // IAMClient defines all of the methods that we use of the IAM service.
 // The AWS SDK used to defined this, but not anymore since v2.
@@ -221,21 +222,28 @@ func (s *IAMService) generateRoute53RoleParams(roleTypeToReconcile string, awsAc
 func (s *IAMService) reconcileRole(roleName string, roleType string, params any) error {
 	l := s.log.WithValues("role_name", roleName, "role_type", roleType)
 
-	// If a cluster is using a release equal or greater than the release containing these changes, we skip the nodes IAM Role creation.
-	if roleType == ControlPlaneRole || roleType == NodesRole {
-		// Parse the current cluster release version
-		currentVersion, err := semver.NewVersion(s.clusterRelease)
-		if err != nil {
-			return err
-		}
-
-		// Check if the current version is equal or greater than threshold version
-		if currentVersion.GreaterThanEqual(GiantSwarmReleaseCrossplaneNodesIAMRoles) {
-			return nil
-		}
+	// Parse the current cluster release version
+	currentVersion, err := semver.NewVersion(s.clusterRelease)
+	if err != nil {
+		return err
 	}
 
-	err := s.createRole(roleName, roleType, params)
+	// If a cluster is using a release equal or greater than the release containing these changes, we skip the nodes IAM Role creation.
+	if (roleType == ControlPlaneRole || roleType == NodesRole) && currentVersion.GreaterThanEqual(GiantSwarmReleaseCrossplaneNodesIAMRoles) {
+		l.Info("Crossplane-enabled Release, skipping reconciliation")
+		return nil
+	}
+
+	if currentVersion.GreaterThanEqual(GiantSwarmReleaseDeleteCAPAIAMOperatorRoles) {
+		l.Info("Release is new enough that Crossplane resources should all be ready. Deleting the role.")
+		err = s.deleteRole(roleName)
+		if err != nil {
+			return fmt.Errorf("failed to delete resources for Release %q which is greater or equal to %q: %w", currentVersion, GiantSwarmReleaseDeleteCAPAIAMOperatorRoles, err)
+		}
+		return nil
+	}
+
+	err = s.createRole(roleName, roleType, params)
 	if err != nil {
 		return err
 	}
@@ -503,8 +511,35 @@ func (s *IAMService) DeleteRolesForIRSA() error {
 func (s *IAMService) deleteRole(roleName string) error {
 	l := s.log.WithValues("role_name", roleName)
 
+	existingRole, err := s.iamClient.GetRole(context.TODO(), &iam.GetRoleInput{
+		RoleName: aws.String(roleName),
+	})
+	if IsNotFound(err) {
+		l.Info("IAM Role already deleted")
+		return nil
+	}
+	if err != nil {
+		l.Error(err, "Failed to fetch IAM Role")
+		return err
+	}
+	operatorOwned := false
+	for _, tag := range existingRole.Role.Tags {
+		switch *tag.Key {
+		case "crossplane-kind":
+			l.Info("Refusing to delete Crossplane-managed IAM Role")
+			return nil
+		case IAMControllerOwnedTag:
+			operatorOwned = true
+		}
+	}
+	if !operatorOwned {
+		err = fmt.Errorf("IAM Role is neither Crossplane-managed nor tagged with %q", IAMControllerOwnedTag)
+		l.Error(err, "Refusing to delete IAM Role with unknown ownership")
+		return err
+	}
+
 	// clean any attached policies, otherwise deletion of role will not work
-	err := s.cleanRolePolicies(roleName)
+	err = s.cleanRolePolicies(roleName)
 	if err != nil {
 		return err
 	}
