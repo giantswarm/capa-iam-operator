@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-04-16
+
 ### Removed
 
 - Remove unused KIAM role code, `enable-kiam-role` and `enable-irsa-role` CLI flags, and `pkg/record` package.
@@ -405,7 +407,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implement `AWSMachineTemplate` reconciler.
 - Implement `AWSMachinePool` reconciler.
 
-[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v2.0.3...HEAD
+[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v3.0.0...HEAD
+[3.0.0]: https://github.com/giantswarm/capa-iam-operator/compare/v2.0.3...v3.0.0
 [2.0.3]: https://github.com/giantswarm/capa-iam-operator/compare/v2.0.2...v2.0.3
 [2.0.2]: https://github.com/giantswarm/capa-iam-operator/compare/v2.0.1...v2.0.2
 [2.0.1]: https://github.com/giantswarm/capa-iam-operator/compare/v2.0.0...v2.0.1
