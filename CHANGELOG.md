@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fall back to reading instance profile name from old field path of `KarpenterMachinePool`
+
 ## [3.0.0] - 2026-04-16
 
 ### Removed

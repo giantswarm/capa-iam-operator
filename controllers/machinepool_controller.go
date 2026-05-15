@@ -83,17 +83,25 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	iamInstanceProfile, found, err = unstructured.NestedString(infraMachinePool.Object, "spec", "awsLaunchTemplate", "iamInstanceProfile")
 	if err != nil {
 		logger.Error(err, "error retrieving iamInstanceProfile", "infraMachinePool", machinePool.Spec.Template.Spec.InfrastructureRef.Name)
-		return ctrl.Result{}, errors.New("failed to get iamInstanceProfile")
+		return ctrl.Result{}, errors.New("failed to get iamInstanceProfile (AWSMachinePool path)")
 	}
 	if !found {
 		// If we don't find it, let's try the `KarpenterMachinePool` field instead.
 		iamInstanceProfile, found, err = unstructured.NestedString(infraMachinePool.Object, "spec", "ec2NodeClass", "instanceProfile")
 		if err != nil {
 			logger.Error(err, "error retrieving .spec.ec2NodeClass.instanceProfile", "infraMachinePool", machinePool.Spec.Template.Spec.InfrastructureRef.Name)
-			return ctrl.Result{}, errors.New("failed to get iamInstanceProfile")
+			return ctrl.Result{}, errors.New("failed to get iamInstanceProfile (KarpenterMachinePool new path)")
 		}
 		if !found {
-			return ctrl.Result{}, errors.New("failed to get iamInstanceProfile")
+			// There's the older field path in `KarpenterMachinePool`, too
+			iamInstanceProfile, found, err = unstructured.NestedString(infraMachinePool.Object, "spec", "instanceProfile")
+			if err != nil {
+				logger.Error(err, "error retrieving .spec.instanceProfile", "infraMachinePool", machinePool.Spec.Template.Spec.InfrastructureRef.Name)
+				return ctrl.Result{}, errors.New("failed to get iamInstanceProfile (KarpenterMachinePool old path)")
+			}
+			if !found {
+				return ctrl.Result{}, errors.New("no field found for iamInstanceProfile")
+			}
 		}
 	}
 
