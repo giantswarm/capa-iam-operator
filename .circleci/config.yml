@@ -7,6 +7,7 @@ workflows:
   build:
     jobs:
     - architect/go-build:
+        context: architect
         name: go-build
         binary: capa-iam-operator
         resource_class: large
