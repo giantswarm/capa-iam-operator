@@ -1,12 +1,13 @@
 version: 2.1
 
 orbs:
-  architect: giantswarm/architect@7.1.0
+  architect: giantswarm/architect@8.2.2
 
 workflows:
   build:
     jobs:
     - architect/go-build:
+        context: architect
         name: go-build
         binary: capa-iam-operator
         resource_class: large
