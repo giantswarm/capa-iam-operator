@@ -13,7 +13,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/iam v1.53.8
 	github.com/aws/aws-sdk-go-v2/service/sts v1.42.0
 	github.com/giantswarm/microerror v0.4.1
-	github.com/go-logr/logr v1.4.3
+	github.com/go-logr/logr v1.4.4
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.6.0
 	github.com/onsi/ginkgo/v2 v2.28.2
