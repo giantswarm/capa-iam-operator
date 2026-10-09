@@ -123,3 +123,19 @@ replace (
 	golang.org/x/text v0.3.6 => golang.org/x/text v0.3.8
 	golang.org/x/text v0.3.7 => golang.org/x/text v0.3.8
 )
+
+replace github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.2 => github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.21
+
+replace github.com/aws/aws-sdk-go-v2/service/s3 v1.53.1 => github.com/aws/aws-sdk-go-v2/service/s3 v1.114.2
+
+replace github.com/cloudflare/circl v1.3.7 => github.com/cloudflare/circl v1.6.5
+
+replace github.com/dvsekhvalnov/jose2go v1.6.0 => github.com/dvsekhvalnov/jose2go v1.11.0
+
+replace github.com/golang-jwt/jwt/v4 v4.5.0 => github.com/golang-jwt/jwt/v4 v4.5.2
+
+replace github.com/golang/glog v1.2.1 => github.com/golang/glog v1.2.5
+
+replace github.com/yuin/goldmark v1.4.13 => github.com/yuin/goldmark v1.8.6
+
+replace github.com/moby/spdystream v0.5.0 => github.com/moby/spdystream v0.5.1
