@@ -1,1 +1,12 @@
-CVE-2026-27141 until=2026-04-02 # golang.org/x/net@v0.50.0
+CVE-2026-86831 until=2026-11-27 # github.com/aws/amazon-vpc-cni-k8s@v1.15.5 since=2026-10-28
+CVE-2026-89090 until=2026-11-27 # github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream@v1.6.2 since=2026-10-28
+CVE-2026-1229 until=2026-11-27 # github.com/cloudflare/circl@v1.3.7 since=2026-10-28
+CVE-2025-8556 until=2026-11-27 # github.com/cloudflare/circl@v1.3.7 since=2026-10-28
+CVE-2025-63811 until=2026-11-27 # github.com/dvsekhvalnov/jose2go@v1.6.0 since=2026-10-28
+CVE-2024-51744 until=2026-11-27 # github.com/golang-jwt/jwt/v4@v4.5.0 since=2026-10-28
+CVE-2025-30204 until=2026-11-27 # github.com/golang-jwt/jwt/v4@v4.5.0 since=2026-10-28
+CVE-2024-45339 until=2026-11-27 # github.com/golang/glog@v1.2.1 since=2026-10-28
+CVE-2026-116586 until=2026-11-27 # github.com/go-jose/go-jose/v4@v4.1.4 since=2026-10-28
+CVE-2026-116585 until=2026-11-27 # github.com/go-jose/go-jose/v4@v4.1.4 since=2026-10-28
+CVE-2026-5160 until=2026-11-27 # github.com/yuin/goldmark@v1.4.13 since=2026-10-28
+CVE-2026-35469 until=2026-11-27 # github.com/moby/spdystream@v0.5.0 since=2026-10-28
