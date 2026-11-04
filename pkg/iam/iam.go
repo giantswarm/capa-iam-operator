@@ -46,6 +46,7 @@ type IAMClient interface {
 	iam.GetRoleAPIClient
 	iam.ListRolePoliciesAPIClient
 	iam.ListAttachedRolePoliciesAPIClient
+	iam.ListRolesAPIClient
 
 	AddRoleToInstanceProfile(ctx context.Context, params *iam.AddRoleToInstanceProfileInput, optFns ...func(*iam.Options)) (*iam.AddRoleToInstanceProfileOutput, error)
 	CreateInstanceProfile(ctx context.Context, params *iam.CreateInstanceProfileInput, optFns ...func(*iam.Options)) (*iam.CreateInstanceProfileOutput, error)
@@ -508,6 +509,89 @@ func (s *IAMService) DeleteRolesForIRSA() error {
 	return nil
 }
 
+// DeleteLegacyNodeRoles deletes the control plane and nodes roles that this operator created
+// for releases before GiantSwarmReleaseCrossplaneNodesIAMRoles. From that release on, the
+// machine templates reference the Crossplane-managed roles, so the old roles
+// (`control-plane-<cluster>`, `nodes-<pool>-<cluster>`) are no longer referenced by any CR and
+// would otherwise be left behind when the cluster is deleted.
+// Only roles tagged as owned by this operator and by this cluster are deleted.
+func (s *IAMService) DeleteLegacyNodeRoles() error {
+	if !s.clusterIsBeingDeleted {
+		s.log.Info("Skipping legacy nodes IAM roles deletion as cluster is not being deleted")
+		return nil
+	}
+
+	currentVersion, err := semver.NewVersion(s.clusterRelease)
+	if err != nil {
+		return err
+	}
+	if currentVersion.LessThan(GiantSwarmReleaseCrossplaneNodesIAMRoles) {
+		// Older releases still use these roles, and they are deleted together with their CRs.
+		return nil
+	}
+
+	s.log.Info("deleting legacy nodes IAM roles")
+	defer s.log.Info("finished deleting legacy nodes IAM roles")
+
+	clusterSuffix := fmt.Sprintf("-%s", s.clusterName)
+	paginator := iam.NewListRolesPaginator(s.iamClient, &iam.ListRolesInput{})
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(context.TODO())
+		if err != nil {
+			s.log.Error(err, "failed to list IAM roles")
+			return err
+		}
+
+		for _, role := range page.Roles {
+			name := aws.ToString(role.RoleName)
+			isLegacyRole := name == ControlPlaneRole+clusterSuffix ||
+				(strings.HasPrefix(name, NodesRole+"-") && strings.HasSuffix(name, clusterSuffix))
+			if !isLegacyRole {
+				continue
+			}
+
+			// The name alone is ambiguous (`nodes-a-b-c` could belong to cluster `c` or `b-c`),
+			// so we check the cluster tag before deleting.
+			ownedByCluster, err := s.isRoleOwnedByCluster(name)
+			if err != nil {
+				return err
+			}
+			if !ownedByCluster {
+				continue
+			}
+
+			err = s.deleteRole(name)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (s *IAMService) isRoleOwnedByCluster(roleName string) (bool, error) {
+	o, err := s.iamClient.GetRole(context.TODO(), &iam.GetRoleInput{
+		RoleName: aws.String(roleName),
+	})
+	if IsNotFound(err) {
+		return false, nil
+	}
+	if err != nil {
+		s.log.Error(err, "Failed to fetch IAM Role", "role_name", roleName)
+		return false, err
+	}
+
+	clusterTag := fmt.Sprintf(ClusterIDTag, s.clusterName)
+	for _, tag := range o.Role.Tags {
+		if aws.ToString(tag.Key) == clusterTag && aws.ToString(tag.Value) == "owned" {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
 func (s *IAMService) deleteRole(roleName string) error {
 	l := s.log.WithValues("role_name", roleName)
 
@@ -532,10 +616,12 @@ func (s *IAMService) deleteRole(roleName string) error {
 			operatorOwned = true
 		}
 	}
+	// Roles with the same name may have been created by someone else, e.g. the vintage
+	// `<cluster>-Route53Manager-Role` of a cluster migrated from vintage. We leave them alone,
+	// but must not fail, as that would block deleting the remaining roles and the finalizers.
 	if !operatorOwned {
-		err = fmt.Errorf("IAM Role is neither Crossplane-managed nor tagged with %q", IAMControllerOwnedTag)
-		l.Error(err, "Refusing to delete IAM Role with unknown ownership")
-		return err
+		l.Info(fmt.Sprintf("Skipping deletion of IAM Role not tagged with %q", IAMControllerOwnedTag))
+		return nil
 	}
 
 	// clean any attached policies, otherwise deletion of role will not work

@@ -178,6 +178,10 @@ func (r *AWSMachineTemplateReconciler) reconcileDelete(ctx context.Context, iamS
 					return ctrl.Result{}, err
 				}
 			}
+			err = iamService.DeleteLegacyNodeRoles()
+			if err != nil {
+				return ctrl.Result{}, err
+			}
 		}
 	}
 	// remove finalizer from AWSCluster
