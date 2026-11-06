@@ -22,6 +22,7 @@ workflows:
         name: push-to-registries
         # the Dockerfile compiles with GOARCH=amd64, so the image is amd64-only (orb 10 defaults to amd64+arm64)
         platforms: linux/amd64
+        split-china-push: true
         requires:
         - go-build
         filters:
@@ -31,6 +32,16 @@ workflows:
             ignore:
             - main
             - master
+    - architect/sync-china-registry:
+        context: architect
+        name: sync-china-registry
+        requires:
+        - push-to-registries
+        filters:
+          tags:
+            only: /^v.*/
+          branches:
+            ignore: /.*/
     - architect/push-to-app-catalog:
         context: architect
         executor: app-build-suite
