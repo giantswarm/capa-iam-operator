@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.0-rc.1] - 2026-11-06
+
 ### Fixed
 
 - Skip, instead of failing on, IAM roles not tagged as owned by the operator when deleting roles, so the remaining roles and the finalizers are still removed.
@@ -414,7 +416,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implement `AWSMachineTemplate` reconciler.
 - Implement `AWSMachinePool` reconciler.
 
-[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v3.0.0...HEAD
+[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v3.1.0-rc.1...HEAD
+[3.1.0-rc.1]: https://github.com/giantswarm/capa-iam-operator/compare/v3.0.0...v3.1.0-rc.1
 [3.0.0]: https://github.com/giantswarm/capa-iam-operator/compare/v2.0.3...v3.0.0
 [2.0.3]: https://github.com/giantswarm/capa-iam-operator/compare/v2.0.2...v2.0.3
 [2.0.2]: https://github.com/giantswarm/capa-iam-operator/compare/v2.0.1...v2.0.2
