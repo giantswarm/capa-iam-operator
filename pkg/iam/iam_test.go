@@ -278,3 +278,129 @@ var _ = Describe("ReconcileRole AWSMachinePool", func() {
 		mockCtrl.Finish()
 	})
 })
+
+var _ = Describe("Role deletion", func() {
+	var (
+		mockCtrl      *gomock.Controller
+		mockIAMClient *mocks.MockIAMClient
+		existingRoles map[string][]awsiamtypes.Tag
+		deletedRoles  []string
+	)
+
+	ownedBy := func(clusterName string) []awsiamtypes.Tag {
+		return []awsiamtypes.Tag{
+			{Key: aws.String(iam.IAMControllerOwnedTag), Value: aws.String("")},
+			{Key: aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/" + clusterName), Value: aws.String("owned")},
+		}
+	}
+
+	newIAMService := func(release string, clusterIsBeingDeleted bool) *iam.IAMService {
+		s, err := iam.New(iam.IAMServiceConfig{
+			ClusterIsBeingDeleted: clusterIsBeingDeleted,
+			ClusterName:           "test-cluster",
+			ClusterRelease:        release,
+			MainRoleName:          "test-cluster-control-plane",
+			Region:                "test-region",
+			RoleType:              iam.ControlPlaneRole,
+			Log:                   ctrl.Log,
+			AWSConfig:             aws.NewConfig(),
+			IAMClientFactory: func(_ aws.Config, _ string) iam.IAMClient {
+				return mockIAMClient
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+		return s
+	}
+
+	BeforeEach(func() {
+		mockCtrl = gomock.NewController(GinkgoT())
+		mockIAMClient = mocks.NewMockIAMClient(mockCtrl)
+		deletedRoles = nil
+
+		mockIAMClient.EXPECT().GetRole(context.TODO(), gomock.Any()).DoAndReturn(func(_ context.Context, input *awsiam.GetRoleInput, _ ...func(*awsiam.Options)) (*awsiam.GetRoleOutput, error) {
+			tags, ok := existingRoles[*input.RoleName]
+			if !ok {
+				return nil, &awsiamtypes.NoSuchEntityException{}
+			}
+			return &awsiam.GetRoleOutput{Role: &awsiamtypes.Role{RoleName: input.RoleName, Tags: tags}}, nil
+		}).AnyTimes()
+		mockIAMClient.EXPECT().ListAttachedRolePolicies(context.TODO(), gomock.Any()).Return(&awsiam.ListAttachedRolePoliciesOutput{}, nil).AnyTimes()
+		mockIAMClient.EXPECT().ListRolePolicies(context.TODO(), gomock.Any()).Return(&awsiam.ListRolePoliciesOutput{}, nil).AnyTimes()
+		mockIAMClient.EXPECT().RemoveRoleFromInstanceProfile(context.TODO(), gomock.Any()).Return(&awsiam.RemoveRoleFromInstanceProfileOutput{}, nil).AnyTimes()
+		mockIAMClient.EXPECT().DeleteInstanceProfile(context.TODO(), gomock.Any()).Return(&awsiam.DeleteInstanceProfileOutput{}, nil).AnyTimes()
+		mockIAMClient.EXPECT().DeleteRole(context.TODO(), gomock.Any()).DoAndReturn(func(_ context.Context, input *awsiam.DeleteRoleInput, _ ...func(*awsiam.Options)) (*awsiam.DeleteRoleOutput, error) {
+			deletedRoles = append(deletedRoles, *input.RoleName)
+			return &awsiam.DeleteRoleOutput{}, nil
+		}).AnyTimes()
+	})
+
+	AfterEach(func() {
+		mockCtrl.Finish()
+	})
+
+	When("an IRSA role exists that is not owned by the operator", func() {
+		BeforeEach(func() {
+			existingRoles = map[string][]awsiamtypes.Tag{
+				// e.g. the vintage role of a cluster migrated from vintage
+				"test-cluster-Route53Manager-Role": {{Key: aws.String("aws:cloudformation:stack-name"), Value: aws.String("cluster-test-cluster-tccpi")}},
+				"test-cluster-CertManager-Role":    ownedBy("test-cluster"),
+				"test-cluster-ALBController-Role":  ownedBy("test-cluster"),
+			}
+		})
+
+		It("skips it and deletes the remaining roles", func() {
+			err := newIAMService("36.0.0", true).DeleteRolesForIRSA()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(deletedRoles).To(ConsistOf("test-cluster-CertManager-Role", "test-cluster-ALBController-Role"))
+		})
+	})
+
+	Describe("DeleteLegacyNodeRoles", func() {
+		BeforeEach(func() {
+			existingRoles = map[string][]awsiamtypes.Tag{
+				"control-plane-test-cluster":       ownedBy("test-cluster"),
+				"nodes-pool0-test-cluster":         ownedBy("test-cluster"),
+				"nodes-abc12-test-cluster":         ownedBy("test-cluster"),
+				"nodes-pool0-other-test-cluster":   ownedBy("other-test-cluster"),
+				"nodes-pool0-unowned-test-cluster": {},
+				"control-plane-other-cluster":      ownedBy("other-cluster"),
+				"test-cluster-control-plane":       {{Key: aws.String("crossplane-kind"), Value: aws.String("role.iam.aws.upbound.io")}},
+				"test-cluster-worker":              {{Key: aws.String("crossplane-kind"), Value: aws.String("role.iam.aws.upbound.io")}},
+			}
+		})
+
+		When("the cluster is being deleted with a release using Crossplane roles", func() {
+			BeforeEach(func() {
+				var roles []awsiamtypes.Role
+				for name := range existingRoles {
+					roles = append(roles, awsiamtypes.Role{RoleName: aws.String(name)})
+				}
+				// two pages, to exercise pagination
+				mockIAMClient.EXPECT().ListRoles(context.TODO(), gomock.Any(), gomock.Any()).Return(&awsiam.ListRolesOutput{Roles: roles[:4], IsTruncated: true, Marker: aws.String("next")}, nil)
+				mockIAMClient.EXPECT().ListRoles(context.TODO(), gomock.Any(), gomock.Any()).Return(&awsiam.ListRolesOutput{Roles: roles[4:]}, nil)
+			})
+
+			It("deletes only the legacy roles owned by the operator and the cluster", func() {
+				err := newIAMService("36.0.0", true).DeleteLegacyNodeRoles()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(deletedRoles).To(ConsistOf("control-plane-test-cluster", "nodes-pool0-test-cluster", "nodes-abc12-test-cluster"))
+			})
+		})
+
+		When("the cluster is not being deleted", func() {
+			It("does nothing", func() {
+				err := newIAMService("36.0.0", false).DeleteLegacyNodeRoles()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(deletedRoles).To(BeEmpty())
+			})
+		})
+
+		When("the release still uses the operator roles", func() {
+			It("does nothing", func() {
+				err := newIAMService("33.0.0", true).DeleteLegacyNodeRoles()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(deletedRoles).To(BeEmpty())
+			})
+		})
+	})
+})

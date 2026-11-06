@@ -256,6 +256,26 @@ func (mr *MockIAMClientMockRecorder) ListRolePolicies(arg0, arg1 interface{}, ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListRolePolicies", reflect.TypeOf((*MockIAMClient)(nil).ListRolePolicies), varargs...)
 }
 
+// ListRoles mocks base method.
+func (m *MockIAMClient) ListRoles(arg0 context.Context, arg1 *iam.ListRolesInput, arg2 ...func(*iam.Options)) (*iam.ListRolesOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ListRoles", varargs...)
+	ret0, _ := ret[0].(*iam.ListRolesOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListRoles indicates an expected call of ListRoles.
+func (mr *MockIAMClientMockRecorder) ListRoles(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListRoles", reflect.TypeOf((*MockIAMClient)(nil).ListRoles), varargs...)
+}
+
 // PutRolePolicy mocks base method.
 func (m *MockIAMClient) PutRolePolicy(ctx context.Context, params *iam.PutRolePolicyInput, optFns ...func(*iam.Options)) (*iam.PutRolePolicyOutput, error) {
 	m.ctrl.T.Helper()

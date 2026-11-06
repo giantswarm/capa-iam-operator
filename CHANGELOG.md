@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Skip, instead of failing on, IAM roles not tagged as owned by the operator when deleting roles, so the remaining roles and the finalizers are still removed.
+- Delete the legacy `control-plane-<cluster>` and `nodes-<pool>-<cluster>` roles when deleting a cluster on release >= 34.0.0.
 - Bump `golang.org/x/net` to v0.62.0 for CVE-2026-97045 and CVE-2026-78661, which fail the nancy scan; `golang.org/x/crypto`, `x/sync`, `x/sys`, `x/term`, `x/text` and `x/tools` move up with it.
 - The `helm.sh/chart` label is valid for long chart versions: the 63-character cut trims the whole trailing run of `-`, `.` and `_`.
 
