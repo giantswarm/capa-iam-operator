@@ -1,8 +1,8 @@
 apiVersion: v2
 name: capa-iam-operator
-version: 3.0.0
+version: 3.1.0-rc.1
 description: "Operator for managing IAM roles for CAPA clusters"
-appVersion: 3.0.0
+appVersion: 3.1.0-rc.1
 home: "https://github.com/giantswarm/capa-iam-operator"
 icon: https://s.giantswarm.io/app-icons/giantswarm/1/dark.svg
 annotations:
