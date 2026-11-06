@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- CI: push the image to the China registry from `sync-china-registry` (`split-china-push: true`).
+
 ## [3.1.0-rc.1] - 2026-11-06
 
 ### Fixed
