@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Use optimistic locking when adding or removing finalizers, so a patch built from an outdated object fails with a conflict instead of adding back finalizers other controllers have removed.
+
 ## [3.1.0] - 2026-11-10
 
 ### Changed

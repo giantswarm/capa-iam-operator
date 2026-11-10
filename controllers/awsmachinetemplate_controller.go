@@ -30,7 +30,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/types"
 	capa "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
-	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -230,12 +229,7 @@ func (r *AWSMachineTemplateReconciler) reconcileNormal(ctx context.Context, iamS
 
 	// add finalizer to AWSMachineTemplate
 	if !controllerutil.ContainsFinalizer(awsMachineTemplate, key.FinalizerName(iam.ControlPlaneRole)) {
-		patchHelper, err := patch.NewHelper(awsMachineTemplate, r.Client)
-		if err != nil {
-			return ctrl.Result{}, errors.WithStack(err)
-		}
-		controllerutil.AddFinalizer(awsMachineTemplate, key.FinalizerName(iam.ControlPlaneRole))
-		err = patchHelper.Patch(ctx, awsMachineTemplate)
+		err := addFinalizer(ctx, r.Client, awsMachineTemplate, iam.ControlPlaneRole)
 		if err != nil {
 			logger.Error(err, "failed to add finalizer on AWSMachineTemplate")
 			return ctrl.Result{}, errors.WithStack(err)
@@ -245,12 +239,7 @@ func (r *AWSMachineTemplateReconciler) reconcileNormal(ctx context.Context, iamS
 
 	// add finalizer to AWSCluster
 	if !controllerutil.ContainsFinalizer(awsCluster, key.FinalizerName(iam.ControlPlaneRole)) {
-		patchHelper, err := patch.NewHelper(awsCluster, r.Client)
-		if err != nil {
-			return ctrl.Result{}, errors.WithStack(err)
-		}
-		controllerutil.AddFinalizer(awsCluster, key.FinalizerName(iam.ControlPlaneRole))
-		err = patchHelper.Patch(ctx, awsCluster)
+		err := addFinalizer(ctx, r.Client, awsCluster, iam.ControlPlaneRole)
 		if err != nil {
 			logger.Error(err, "failed to add finalizer on AWSCluster")
 			return ctrl.Result{}, errors.WithStack(err)

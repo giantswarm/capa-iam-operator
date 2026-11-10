@@ -29,7 +29,6 @@ import (
 	expcapi "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
-	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -180,12 +179,7 @@ func (r *MachinePoolReconciler) reconcileNormal(ctx context.Context, infraMachin
 	logger := log.FromContext(ctx)
 
 	if !controllerutil.ContainsFinalizer(infraMachinePool, key.FinalizerName(iam.NodesRole)) {
-		patchHelper, err := patch.NewHelper(infraMachinePool, r.Client)
-		if err != nil {
-			return ctrl.Result{}, errors.WithStack(err)
-		}
-		controllerutil.AddFinalizer(infraMachinePool, key.FinalizerName(iam.NodesRole))
-		err = patchHelper.Patch(ctx, infraMachinePool)
+		err := addFinalizer(ctx, r.Client, infraMachinePool, iam.NodesRole)
 		if err != nil {
 			logger.Error(err, "failed to add finalizer on infrastructure MachinePool")
 			return ctrl.Result{}, errors.WithStack(err)
