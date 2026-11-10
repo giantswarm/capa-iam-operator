@@ -7,9 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.0] - 2026-11-10
+
+### Changed
+
+- This release aggregates all changes from release candidate 3.1.0-rc.1.
+
 ### Fixed
 
 - CI: push the image to the China registry from `sync-china-registry` (`split-china-push: true`).
+- Skip, instead of failing on, IAM roles not tagged as owned by the operator when deleting roles, so the remaining roles and the finalizers are still removed.
+- Delete the legacy `control-plane-<cluster>` and `nodes-<pool>-<cluster>` roles when deleting a cluster on release >= 34.0.0.
+- Bump `golang.org/x/net` to v0.62.0 for CVE-2026-97045 and CVE-2026-78661, which fail the nancy scan; `golang.org/x/crypto`, `x/sync`, `x/sys`, `x/term`, `x/text` and `x/tools` move up with it.
+- The `helm.sh/chart` label is valid for long chart versions: the 63-character cut trims the whole trailing run of `-`, `.` and `_`.
 
 ## [3.1.0-rc.1] - 2026-11-06
 
@@ -420,7 +430,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implement `AWSMachineTemplate` reconciler.
 - Implement `AWSMachinePool` reconciler.
 
-[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v3.1.0-rc.1...HEAD
+[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v3.1.0...HEAD
+[3.1.0]: https://github.com/giantswarm/capa-iam-operator/compare/v3.1.0-rc.1...v3.1.0
 [3.1.0-rc.1]: https://github.com/giantswarm/capa-iam-operator/compare/v3.0.0...v3.1.0-rc.1
 [3.0.0]: https://github.com/giantswarm/capa-iam-operator/compare/v2.0.3...v3.0.0
 [2.0.3]: https://github.com/giantswarm/capa-iam-operator/compare/v2.0.2...v2.0.3
