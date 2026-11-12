@@ -2,7 +2,7 @@
 #
 #    devctl
 #
-#    https://github.com/giantswarm/devctl/blob/fcca66d1b041c194647faec82fcc095049e06e48/pkg/gen/input/workflows/internal/file/reservation_command.yaml.template
+#    https://github.com/giantswarm/devctl/blob/f35703f9bc9bd432bf4703f6e7115facadecb11c/pkg/gen/input/workflows/internal/file/reservation_command.yaml.template
 #
 
 name: Reservation command
@@ -41,7 +41,7 @@ jobs:
     steps:
       - name: Mint the dispatch token
         id: app-token
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
           client-id: ${{ secrets.MC_RESERVATIONS_DISPATCH_CLIENT_ID }}
           private-key: ${{ secrets.MC_RESERVATIONS_DISPATCH_APP_KEY }}
