@@ -25,7 +25,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	eks "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -120,12 +119,7 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 	} else {
 		// add finalizer to AWSManagedControlPlane
 		if !controllerutil.ContainsFinalizer(eksCluster, key.FinalizerName(iam.IRSARole)) {
-			patchHelper, err := patch.NewHelper(eksCluster, r.Client)
-			if err != nil {
-				return ctrl.Result{}, microerror.Mask(err)
-			}
-			controllerutil.AddFinalizer(eksCluster, key.FinalizerName(iam.IRSARole))
-			err = patchHelper.Patch(ctx, eksCluster)
+			err = addFinalizer(ctx, r.Client, eksCluster, iam.IRSARole)
 			if err != nil {
 				logger.Error(err, "failed to add finalizer on AWSManagedControlPlane")
 				return ctrl.Result{}, microerror.Mask(err)

@@ -5,12 +5,9 @@ import (
 	"fmt"
 
 	"github.com/giantswarm/microerror"
-	"github.com/pkg/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	errutils "k8s.io/apimachinery/pkg/util/errors"
 	capa "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	expcapa "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
-	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -57,6 +54,26 @@ func isRoleUsedElsewhere(ctx context.Context, ctrlClient client.Client, roleName
 	return false, err
 }
 
+// addFinalizer adds the role's finalizer with a merge patch that carries the
+// object's resourceVersion. A merge patch replaces the whole finalizers list,
+// so without the resourceVersion a patch built from an outdated object could
+// add back finalizers that other controllers have removed in the meantime.
+// With it, the API server rejects the patch with a 409 Conflict and the
+// reconciliation is retried with the current object.
+func addFinalizer(ctx context.Context, k8sClient client.Client, object client.Object, role string) error {
+	if controllerutil.ContainsFinalizer(object, key.FinalizerName(role)) {
+		return nil
+	}
+
+	original, ok := object.DeepCopyObject().(client.Object)
+	if !ok {
+		return fmt.Errorf("failed to copy object %q", client.ObjectKeyFromObject(object))
+	}
+	controllerutil.AddFinalizer(object, key.FinalizerName(role))
+
+	return k8sClient.Patch(ctx, object, client.MergeFromWithOptions(original, client.MergeFromWithOptimisticLock{}))
+}
+
 func removeFinalizer(ctx context.Context, k8sClient client.Client, object client.Object, role string) error {
 	logger := log.FromContext(ctx)
 
@@ -66,25 +83,22 @@ func removeFinalizer(ctx context.Context, k8sClient client.Client, object client
 	}
 
 	for i := 1; i <= maxPatchAttempts; i++ {
-		patchHelper, err := patch.NewHelper(object, k8sClient)
-		if err != nil {
-			logger.Error(err, "failed to create patch helper")
-			return errors.WithStack(err)
+		original, ok := object.DeepCopyObject().(client.Object)
+		if !ok {
+			return fmt.Errorf("failed to copy object %q", client.ObjectKeyFromObject(object))
 		}
 		controllerutil.RemoveFinalizer(object, key.FinalizerName(role))
-		err = patchHelper.Patch(ctx, object)
+		// The patch carries the object's resourceVersion (see addFinalizer).
+		err := k8sClient.Patch(ctx, object, client.MergeFromWithOptions(original, client.MergeFromWithOptimisticLock{}))
 
-		// If another controller has removed its finalizer while we're
-		// reconciling this will fail with "Forbidden: no new finalizers can be
-		// added if the object is being deleted". The actual response code is
-		// 422 Unprocessable entity, which maps to StatusReasonInvalid in the
-		// k8serrors package. We have to get the cluster again with the now
-		// removed finalizer(s) and try again.
-		invalidErr := errutils.FilterOut(err, func(err error) bool {
-			return !k8serrors.IsInvalid(err)
-		})
-
-		if invalidErr != nil && i < maxPatchAttempts {
+		// If another controller has changed the object since we read it, this
+		// fails with 409 Conflict. If another controller has removed its
+		// finalizer from an object that is being deleted, it can also fail
+		// with "Forbidden: no new finalizers can be added if the object is
+		// being deleted", a 422 Unprocessable entity, which maps to
+		// StatusReasonInvalid in the k8serrors package. In both cases we have
+		// to get the object again and try again.
+		if (k8serrors.IsConflict(err) || k8serrors.IsInvalid(err)) && i < maxPatchAttempts {
 			logger.Info(fmt.Sprintf("patching object failed, trying again: %s", err.Error()))
 			if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(object), object); err != nil {
 				return microerror.Mask(err)
