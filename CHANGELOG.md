@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.1] - 2026-11-18
+
 ### Fixed
 
 - Use optimistic locking when adding or removing finalizers, so a patch built from an outdated object fails with a conflict instead of adding back finalizers other controllers have removed.
@@ -434,7 +436,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implement `AWSMachineTemplate` reconciler.
 - Implement `AWSMachinePool` reconciler.
 
-[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v3.1.0...HEAD
+[Unreleased]: https://github.com/giantswarm/capa-iam-operator/compare/v3.1.1...HEAD
+[3.1.1]: https://github.com/giantswarm/capa-iam-operator/compare/v3.1.0...v3.1.1
 [3.1.0]: https://github.com/giantswarm/capa-iam-operator/compare/v3.1.0-rc.1...v3.1.0
 [3.1.0-rc.1]: https://github.com/giantswarm/capa-iam-operator/compare/v3.0.0...v3.1.0-rc.1
 [3.0.0]: https://github.com/giantswarm/capa-iam-operator/compare/v2.0.3...v3.0.0
